@@ -1,0 +1,19 @@
+# Issue « unconverged » : au dernier tour permis, les contrôles disent encore non. La boucle
+# rend la main (compteur `tries` au plafond), le juge est sauté et le verdict (script réel)
+# rend une issue typée avec les derniers problèmes.
+# attendu: ok=false status=unconverged
+work:
+  summary: "stub: app project: iOS app with a design system first"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "calibrage.json" }
+check:
+  ok: false
+  problems: ["stub: evidence quote is not in the request, word for word"]
+  summary: "stub: app project: iOS app with a design system first"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "calibrage.json" }
+  tries: 3
+fixture:
+  expect: completed
+  reached: [produce, verdict]
+  inputs:
+    request: "stub request"
+exec-code: true

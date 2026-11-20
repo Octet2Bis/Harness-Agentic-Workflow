@@ -1,0 +1,218 @@
+name: decision-makers
+description: |
+  Bloc « decision-makers » : pour une candidature (l'offre et son annonce, le profil maître,
+  le CV et le pitch s'ils existent déjà), trouve sur des pages publiques une à quatre
+  personnes à qui écrire (le manager de l'équipe, le responsable de la fonction, la personne
+  du recrutement, un fondateur en dernier recours dans une petite structure), dit pourquoi
+  chacune, et rédige la note de connexion LinkedIn (300 caractères au plus) et un court
+  e-mail, dans la langue de l'annonce, signés du candidat, dans les artefacts du run
+  (`decideurs.json`). Un agent cherche sur le web public (site de l'entreprise, communiqués,
+  presse, pages de conférences, fiches d'entreprise publiques), jamais sur LinkedIn ni chez un
+  courtier de données personnelles ; un script vérifie ce que le code peut établir — forme du
+  fichier, entreprise de l'offre, chaque personne avec sa source https listée et une citation
+  de la page qui porte son nom, aucune adresse e-mail ni téléphone nulle part, note et e-mail
+  à leur longueur, saluant la personne, nommant l'entreprise, sans spam ni phrase creuse,
+  dans la langue de l'annonce, nombres tirés du profil ou de l'annonce — et renvoie l'agent au
+  travail tant que ça ne passe pas ; puis un juge en contexte vierge rouvre chaque source,
+  vérifie que la personne et son rôle y figurent, juge la pertinence pour ce poste,
+  l'honnêteté des messages et le ton, et n'approuve qu'à partir de A-. Rend un verdict typé
+  (`ok`), aussi écrit dans `decideurs.verdict.json` ; si les contrôles sont encore rouges au
+  troisième tour, le juge est sauté et le verdict dit `unconverged`. Rien n'est envoyé : le
+  cockpit montre la fiche, Antoine cherche l'adresse et envoie lui-même.
+
+  Use when: une candidature est prête (ou partie) et Antoine veut savoir à qui écrire et quoi
+  écrire — « à qui envoyer un message sur LinkedIn pour cette offre », « trouve les
+  décideurs », « message d'approche pour le recruteur ».
+  NOT for: envoyer un message ou une demande de connexion (Antoine le fait), trouver une
+  adresse e-mail ou un téléphone (l'outil d'enrichissement, ouvert par le cockpit), une
+  séquence de prospection (outbound-sequence), ni un dossier sur l'entreprise
+  (company-dossier).
+
+model: medium
+
+# Pas de verrou de dossier : le bloc n'écrit que dans les artefacts du run (son agent le
+# déclare aussi, `mutates_checkout: false`). Lancé sur place (`--folder`, depuis le cockpit),
+# il ne doit pas être annulé parce qu'un autre run (career-apply en attente d'un go, un
+# écouteur) est actif dans le même dossier.
+mutates_checkout: false
+
+inputs:
+  application:
+    default: ""
+    description: |
+      Chemin absolu du dossier de candidature (`<career_dir>/applications/<slug>/`). Y sont
+      lus, s'ils existent : offer.json, annonce.md|txt, CV_*.md, Message_Accroche_*.md,
+      interlocuteur_cible.json, remarques_utilisateur.txt ; sans offer.json, l'offre <slug> de
+      <career_dir>/pending_gold_jobs.json (lu, jamais écrit). CV et pitch peuvent manquer (run
+      career-apply en pause au go). Les entrées explicites ci-dessous priment.
+  profile:
+    required: true
+    description: Chemin absolu du profil maître (Markdown). Seule source des faits sur le candidat dans les messages.
+  offer:
+    default: ""
+    description: L'offre en JSON texte (company, title, link, description, description_full), facultative. Vide = application/offer.json, puis l'offre du tableau, puis interlocuteur_cible.json.
+  cv:
+    default: ""
+    description: Chemin absolu du CV envoyé (Markdown), facultatif. Vide = application/CV_*.md s'il existe.
+  pitch:
+    default: ""
+    description: Chemin absolu du pitch envoyé (Markdown), facultatif. Vide = application/Message_Accroche_*.md s'il existe.
+  max_people:
+    default: "4"
+    description: Nombre maximal de personnes dans la fiche (1 à 10).
+  out:
+    default: decideurs.json
+    description: Nom du fichier de la fiche dans les artefacts du run ; le verdict s'écrit à côté (`decideurs.verdict.json`).
+
+returns: { node: verdict, outcome: ok }
+
+nodes:
+  # ── 1. Chercher et rédiger, puis contrôler par du code, en boucle ────────
+  # L'agent cherche sur le web public et écrit la fiche ; le script `check` vérifie ; tant
+  # que le script dit non, l'agent reçoit la liste des problèmes et recommence, 3 tours au
+  # plus. Au plafond, la boucle rend la main avec des contrôles encore rouges (le compteur
+  # `tries` du script, pas l'épuisement de max_iterations : une boucle épuisée finit
+  # `failed`, et Archon rejoue les nœuds en échec quand un run reprend après une pause
+  # humaine). Le juge est alors sauté et le verdict dit `unconverged`.
+  - id: produce
+    loop_group:
+      max_iterations: 3
+      fresh_context: true
+      until_bash: 'ok=$check.output.ok; t=$check.output.tries; [ "$ok" = true ] || [ "$t" -ge 3 ]'
+      nodes:
+        - id: work
+          command: work
+          mutates_checkout: false                                         # écrit dans $ARTIFACTS_DIR seulement
+          allowed_tools: [Read, Glob, Grep, Write, WebSearch, WebFetch]   # web public ; ni LinkedIn ni courtier (prompt et contrôle)
+          with:
+            application: "$INPUTS.application"
+            profile: "$INPUTS.profile"
+            offer: "$INPUTS.offer"
+            cv: "$INPUTS.cv"
+            pitch: "$INPUTS.pitch"
+            max_people: "$INPUTS.max_people"
+            out: "$INPUTS.out"
+            problems: "$LOOP_PREV.check.output.problems"
+          output_format:
+            type: object
+            properties:
+              summary: { type: string, pattern: '\S' }
+              deliverable:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, pattern: '\S' }
+                required: [type, run_id, path]
+            required: [summary, deliverable]
+
+        - id: check
+          script: check
+          runtime: bun
+          depends_on: [work]
+          with:
+            application: "$INPUTS.application"
+            profile: "$INPUTS.profile"
+            offer: "$INPUTS.offer"
+            cv: "$INPUTS.cv"
+            pitch: "$INPUTS.pitch"
+            max_people: "$INPUTS.max_people"
+            out: "$INPUTS.out"
+            summary: "$work.output.summary"
+            deliverable: { from: "$work.output.deliverable" }
+            tries: "$LOOP_PREV.check.output.tries"
+          output_format:
+            type: object
+            properties:
+              ok: { type: boolean }
+              problems: { type: array, items: { type: string } }
+              summary: { type: string }
+              people: { type: integer, minimum: 0 }
+              deliverable:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, pattern: '\S' }
+                required: [type, run_id, path]
+              tries: { type: integer, minimum: 1 }
+            required: [ok, problems, summary, people, deliverable, tries]
+
+  # ── 2. Le juge : ce que le code ne peut pas trancher ─────────────────────
+  # Contexte vierge, lecture seule (WebFetch pour rouvrir les sources citées), modèle plus
+  # fort. Il ne tourne que si les contrôles sont verts : chaque personne est-elle sur sa
+  # page, avec ce rôle ? est-elle la bonne pour ce poste ? les messages sont-ils honnêtes ?
+  - id: judge
+    command: judge
+    context: fresh
+    mutates_checkout: false
+    allowed_tools: [Read, Glob, Grep, WebFetch]   # lecture seule : la fiche, les pièces, les pages citées
+    model: medium   # Sonnet (partage des modèles du 2026-11-07, forfait Pro : Opus ne rédige que le CV, Sonnet juge)
+    depends_on: [produce]
+    when: "$produce.output.ok == true"
+    with:
+      application: "$INPUTS.application"
+      profile: "$INPUTS.profile"
+      offer: "$INPUTS.offer"
+      cv: "$INPUTS.cv"
+      pitch: "$INPUTS.pitch"
+      out: "$INPUTS.out"
+      produced: "$produce.output"
+    output_format:
+      type: object
+      properties:
+        approved: { type: boolean }
+        grade: { type: string, pattern: '^[A-F][+-]?$' }
+        reason: { type: string, pattern: '\S' }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string, pattern: '\S' }
+            required: [severity, text]
+      required: [approved, grade, reason, findings]
+
+  # ── 3. Verdict ───────────────────────────────────────────────────────────
+  # Un script dérive l'issue des deux faits certifiés : contrôles verts et juge favorable,
+  # et l'écrit aussi dans `decideurs.verdict.json` (le cockpit ne lit que les fichiers du
+  # run). Il tourne aussi quand le juge est sauté (contrôles rouges au plafond) :
+  # `unconverged`. Il ne tourne pas si le juge a échoué (erreur du modèle) : une liaison ne lit
+  # jamais un nœud en échec, et le verdict sauté se lit `null` chez l'appelant.
+  - id: verdict
+    script: verdict
+    runtime: bun
+    depends_on: [produce, judge]
+    trigger_rule: none_failed_min_one_success
+    with:
+      produced: "$produce.output"
+      approved: { from: "$judge.output.approved", if_skipped: null }
+      grade: { from: "$judge.output.grade", if_skipped: null }
+      reason: { from: "$judge.output.reason", if_skipped: null }
+      findings: { from: "$judge.output.findings", if_skipped: null }
+      out: "$INPUTS.out"
+    output_type: block-verdict
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        status: { type: string, enum: [verified, rejected, unconverged] }
+        summary: { type: string }
+        problems: { type: array, items: { type: string } }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string }
+            required: [severity, text]
+        deliverable:
+          type: object
+          properties:
+            type: { type: string, enum: [archon_artifact] }
+            run_id: { type: string }
+            path: { type: string, pattern: '\S' }
+          required: [type, run_id, path]
+      required: [ok, status, summary, problems, findings, deliverable]

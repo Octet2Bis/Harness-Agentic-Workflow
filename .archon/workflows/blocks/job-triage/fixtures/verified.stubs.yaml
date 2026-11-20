@@ -1,0 +1,26 @@
+# Issue « verified » : citations vérifiées, la règle écarte l'offre (italien exigé), le juge
+# confirme la lecture ; le verdict (script réel) rend la décision et ses raisons.
+# attendu: ok=true status=verified decision=ecartee
+work:
+  summary: "stub: anglais et italien courants exigés, 38-45 k€"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: anglais et italien courants exigés, 38-45 k€"
+  decision: ecartee
+  reasons: ["Exige l'italien : « Fluent in English and Italian »"]
+  notes: ["Salaire : 38 000 € à 45 000 € brut par an"]
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: l'annonce exige bien l'italien"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Smartness","title":"Sales Operations & Enablement Specialist","link":"https://pt.linkedin.com/jobs/view/4475957729","slug":"smartness"}'
+    criteria: '{"langues":["fr","en"],"salaire_min_annuel":35000}'
+exec-code: true

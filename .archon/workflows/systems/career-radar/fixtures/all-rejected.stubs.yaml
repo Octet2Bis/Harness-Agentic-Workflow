@@ -1,0 +1,13 @@
+# Issue « all-rejected » : des offres brutes, aucune ne passe le jury (hybride, séniorité,
+# langue, déjà au tableau). `screen` rend go: false ; `record` tourne quand même (all_done) et
+# n'écrit que le rapport (stubbé : disque).
+# sans-attendu: rien ne s'exécute pour de vrai — collect lit le réseau, screen les artefacts et le tableau, record écrit le rapport dans le dossier carrière.
+collect: { ok: true, go: true, summary: "stub: 4 raw offer(s) from 2 source(s) (2 ok, 0 failed, 0 waiting)", raw_count: 4, sources_ok: 2, sources_failed: 0, raw_path: { type: archon_artifact, run_id: "fixture-run", path: "radar/raw.json" } }
+screen: { ok: true, go: false, summary: "stub: 0 qualified of 4 raw offer(s), 4 rejected (Remote non établi ×2, déjà au tableau ×1, Séniorité/Scope hors cible ×1)", qualified_count: 0, rejected_count: 4, qualified_path: { type: archon_artifact, run_id: "fixture-run", path: "radar/qualified.json" } }
+record: { ok: true, summary: "stub: nothing qualified", added: 0, skipped: 0, report_path: "/stub/career/last_radar_report.json" }
+fixture:
+  expect: completed
+  reached: [collect, screen, record]
+  inputs:
+    career_dir: "/stub/career"
+exec-code: true

@@ -1,0 +1,40 @@
+# Issue « research unconverged » : au 4e et dernier tour permis, les contrôles de research
+# disent encore non. La boucle rend la main au plafond (compteur `tries`, pas d'épuisement
+# de max_iterations), le juge de research est sauté et `research__verdict` (réel) rend
+# ok: false, status: unconverged. `report`, la revue et `drop` sont sautés ; `done` (réel)
+# clôt ok: false, stage: research, « Research did not converge: Checks still failing after
+# 4 round(s)… » (le résumé du bloc, tel quel).
+# Le run se termine `completed` : pas de nœud en échec, rien à rejouer après une pause.
+# Le dry-run ne joue qu'un tour de boucle : le stub `check` porte l'état du dernier tour.
+# Ce qui prouve que `report` est sauté — pas « Missing reachable stub » : les ids de corps
+# de boucle (`work`, `check`) sont nus et partagés par les deux blocs. Un `report` atteint
+# (son `when:` retiré) tournerait sur ces stubs, son juge serait sauté (contrôles rouges) et
+# son vrai verdict rendrait `unconverged` : rien ne manquerait, et le dry-run finirait
+# `completed`. D'où le stub piège `report__verdict`, une chaîne que son output_format refuse :
+# atteint, il fait échouer le nœud, puis `done` (sa liaison lit un nœud en échec), et le run
+# finit `failed` au lieu de `completed` ; sauté, Archon l'annonce par « warning: unused stubs —
+# report__verdict », attendu ici (vérifié en retirant ce `when`).
+# Second garde-fou, seulement si le piège disparaît : `deliverables` ci-dessous, où un
+# `report` atteint mettrait "x.md" au lieu de null (scripts/gates/fixture-outcomes.ts ;
+# `archon workflow test` seul passerait). Tant que le piège est là, `done` échoue avant.
+# `research__judge` n'a pas de stub : l'atteindre ferait échouer le dry-run (« Missing
+# reachable stub »). `review` non plus : un nœud `wait:` atteint sans stub met le dry-run en
+# pause (`paused` au lieu de `completed`).
+# attendu: ok=false stage=research deliverables={"research":"x.md","report":null}
+# attendu(research__verdict): ok=false status=unconverged
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: false
+  problems: ["stub: only two distinct sources, three required"]
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 4
+report__verdict: "tripwire: report was reached although research did not converge"
+fixture:
+  expect: completed
+  reached: [research__produce, research__verdict, done]
+  inputs:
+    task: "stub question"
+exec-code: true

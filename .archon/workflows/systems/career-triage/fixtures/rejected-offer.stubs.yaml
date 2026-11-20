@@ -1,0 +1,38 @@
+# Issue « écartée » : le bloc est vérifié et la règle écarte l'offre (italien exigé) ;
+# `triage__verdict` et `classify` s'exécutent pour de vrai ; `load` et `record` (disque) sont stubbés.
+# attendu(triage__verdict): ok=true status=verified decision=ecartee
+# attendu(classify): decision=ecartee block_status=verified
+load:
+  ok: true
+  go: true
+  summary: "stub: offer Smartness to triage; posting read"
+  key: LI-1642423340
+  offer_json: '{"key":"LI-1642423340","id":"LI-1642423340","slug":"smartness","company":"Smartness","title":"Sales Operations & Enablement Specialist","link":"https://pt.linkedin.com/jobs/view/x-4475957729","location":"Portugal","source":"LinkedIn","status":"PENDING_VALIDATION"}'
+  criteria_json: '{"langues":["fr","en"],"salaire_min_annuel":35000}'
+  criteria_hash: abc123
+  posting_full: "true"
+  readable: true
+  unreadable_reason: ""
+  pre_screened: false
+  pre_screen_reason: ""
+  profile_file: "profile.md"
+  attempts: 0
+work: { summary: "stub: italien exigé", deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" } }
+check:
+  ok: true
+  problems: []
+  summary: "stub: italien exigé"
+  decision: ecartee
+  reasons: ["Exige l'italien : « Fluent in English and Italian »"]
+  notes: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+triage__judge: { approved: true, reason: "stub: lecture juste", findings: [] }
+record: { ok: true, written: true, key: LI-1642423340, decision: ecartee, path: "/stub/career/triage/LI-1642423340.json", summary: "stub: écartée" }
+fixture:
+  expect: completed
+  reached: [load, triage__verdict, classify, record]
+  inputs:
+    career_dir: "/stub/career"
+    engine: llm
+exec-code: true

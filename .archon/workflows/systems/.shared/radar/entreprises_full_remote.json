@@ -1,0 +1,5 @@
+{
+ "_note": "Entreprises full remote suivies à la main (Antoine, 2026-11-08) : leurs annonces de la famille large vont dans remote_company_jobs.json, quel que soit le tri. Mêmes clés que next40_boards.json ; une liste <career>/entreprises_full_remote.json s'y ajoute.",
+ "ashby": ["posthog"],
+ "greenhouse": ["canonical"]
+}

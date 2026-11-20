@@ -1,0 +1,155 @@
+name: design
+description: |
+  Bloc « design » : transforme un brief (et une recherche, si on lui en donne une) en
+  design décidé (Objectif, Options, Décision, Plan, Risques) écrit dans les artefacts
+  du run. Un agent conçoit, un script vérifie qu'il y a au moins deux options et un
+  plan d'au moins trois étapes et le renvoie au travail tant que ça ne passe pas, puis
+  un juge en contexte vierge vérifie que la décision tient et que le plan est exécutable.
+  Rend un verdict typé (`ok`).
+
+  Use when: something must be decided and planned before being built — "conçois",
+  "propose une approche", "fais un plan".
+  NOT for: establishing facts (research) or reporting results (report).
+
+model: medium
+
+inputs:
+  task:
+    required: true
+    description: What the block must produce, in the caller's words.
+  context:
+    default: ""
+    description: Optional material the work can rely on (text, paths, a prior block's output).
+  out:
+    default: deliverable.md
+    description: File name of the deliverable inside the run's artifacts; set it when several blocks share one run.
+
+# Le résultat du bloc est le verdict typé ; `ok` est l'issue autorisée du run.
+returns: { node: verdict, outcome: ok }
+
+nodes:
+  # ── 1. Produire, puis contrôler par du code, en boucle ───────────────────
+  # L'agent travaille ; le script `check` vérifie ; tant que le script dit non,
+  # l'agent reçoit la liste des problèmes et recommence, 3 tours au plus. Au
+  # plafond, la boucle rend la main avec des contrôles encore rouges (compteur `tries`,
+  # pas l'épuisement de max_iterations, qui finirait `failed` et serait rejoué après une
+  # pause humaine) ; le juge est sauté et le verdict dit `unconverged` : le bloc n'est
+  # pas « fait », et il le dit par une issue typée.
+  - id: produce
+    loop_group:
+      max_iterations: 3
+      fresh_context: true
+      until_bash: 'ok=$check.output.ok; t=$check.output.tries; [ "$ok" = true ] || [ "$t" -ge 3 ]'
+      nodes:
+        - id: work
+          command: work
+          with:
+            task: "$INPUTS.task"
+            context: "$INPUTS.context"
+            out: "$INPUTS.out"
+            problems: "$LOOP_PREV.check.output.problems"
+          output_format:
+            type: object
+            properties:
+              summary: { type: string, pattern: '\S' }
+              deliverable:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, pattern: '\S' }
+                required: [type, run_id, path]
+            required: [summary, deliverable]
+
+        - id: check
+          script: check
+          runtime: bun
+          depends_on: [work]
+          with:
+            summary: "$work.output.summary"
+            deliverable: { from: "$work.output.deliverable" }
+            out: "$INPUTS.out"
+            tries: "$LOOP_PREV.check.output.tries"
+          output_format:
+            type: object
+            properties:
+              ok: { type: boolean }
+              problems: { type: array, items: { type: string } }
+              summary: { type: string }
+              deliverable:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, pattern: '\S' }
+                required: [type, run_id, path]
+              tries: { type: integer, minimum: 1 }
+            required: [ok, problems, summary, deliverable, tries]
+
+  # ── 2. Juger ce que le code ne peut pas trancher ─────────────────────────
+  # Second agent, contexte vierge, lecture seule, modèle plus fort : il n'a pas vu
+  # le travail se faire, il ne voit que le livrable et le résultat des contrôles.
+  - id: judge
+    command: judge
+    context: fresh
+    mutates_checkout: false
+    allowed_tools: [Read, Glob, Grep]   # lecture seule : le juge ne voit que le livrable
+    model: large
+    depends_on: [produce]
+    when: "$produce.output.ok == true"
+    with:
+      task: "$INPUTS.task"
+      produced: "$produce.output"
+      out: "$INPUTS.out"
+    output_format:
+      type: object
+      properties:
+        approved: { type: boolean }
+        reason: { type: string, pattern: '\S' }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string, pattern: '\S' }
+            required: [severity, text]
+      required: [approved, reason, findings]
+
+  # ── 3. Verdict ───────────────────────────────────────────────────────────
+  # Un script dérive l'issue du bloc des deux faits certifiés : contrôles verts et
+  # juge favorable. Une seule déclaration du booléen, jamais deux qui divergent.
+  - id: verdict
+    script: verdict
+    runtime: bun
+    depends_on: [produce, judge]
+    trigger_rule: none_failed_min_one_success
+    with:
+      produced: "$produce.output"
+      approved: { from: "$judge.output.approved", if_skipped: null }
+      reason: { from: "$judge.output.reason", if_skipped: null }
+      findings: { from: "$judge.output.findings", if_skipped: null }
+    output_type: block-verdict
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        status: { type: string, enum: [verified, rejected, unconverged] }
+        summary: { type: string }
+        problems: { type: array, items: { type: string } }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string }
+            required: [severity, text]
+        deliverable:
+          type: object
+          properties:
+            type: { type: string, enum: [archon_artifact] }
+            run_id: { type: string }
+            path: { type: string, pattern: '\S' }
+          required: [type, run_id, path]
+      required: [ok, status, summary, problems, findings, deliverable]

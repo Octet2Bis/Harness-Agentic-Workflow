@@ -1,0 +1,21 @@
+# Issue « unconverged » : au dernier tour permis, les contrôles disent encore non. La boucle
+# rend la main (compteur `tries` au plafond, pas d'épuisement de max_iterations), le juge est
+# sauté (`when: $produce.output.ok == true`) et le verdict (script réel) rend quand même une
+# issue typée : ok: false, status: unconverged, avec les derniers problèmes. Le dry-run ne
+# joue qu'un tour de boucle : le stub `check` porte directement l'état du dernier tour.
+# attendu: ok=false status=unconverged
+work:
+  summary: "stub: a first draft"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "deliverable.md" }
+check:
+  ok: false
+  problems: ["deliverable.md is too short: 12 chars, at least 200 expected"]
+  summary: "stub: a first draft"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "deliverable.md" }
+  tries: 3
+fixture:
+  expect: completed
+  reached: [produce, verdict]
+  inputs:
+    task: "stub task"
+exec-code: true

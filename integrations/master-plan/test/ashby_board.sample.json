@@ -1,0 +1,33 @@
+{
+  "_doc": "Écrit à la main dans la forme publique de l'Ashby Job Posting API (GET /posting-api/job-board/{org}). Aucune entreprise réelle.",
+  "apiVersion": "1",
+  "jobs": [
+    {
+      "id": "b7e1c0de-1111-4222-8333-000000000001",
+      "title": "Lifecycle Marketing Specialist",
+      "department": "Marketing",
+      "team": "Growth",
+      "employmentType": "FullTime",
+      "location": "Barcelona",
+      "secondaryLocations": [{ "location": "Remote (EU)" }],
+      "publishedAt": "2026-10-22T06:30:00.000Z",
+      "isListed": true,
+      "isRemote": true,
+      "jobUrl": "https://jobs.ashbyhq.com/zephyr/b7e1c0de-1111-4222-8333-000000000001",
+      "applyUrl": "https://jobs.ashbyhq.com/zephyr/b7e1c0de-1111-4222-8333-000000000001/application",
+      "descriptionPlain": "Own onboarding and reactivation e-mail flows in Klaviyo.",
+      "descriptionHtml": "<p>Own onboarding and reactivation e-mail flows in Klaviyo.</p>"
+    },
+    {
+      "id": "b7e1c0de-1111-4222-8333-000000000002",
+      "title": "Internal test posting",
+      "department": "Marketing",
+      "employmentType": "FullTime",
+      "location": "Barcelona",
+      "publishedAt": "2026-10-22T06:30:00.000Z",
+      "isListed": false,
+      "isRemote": false,
+      "jobUrl": "https://jobs.ashbyhq.com/zephyr/b7e1c0de-1111-4222-8333-000000000002"
+    }
+  ]
+}

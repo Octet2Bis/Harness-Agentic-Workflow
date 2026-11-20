@@ -1,0 +1,64 @@
+# Issue « submit-refused » : dossier vérifié et rendu, page confirmée, formulaire vert ; la
+# plateforme n'est pas vérifiée (verified-only), le run attend le go et l'humain refuse.
+# `submit__decide` (réel) dit rejected, `submit__verdict` (réel) rend ok: false, status:
+# refused, submitted: false, et `record` (réel) écrit TAILORED, stage submit, avec « Refused at
+# the go: nothing was sent. <réponse> » : le run finit `completed`, au lieu d'être annulé
+# (l'ancien `drop`) et de laisser l'offre APPLYING, que la libération d'une prise périmée
+# remettait en file pour un envoi sans go. Le listener ne reprend jamais une offre TAILORED.
+# Preuve de sûreté : aucun stub pour `submit__submit` ni `submit__judge` (agents) : en
+# atteindre un ferait échouer le dry-run ; `submit__check_receipt` ne tourne qu'après
+# `submit__submit`. La fixture, qui attend `completed`, prouve que rien n'est cliqué.
+# `record` tourne sur un dossier carrière qui n'existe pas (/stub/career) : il n'écrit rien.
+# attendu(submit__gate): needs_go=true
+# attendu(submit__decide): proceed=false path=rejected
+# attendu(submit__verdict): ok=false status=refused submitted=false
+# attendu: ok=false stage=submit status=TAILORED status_written=false copied=[]
+load:
+  ok: true
+  summary: "stub: offer Acme — Growth Ops Manager loaded"
+  slug: acme
+  profile: "/stub/career/master_profile.md"
+  proofs: "/stub/career/skill_proof_graph.json"
+  remarks: ""
+  keywords: "n8n, GTM, HubSpot"
+  offer_json: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\",\"link\":\"https://jobs.lever.co/acme/123\",\"slug\":\"acme\"}"
+  link: "https://jobs.lever.co/acme/123"
+  board: "/stub/career/pending_gold_jobs.json"
+  claim_run: "listener-run-1"
+  self_claimed: false
+  answers: ""
+work:
+  summary: "stub: produced"
+  language: fr
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  coverage: { covered: [n8n, GTM, HubSpot], missing: [], ratio: 1 }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+  tries: 1
+tailor__judge: { approved: true, grade: "A", reason: "stub: honest and dense", findings: [] }
+write_letter:
+  summary: "stub: lettre, deux preuves du profil"
+  language: fr
+  evidence:
+    - { letter: "campagnes outbound", profile: "campagnes outbound" }
+    - { letter: "qualification des leads", profile: "qualification des leads" }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/letter.md" }
+check_letter: { ok: true, problems: [], summary: "stub: lettre, deux preuves du profil", language: fr, words: 274, lines: 38, traced: 2, evidence: [], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/letter.md" }, tries: 1 }
+letter__judge: { approved: true, grade: "A", reason: "stub: honnête et précise", findings: [] }
+render: { ok: true, pdf: "/stub/artifacts/application/CV.pdf", engine: msedge, pages: 1, problems: [], summary: "stub: CV.pdf rendered and checked", letter: "", letter_pages: 0 }
+prefill: { summary: "stub: form filled", blocked: false, blocker: "" }
+check_prefill: { ok: true, problems: [], summary: "stub: form filled", filled: 8, attached: true, submitted_early: false, tries: 1 }
+submit__go: { decision: reject, text: "stub: not this company after all" }
+fixture:
+  expect: completed
+  reached: [load, tailor__verdict, letter__verdict, render, route, confirm_route, submit__gate, submit__go, submit__decide, submit__verdict, record]
+  inputs:
+    slug: acme
+    career_dir: "/stub/career"
+    mode: verified-only
+    verified_platforms: ""
+    claim_run: listener-run-1
+exec-code: true

@@ -1,0 +1,56 @@
+# Issue « approved » : les quatre blocs rendent ok, l'humain approuve à la fin, le script
+# `done` (réel, exec-code) clôt avec ok: true. Les nœuds de boucle `work`/`check` gardent
+# leur id nu dans un include : un seul stub sert aux quatre blocs. Sans `calibrage.json` dans
+# les artefacts du dry-run, `done` rend type null et aucune ligne suivante (done.test.ts
+# couvre le cas où le fichier existe).
+# attendu: ok=true stage=done next=[]
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+calibrate__judge: { approved: true, reason: "stub: sound", findings: [] }
+calibrate__verdict:
+  ok: true
+  status: verified
+  summary: "stub: app: the request names an iOS app"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "calibrage.json" }
+brief__judge: { approved: true, reason: "stub: sound", findings: [] }
+brief__verdict:
+  ok: true
+  status: verified
+  summary: "stub: brief written"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "BRIEF.md" }
+design__judge: { approved: true, reason: "stub: sound", findings: [] }
+design__verdict:
+  ok: true
+  status: verified
+  summary: "stub: tokens and doc, AA in both themes"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "design-system.md" }
+content__judge: { approved: true, reason: "stub: sound", findings: [] }
+content__verdict:
+  ok: true
+  status: verified
+  summary: "stub: content written"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "content.json" }
+review: { decision: approve, text: "" }
+fixture:
+  expect: completed
+  reached: [calibrate__verdict, brief__verdict, design__verdict, content__verdict, review, done]
+  inputs:
+    request: "stub request"
+  resolved-text-contains:
+    review: "stub: content written"
+exec-code: true

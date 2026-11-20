@@ -1,0 +1,5 @@
+[
+  { "id": "exemple_sas", "name": "Exemple SAS", "domain": "exemple.example", "careers_url": "https://exemple.example/careers", "remote_status": "declared_remote" },
+  { "id": "beispiel_gmbh", "name": "Beispiel GmbH", "domain": "beispiel.example", "careers_url": "https://beispiel.example/jobs", "remote_status": "declared_remote" },
+  { "id": "ejemplo_sl", "name": "Ejemplo SL", "domain": "ejemplo.example", "careers_url": "https://ejemplo.example/trabaja-con-nosotros", "remote_status": "declared_remote" }
+]

@@ -1,0 +1,23 @@
+# Issue « unproven » : l'envoi est automatique, le clic a lieu, mais la page ne montre aucune
+# confirmation reconnue. Le verdict dit `submitted: true, status: unproven, ok: false` :
+# l'humain doit vérifier (boîte mail, compte plateforme) au lieu de renvoyer à l'aveugle.
+# attendu(gate): needs_go=false
+# attendu(own): held=true
+# attendu(arm): clear=true
+# attendu: ok=false status=unproven submitted=true
+prefill: { summary: "stub: form filled", blocked: false, blocker: "" }
+check_prefill: { ok: true, problems: [], summary: "stub: form filled", filled: 7, attached: true, submitted_early: false, tries: 1 }
+submit: { summary: "stub: page kept loading after the click", clicked: true }
+check_receipt: { ok: false, problems: ["no recognised confirmation in confirmation_text or page_excerpt"], submitted: true, proven: false, confirmation: "", summary: "stub: page kept loading after the click" }
+judge: { approved: false, reason: "stub: screenshot shows a spinner, not a confirmation", findings: [{ severity: blocking, text: "stub: check the mailbox for an acknowledgement before any retry" }] }
+fixture:
+  expect: completed
+  reached: [gate, decide, own, arm, submit, check_receipt, judge, verdict]
+  inputs:
+    apply_url: "https://jobs.lever.co/acme/123/apply"
+    candidate: "/stub/candidate.json"
+    cv: "/stub/CV.pdf"
+    offer: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\"}"
+    platform: unknown
+    mode: auto
+exec-code: true

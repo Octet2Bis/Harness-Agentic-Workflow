@@ -1,0 +1,429 @@
+name: apply-submit
+description: |
+  Bloc « apply-submit » : dépose une candidature préparée (CV PDF, message, fiche candidat)
+  sur la page de candidature de l'employeur, avec un navigateur. Deux agents séparés par un
+  cran de sécurité : `prefill` remplit tout et s'arrête AVANT le bouton d'envoi, un script
+  vérifie le formulaire rempli (champs, pièce jointe, capture) ; selon le mode, un humain
+  donne son « go » ; `submit` clique une fois et relève la confirmation ; un script vérifie
+  le reçu ; un juge en contexte vierge confirme, sur les captures, que la candidature est
+  bien partie avec les bonnes données. Rend un verdict typé (`ok`, `status` : verified |
+  rejected | unproven | unconverged | refused | superseded) et dit si l'envoi a eu lieu même
+  quand il n'est pas prouvé (`submitted`) ; un refus au go est une issue (`refused`), pas une
+  annulation. Juste avant le clic, une garde relit le tableau de l'appelant : une offre qui
+  n'est plus tenue par sa prise n'est pas envoyée (`superseded`). Un script dit d'abord où
+  s'ouvre le formulaire (iframe Greenhouse, `/apply` Lever, Workday rendu à l'humain) et sur
+  quels hôtes saisir et cliquer ; une page ailleurs, un sosie ou hors https rougit le contrôle.
+  Les réponses libres ne viennent que du profil maître, des faits de la fiche candidat ou des
+  réponses validées par Antoine (`reponses_formulaires.md`) ; une question sans réponse reste
+  vide, « à remplir par Antoine » au go. Une lettre de motivation (`letter`), si elle est
+  donnée, est jointe ou collée là où le formulaire l'attend.
+
+  Use when: an application file is verified and must be sent on the employer's platform
+  (Lever, Greenhouse, Ashby, Workable, company careers page, LinkedIn Easy Apply…).
+  NOT for: resolving where to apply (the caller does it, see systems/career-apply) or
+  writing the file (cv-tailor). Never bypass a login wall or a CAPTCHA: that is a blocker
+  reported to the human.
+
+model: medium
+
+inputs:
+  apply_url:
+    required: true
+    description: The employer's application page (https), or a mailto. Not an aggregator page.
+  platform:
+    default: unknown
+    description: Platform id from the routing table (lever, greenhouse, ashby, workable, linkedin, unknown…).
+  method:
+    default: form
+    description: form | easy_apply | email | manual.
+  candidate:
+    required: true
+    description: Absolute path of candidate.json (what to type; produced by cv-tailor).
+  cv:
+    required: true
+    description: Absolute path of the CV to attach (PDF).
+  pitch:
+    default: ""
+    description: Absolute path of the pitch (Markdown) to paste in a cover-letter / message field when the form has one.
+  letter:
+    default: ""
+    description: Absolute path of the cover letter PDF to attach where the form takes one (its text version, same name in .md beside it, goes in a cover-letter text field). Empty means no letter - the form is filled exactly as without this input.
+  profile:
+    default: ""
+    description: Absolute path of master_profile.md. A free-text answer may be a verbatim excerpt of it. Empty means no excerpt is accepted.
+  answers_file:
+    default: ""
+    description: Absolute path of reponses_formulaires.md in the career folder - answers validated by Antoine, read-only for the agents (format in the block README). Empty or missing means no validated answer.
+  offer:
+    default: ""
+    description: The offer as JSON text, for context (company, title, link).
+  mode:
+    default: verified-only
+    description: confirm (always ask before the final click) | auto (never ask) | verified-only (ask until the platform is in verified_platforms).
+  verified_platforms:
+    default: ""
+    description: Comma-separated platform ids already verified by a supervised submission.
+  out_dir:
+    default: submission
+    description: Folder inside the run's artifacts receiving prefill.json, receipt.json and the screenshots.
+  claim_board:
+    default: ""
+    description: Absolute path of the task board (JSON array) where the caller holds the offer (career-apply - pending_gold_jobs.json). Re-read just before the click; empty means no claim to check.
+  claim_slug:
+    default: ""
+    description: The offer's slug on claim_board.
+  claim_run:
+    default: ""
+    description: The claim the caller holds (applying.run on claim_board). The click happens only if the offer is still APPLYING by it; a claim the caller's safety net closed (stale after two hours at the go) is no longer held.
+
+returns: { node: verdict, outcome: ok }
+
+nodes:
+  # ── 0. Où s'ouvre le formulaire, et sur quels hôtes ──────────────────────
+  # Un script, pas la supposition de l'agent (`.shared/platforms.ts`, testé) : la page à ouvrir
+  # (Greenhouse : `embed/job_app` hors de l'iframe ; Lever : `/apply` ; Ashby : `/application` ;
+  # Workable : `/apply/`), si elle est derrière un compte (`needs_login` : la session du profil,
+  # jamais un compte créé ; Workday, SuccessFactors, Taleo : le compte qu'Antoine a créé dans le
+  # navigateur du robot), si le harness doit passer la main (`handover`), et les
+  # seuls hôtes où saisir et cliquer (`hosts`), que `check_prefill` et `check_receipt`
+  # recalculent. Pur : les fixtures l'exécutent pour de vrai.
+  - id: target
+    script: target
+    runtime: bun
+    with:
+      apply_url: "$INPUTS.apply_url"
+      platform: "$INPUTS.platform"
+      letter: "$INPUTS.letter"
+    output_format:
+      type: object
+      properties:
+        platform: { type: string }
+        form_url: { type: string }
+        needs_login: { type: boolean }
+        handover: { type: boolean }
+        how: { type: string }
+        hosts: { type: array, items: { type: string } }
+        letter: { type: string }
+        letter_text: { type: string }
+      required: [platform, form_url, needs_login, handover, how, hosts, letter, letter_text]
+
+  # ── 1. Remplir sans envoyer, puis contrôler par du code, en boucle ───────
+  # Deux tours au plus. Au plafond, la boucle rend la main avec des contrôles encore rouges
+  # (compteur `tries` du contrôle, pas l'épuisement de max_iterations : une boucle épuisée
+  # finit `failed`, sans verdict, et Archon rejoue les nœuds en échec quand un run reprend
+  # après une pause humaine). Rien ne part alors : `gate` est sauté, donc aucun go n'est
+  # demandé ; `decide` dit `unconverged` (proceed: false) ; ni `submit`, ni le reçu, ni le
+  # juge ne tournent ; le verdict rend `unconverged`, `submitted: false`, avec les derniers
+  # problèmes du formulaire.
+  # Si `prefill` dit avoir déjà envoyé le formulaire (prefill.json `submitted: true`), la boucle
+  # s'arrête tout de suite (`submitted_early`) : un second tour rouvrirait la page et pourrait
+  # postuler deux fois. `decide` dit `submitted_early` (jamais de second clic), le verdict rend
+  # `unproven`, `submitted: true`. Un clic que l'agent tait n'est pas détectable par le code.
+  # Pas de session (page de connexion ou de création de compte) : l'agent s'arrête bloqué, le
+  # contrôle reste rouge ; au plafond, `unconverged`, sans go ni clic (fixture `no-session`).
+  - id: prepare
+    depends_on: [target]
+    loop_group:
+      max_iterations: 2
+      fresh_context: true
+      until_bash: 'ok=$check_prefill.output.ok; e=$check_prefill.output.submitted_early; t=$check_prefill.output.tries; [ "$ok" = true ] || [ "$e" = true ] || [ "$t" -ge 2 ]'
+      nodes:
+        - id: prefill
+          command: prefill
+          mcp: .archon/mcp/browser.json
+          allowed_tools: [Read, Write, Glob]
+          with:
+            apply_url: "$INPUTS.apply_url"
+            platform: "$INPUTS.platform"
+            method: "$INPUTS.method"
+            form_url: "$target.output.form_url"
+            how: "$target.output.how"
+            needs_login: "$target.output.needs_login"
+            handover: "$target.output.handover"
+            hosts: "$target.output.hosts"
+            candidate: "$INPUTS.candidate"
+            cv: "$INPUTS.cv"
+            pitch: "$INPUTS.pitch"
+            letter: "$target.output.letter"
+            letter_text: "$target.output.letter_text"
+            profile: "$INPUTS.profile"
+            answers_file: "$INPUTS.answers_file"
+            offer: "$INPUTS.offer"
+            out_dir: "$INPUTS.out_dir"
+            problems: "$LOOP_PREV.check_prefill.output.problems"
+          output_format:
+            type: object
+            properties:
+              summary: { type: string, pattern: '\S' }
+              blocked: { type: boolean }
+              blocker: { type: string }
+            required: [summary, blocked, blocker]
+
+        # Son `summary` est celui de l'agent suivi du récapitulatif du code (`prefillRecap`) : la
+        # source de chaque réponse libre, ce qui reste « à remplir par Antoine », la lettre. Le go
+        # le montre tel quel ; un champ à part casserait les appelants qui stubbent ce contrôle.
+        - id: check_prefill
+          script: check-prefill
+          runtime: bun
+          depends_on: [prefill]
+          with:
+            candidate: "$INPUTS.candidate"
+            method: "$INPUTS.method"
+            apply_url: "$INPUTS.apply_url"
+            platform: "$INPUTS.platform"
+            mode: "$INPUTS.mode"
+            verified_platforms: "$INPUTS.verified_platforms"
+            cv: "$INPUTS.cv"
+            pitch: "$INPUTS.pitch"
+            letter: "$INPUTS.letter"
+            profile: "$INPUTS.profile"
+            answers_file: "$INPUTS.answers_file"
+            out_dir: "$INPUTS.out_dir"
+            summary: "$prefill.output.summary"
+            blocked: "$prefill.output.blocked"
+            blocker: "$prefill.output.blocker"
+            tries: "$LOOP_PREV.check_prefill.output.tries"
+            submitted_before: "$LOOP_PREV.check_prefill.output.submitted_early"
+          output_format:
+            type: object
+            properties:
+              ok: { type: boolean }
+              problems: { type: array, items: { type: string } }
+              summary: { type: string }
+              filled: { type: integer }
+              attached: { type: boolean }
+              submitted_early: { type: boolean }
+              tries: { type: integer, minimum: 1 }
+            required: [ok, problems, summary, filled, attached, submitted_early, tries]
+
+  # ── 2. Le cran de sécurité : go humain selon le mode ─────────────────────
+  # Le cran ne s'ouvre que sur un formulaire vert : sauté, il saute aussi `go` (aucun humain
+  # n'est sollicité pour un formulaire incomplet), et `decide` lit son absence comme un refus
+  # d'envoyer (`unconverged`), jamais comme « pas de go requis ».
+  - id: gate
+    script: gate
+    runtime: bun
+    depends_on: [prepare]
+    when: "$prepare.output.ok == true"
+    with:
+      mode: "$INPUTS.mode"
+      platform: "$INPUTS.platform"
+      verified_platforms: "$INPUTS.verified_platforms"
+    output_format:
+      type: object
+      properties:
+        needs_go: { type: boolean }
+        reason: { type: string }
+      required: [needs_go, reason]
+
+  - id: go
+    depends_on: [gate]
+    when: "$gate.output.needs_go == true"
+    wait:
+      attention: "Application ready to send ($INPUTS.platform): $INPUTS.apply_url\n\nForm filled: $prepare.output.summary\n\nOpen prefill.png and prefill.json under $INPUTS.out_dir/ in this run's artifacts directory (context.artifactsDir of this attention item), then approve to click Submit, or reject with what to change. Les champs « à remplir par Antoine » sont vides dans l'onglet resté ouvert : les remplir là, puis approuver."
+      form: approval
+      labels:
+        block: apply-submit
+
+  # Une seule déclaration de « on envoie », écrite aussi dans <out_dir>/decision.json : quand
+  # le bloc ne rend pas de verdict (erreur après le go), l'appelant y lit que le clic était
+  # autorisé (systems/career-apply : APPLY_UNPROVEN plutôt que « prêt, pas envoyé »).
+  # Un refus au go n'annule pas le run : `submit` est sauté et le verdict rend `refused`.
+  - id: decide
+    script: decide
+    runtime: bun
+    depends_on: [gate, go]
+    trigger_rule: all_done
+    with:
+      needs_go: { from: "$gate.output.needs_go", if_skipped: null }
+      go: { from: "$go.output", if_skipped: null }
+      submitted_early: { from: "$prepare.output.submitted_early", if_skipped: null }
+      out_dir: "$INPUTS.out_dir"
+    output_format:
+      type: object
+      properties:
+        proceed: { type: boolean }
+        path: { type: string, enum: [auto, approved, rejected, unconverged, submitted_early] }
+        text: { type: string }
+      required: [proceed, path, text]
+
+  # ── 3. Envoyer une fois, relever la confirmation, contrôler le reçu ──────
+  # La garde de propriété. Entre le go et le clic, l'offre a pu changer de mains : un run lancé
+  # à la main pendant que le listener la tenait, un vieux run repris après que le filet a clos
+  # sa prise et qu'un `/valider` l'a remise en file. `own` relit le tableau de l'appelant
+  # (`claim_board`) à chaque passage (`always_run: true`, rejouée même si elle a réussi) et ne
+  # laisse passer que si l'offre est encore APPLYING par `claim_run` (une prise close par le
+  # filet du listener, périmée au go, ne l'est plus). Sinon `arm` et `submit` sont sautés et le verdict rend
+  # `superseded`, `submitted: false` : rien n'est envoyé (sauf trace d'un `submit` déjà démarré
+  # dans ce run : `unproven`, `submitted: true`). Tableau introuvable ou illisible : pas tenue.
+  - id: own
+    script: own
+    runtime: bun
+    always_run: true
+    depends_on: [decide]
+    when: "$decide.output.proceed == true"
+    with:
+      claim_board: "$INPUTS.claim_board"
+      claim_slug: "$INPUTS.claim_slug"
+      claim_run: "$INPUTS.claim_run"
+      out_dir: "$INPUTS.out_dir"
+    output_format:
+      type: object
+      properties:
+        held: { type: boolean }
+        reason: { type: string }
+        evidence: { type: array, items: { type: string } }
+      required: [held, reason, evidence]
+
+  # Le verrou du clic. Archon rejoue un nœud en échec quand le run reprend : si `submit`
+  # échoue APRÈS avoir cliqué (erreur du modèle, sortie hors output_format), le run finit
+  # `failed`, le listener qui reprend relance cet enfant en échec (dag-executor.ts, nœud
+  # `workflow:`), et `submit` recliquerait. `arm` passe avant lui à chaque reprise
+  # (`always_run: true` : rejoué même s'il a réussi) ; il écrit <out_dir>/armed.json avant
+  # d'ouvrir la porte la première fois, et la ferme ensuite pour de bon (`clear: false`) dès
+  # qu'armed.json, click.json, receipt.json ou receipt.png existe : `submit` est sauté, le
+  # verdict rend `unproven`, `submitted: true`. Aucune option d'Archon n'empêche ce rejeu.
+  - id: arm
+    script: arm
+    runtime: bun
+    always_run: true
+    depends_on: [own]
+    when: "$own.output.held == true"
+    with:
+      out_dir: "$INPUTS.out_dir"
+    output_format:
+      type: object
+      properties:
+        clear: { type: boolean }
+        reason: { type: string }
+        evidence: { type: array, items: { type: string } }
+      required: [clear, reason, evidence]
+
+  # `retry` au minimum permis (1 : Archon refuse 0) : un nœud agent est rejoué dans le même
+  # passage après une erreur passagère (2 fois par défaut ; jusqu'à 5 sur une surcharge ou une
+  # limite de débit, quoi qu'on écrive ici). Contre ces rejeux-là, seul le prompt protège :
+  # `submit` lit click.json et receipt.json avant tout et ne clique pas s'ils existent.
+  - id: submit
+    command: submit
+    mcp: .archon/mcp/browser.json
+    allowed_tools: [Read, Write, Glob]
+    depends_on: [arm]
+    when: "$arm.output.clear == true"
+    retry:
+      max_attempts: 1
+    with:
+      apply_url: "$INPUTS.apply_url"
+      platform: "$INPUTS.platform"
+      hosts: "$target.output.hosts"
+      out_dir: "$INPUTS.out_dir"
+    output_format:
+      type: object
+      properties:
+        summary: { type: string, pattern: '\S' }
+        clicked: { type: boolean }
+      required: [summary, clicked]
+
+  - id: check_receipt
+    script: check-receipt
+    runtime: bun
+    depends_on: [submit]
+    with:
+      platform: "$INPUTS.platform"
+      apply_url: "$INPUTS.apply_url"
+      method: "$INPUTS.method"
+      out_dir: "$INPUTS.out_dir"
+      summary: "$submit.output.summary"
+      clicked: "$submit.output.clicked"
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        problems: { type: array, items: { type: string } }
+        submitted: { type: boolean }
+        proven: { type: boolean }
+        confirmation: { type: string }
+        summary: { type: string }
+      required: [ok, problems, submitted, proven, confirmation, summary]
+
+  # ── 4. Juger sur pièces : captures, formulaire, reçu ─────────────────────
+  - id: judge
+    command: judge
+    context: fresh
+    mutates_checkout: false
+    allowed_tools: [Read, Glob, Grep]   # lecture seule : le juge ne voit que les pièces
+    model: medium   # Sonnet (partage des modèles du 2026-11-07, forfait Pro : Opus ne rédige que le CV, Sonnet juge)
+    depends_on: [check_receipt]
+    with:
+      offer: "$INPUTS.offer"
+      candidate: "$INPUTS.candidate"
+      letter: "$INPUTS.letter"
+      profile: "$INPUTS.profile"
+      answers_file: "$INPUTS.answers_file"
+      out_dir: "$INPUTS.out_dir"
+      prefill: "$prepare.output"
+      receipt: "$check_receipt.output"
+    output_format:
+      type: object
+      properties:
+        approved: { type: boolean }
+        reason: { type: string, pattern: '\S' }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string, pattern: '\S' }
+            required: [severity, text]
+      required: [approved, reason, findings]
+
+  # ── 5. Verdict ───────────────────────────────────────────────────────────
+  # Il tourne aussi quand le juge et le reçu sont sautés : formulaire rouge au plafond
+  # (`unconverged`), refus au go (`refused`), envoi signalé par `prefill` (`unproven`,
+  # `submitted: true`), offre qui n'est plus tenue par la prise juste avant le clic (`own` :
+  # `superseded`, `submitted: false`), reprise après un `submit` déjà démarré (`arm` fermé :
+  # `unproven`, `submitted: true`). Il ne tourne pas quand un nœud en amont a échoué (erreur du modèle ou
+  # d'un script : `submit`, `check_receipt`, `judge`…) : une liaison ne lit jamais un nœud en
+  # échec, et le verdict sauté se lit `null` chez l'appelant (`if_skipped: null`), qui cherche
+  # alors les traces d'un clic dans <out_dir>/ (decision.json, armed.json, click.json,
+  # receipt.json, receipt.png).
+  - id: verdict
+    script: verdict
+    runtime: bun
+    depends_on: [prepare, judge]
+    trigger_rule: none_failed_min_one_success
+    with:
+      prepared: "$prepare.output"
+      decision: { from: "$decide.output", if_skipped: null }
+      own: { from: "$own.output", if_skipped: null }
+      arm: { from: "$arm.output", if_skipped: null }
+      receipt: { from: "$check_receipt.output", if_skipped: null }
+      approved: { from: "$judge.output.approved", if_skipped: null }
+      reason: { from: "$judge.output.reason", if_skipped: null }
+      findings: { from: "$judge.output.findings", if_skipped: null }
+      out_dir: "$INPUTS.out_dir"
+    output_type: block-verdict
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        status: { type: string, enum: [verified, rejected, unproven, unconverged, refused, superseded] }
+        submitted: { type: boolean }
+        summary: { type: string }
+        problems: { type: array, items: { type: string } }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string }
+            required: [severity, text]
+        deliverable:
+          type: object
+          properties:
+            type: { type: string, enum: [archon_artifact] }
+            run_id: { type: string }
+            path: { type: string, pattern: '\S' }
+          required: [type, run_id, path]
+      required: [ok, status, submitted, summary, problems, findings, deliverable]

@@ -1,0 +1,332 @@
+{
+ "_source": "JobCampaign/next40_120.json (liste French Tech Next40/120 2026, https://lafrenchtech.com/fr/la-france-aide-les-startups/french-tech-next40-120/, relevée le 2026-10-01) ; slugs ATS trouvés le 2026-10-24 via l'API publique freehire.me (champ source + external_id de leurs offres), non revérifiés sur chaque ATS",
+ "_note": "lever et smartrecruiters : casse gardée telle que l'ATS l'affiche. greenhouse alma31 est un tableau EU (job-boards.eu.greenhouse.io). teamtailor : hôte de la page carrières (domaine propre ou <x>.teamtailor.com), pas un slug d'API. _wttj_only : pages carrières Welcome Kit (WTTJ, extraction scriptée interdite) ; _unmapped : aucun tableau public trouvé ou homonymie non tranchée.",
+ "greenhouse": [
+  "alma31",
+  "doctolib",
+  "ouihelp",
+  "shifttechnology"
+ ],
+ "lever": [
+  "360learning",
+  "agicap",
+  "alice-bob",
+  "bigblue",
+  "blablacar",
+  "contentsquare",
+  "ekimetrics",
+  "Fairmat",
+  "malt",
+  "pigment",
+  "qonto",
+  "swile",
+  "verkor",
+  "vestiairecollective"
+ ],
+ "ashby": [
+  "akur8",
+  "alan",
+  "backmarket",
+  "doctolib",
+  "ledger",
+  "mistral.ai",
+  "pennylane",
+  "qonto",
+  "seyna",
+  "voodoo",
+  "yubo"
+ ],
+ "workable": [
+  "corwave-1",
+  "exotec",
+  "flowdesk",
+  "homa-games"
+ ],
+ "smartrecruiters": [
+  "ecovadis",
+  "ENERGYPOOL",
+  "Flowdesk",
+  "Shippeo"
+ ],
+ "recruitee": [
+  "adikteev"
+ ],
+ "teamtailor": [
+  "asklocala-1671530238.teamtailor.com",
+  "career.positivegroup.com",
+  "careers.akeneo.com",
+  "careers.chapsvision.com",
+  "careers.deepki.com",
+  "careers.descartesunderwriting.com",
+  "careers.gitguardian.com",
+  "careers.greenly.earth",
+  "careers.myunisoft.fr",
+  "careers.ornikar.com",
+  "careers.pasqal.com",
+  "careers.payfit.com",
+  "careers.planity.com",
+  "careers.spore.bio",
+  "careers.stoik.io",
+  "careers.tissium.com",
+  "homeexchange.teamtailor.com",
+  "hublo.teamtailor.com",
+  "jobs.legalplace.fr",
+  "jobs.mylight150.com",
+  "jobs.pixmania.com",
+  "swanio.teamtailor.com",
+  "sweep.teamtailor.com",
+  "waat.teamtailor.com"
+ ],
+ "other": [
+  {
+   "company": "Papernest",
+   "url": "https://papernest.wd502.myworkdayjobs.com/External_Careers_Global"
+  }
+ ],
+ "_by_company": {
+  "360 learning": [
+   "lever:360learning"
+  ],
+  "AKUR8": [
+   "ashby:akur8"
+  ],
+  "Adikteev": [
+   "recruitee:adikteev"
+  ],
+  "Agicap": [
+   "lever:agicap"
+  ],
+  "Akeneo": [
+   "teamtailor:careers.akeneo.com"
+  ],
+  "Alan": [
+   "ashby:alan"
+  ],
+  "Alice & Bob": [
+   "lever:alice-bob"
+  ],
+  "Alma": [
+   "greenhouse:alma31"
+  ],
+  "BackMarket": [
+   "ashby:backmarket"
+  ],
+  "Bigblue": [
+   "lever:bigblue"
+  ],
+  "BlaBlaCar": [
+   "lever:blablacar"
+  ],
+  "Chapsvision": [
+   "teamtailor:careers.chapsvision.com"
+  ],
+  "Contentsquare": [
+   "lever:contentsquare"
+  ],
+  "CorWave": [
+   "workable:corwave-1"
+  ],
+  "Deepki": [
+   "teamtailor:careers.deepki.com"
+  ],
+  "Descartes Underwriting": [
+   "teamtailor:careers.descartesunderwriting.com"
+  ],
+  "Doctolib": [
+   "greenhouse:doctolib",
+   "ashby:doctolib"
+  ],
+  "Ecovadis": [
+   "smartrecruiters:ecovadis"
+  ],
+  "Ekimetrics": [
+   "lever:ekimetrics"
+  ],
+  "Energy Pool": [
+   "smartrecruiters:ENERGYPOOL"
+  ],
+  "Exotec": [
+   "workable:exotec"
+  ],
+  "FAIRMAT": [
+   "lever:Fairmat"
+  ],
+  "Flowdesk": [
+   "workable:flowdesk",
+   "smartrecruiters:Flowdesk"
+  ],
+  "GitGuardian": [
+   "teamtailor:careers.gitguardian.com"
+  ],
+  "Greenly": [
+   "teamtailor:careers.greenly.earth"
+  ],
+  "Homa": [
+   "workable:homa-games"
+  ],
+  "HomeExchange": [
+   "teamtailor:homeexchange.teamtailor.com"
+  ],
+  "Hublo": [
+   "teamtailor:hublo.teamtailor.com"
+  ],
+  "Ledger": [
+   "ashby:ledger"
+  ],
+  "Legalplace": [
+   "teamtailor:jobs.legalplace.fr"
+  ],
+  "Locala": [
+   "teamtailor:asklocala-1671530238.teamtailor.com"
+  ],
+  "Malt": [
+   "lever:malt"
+  ],
+  "Mistral AI": [
+   "ashby:mistral.ai"
+  ],
+  "MyUnisoft": [
+   "teamtailor:careers.myunisoft.fr"
+  ],
+  "Mylight150": [
+   "teamtailor:jobs.mylight150.com"
+  ],
+  "Ornikar": [
+   "teamtailor:careers.ornikar.com"
+  ],
+  "OuiHelp": [
+   "greenhouse:ouihelp"
+  ],
+  "Pasqal": [
+   "teamtailor:careers.pasqal.com"
+  ],
+  "Payfit": [
+   "teamtailor:careers.payfit.com"
+  ],
+  "Pennylane": [
+   "ashby:pennylane"
+  ],
+  "Pigment": [
+   "lever:pigment"
+  ],
+  "Pixmania": [
+   "teamtailor:jobs.pixmania.com"
+  ],
+  "Planity": [
+   "teamtailor:careers.planity.com"
+  ],
+  "Positive": [
+   "teamtailor:career.positivegroup.com"
+  ],
+  "Qonto": [
+   "lever:qonto",
+   "ashby:qonto"
+  ],
+  "Seyna": [
+   "ashby:seyna"
+  ],
+  "Shift Technology": [
+   "greenhouse:shifttechnology"
+  ],
+  "Shippeo": [
+   "smartrecruiters:Shippeo"
+  ],
+  "Spore.Bio": [
+   "teamtailor:careers.spore.bio"
+  ],
+  "Stoïk": [
+   "teamtailor:careers.stoik.io"
+  ],
+  "Swan": [
+   "teamtailor:swanio.teamtailor.com"
+  ],
+  "Sweep": [
+   "teamtailor:sweep.teamtailor.com"
+  ],
+  "Swile": [
+   "lever:swile"
+  ],
+  "Tissium": [
+   "teamtailor:careers.tissium.com"
+  ],
+  "Verkor": [
+   "lever:verkor"
+  ],
+  "Vestiaire Collective": [
+   "lever:vestiairecollective"
+  ],
+  "Voodoo": [
+   "ashby:voodoo"
+  ],
+  "Waat": [
+   "teamtailor:waat.teamtailor.com"
+  ],
+  "Yubo": [
+   "ashby:yubo"
+  ]
+ },
+ "_wttj_only": [
+  "Animaj",
+  "Bump",
+  "Chargemap",
+  "Exotrail",
+  "Spendesk",
+  "Unseenlabs",
+  "Voltalis"
+ ],
+ "_unmapped": [
+  "52 Entertainment",
+  "AMI Labs",
+  "Acheel",
+  "Agryco",
+  "Aqemia",
+  "Aura Aero",
+  "ClubFunding",
+  "Crème de la Crème",
+  "Electra",
+  "ElicitPlant",
+  "FREELANCEREPUBLIK",
+  "Flying Whales",
+  "FoodFlow",
+  "Foodles",
+  "Gradium",
+  "GravitHy",
+  "H Company",
+  "HelloCSE",
+  "ITEN",
+  "Innovafeed",
+  "Jimmy",
+  "La Fourche",
+  "Latitude",
+  "LeHibou",
+  "Libon",
+  "MWM",
+  "Medadom",
+  "Metron",
+  "Mistertemp’Group",
+  "Moon surgical",
+  "NW",
+  "Naboo",
+  "Partoo",
+  "Qair",
+  "Quobly",
+  "Resilience",
+  "Scintil Photonics",
+  "Sekoia",
+  "Shares",
+  "Shopopop",
+  "SparingVision",
+  "Step Pharma",
+  "Stockly",
+  "Stych",
+  "Superprof",
+  "TSE",
+  "Upsun",
+  "Verley",
+  "Wandercraft",
+  "Weezevent",
+  "Yespark",
+  "Zeplug ChargeGuru",
+  "iSupplier"
+ ]
+}

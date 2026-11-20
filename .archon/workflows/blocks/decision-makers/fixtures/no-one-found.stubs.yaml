@@ -1,0 +1,29 @@
+# Issue « verified » sans personne : aucune page publique ne nomme de manager ni de recruteur
+# (`people` vide) ; la fiche donne trois recherches LinkedIn qu'Antoine lancera lui-même, et
+# des messages adressés à l'équipe de recrutement (`to` vide). Les contrôles le permettent (au
+# moins deux recherches), le juge approuve, le verdict (script réel) rend ok: true. L'offre
+# vient de l'entrée `offer` : le dossier n'a ni offer.json ni CV.
+# attendu: ok=true status=verified findings=[] deliverable={"type":"archon_artifact","run_id":"fixture-run","path":"decideurs.json"}
+work:
+  summary: "stub: personne de nommé en public ; trois recherches LinkedIn, messages à l'équipe de recrutement"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "decideurs.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: personne de nommé en public ; trois recherches LinkedIn, messages à l'équipe de recrutement"
+  people: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "decideurs.json" }
+  tries: 2
+judge:
+  approved: true
+  grade: "A-"
+  reason: "stub: aucune personne inventée, recherches utiles, messages sobres et fidèles au profil"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    application: "/stub/career/applications/globex"
+    profile: "/stub/career/master_profile.md"
+    offer: '{"company":"Globex","title":"CRM Manager","description":"Globex recrute un CRM Manager."}'
+exec-code: true

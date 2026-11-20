@@ -1,0 +1,26 @@
+# Issue « no survivor » : les trois juges refusent ; `collect` (réel) n'a rien à proposer,
+# `choose` est sauté (pas de pause pour rien) et `drop` aussi ; `done` (réel) clôt ok: false,
+# chosen: null, chaque variante `rejected` (refusée par son juge).
+# attendu: ok=false chosen=null variants={"a":false,"b":false,"c":false} statuses={"a":"rejected","b":"rejected","c":"rejected"}
+# attendu(collect): survivors=0
+work:
+  summary: "stub: page built"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.html" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: page built"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.html" }
+  tries: 1
+a__judge: { approved: false, reason: "stub: promise not honoured", findings: [ { severity: blocking, text: "stub: H1 differs from the intent" } ] }
+a__verdict: { ok: false, status: rejected, summary: "stub: A rejected by the judge", problems: [], findings: [ { severity: blocking, text: "stub: H1 differs from the intent" } ], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "variant-a.html" } }
+b__judge: { approved: false, reason: "stub: invented figure", findings: [ { severity: blocking, text: "stub: 3x figure absent from the brief" } ] }
+b__verdict: { ok: false, status: rejected, summary: "stub: B rejected by the judge", problems: [], findings: [ { severity: blocking, text: "stub: 3x figure absent from the brief" } ], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "variant-b.html" } }
+c__judge: { approved: false, reason: "stub: two CTAs", findings: [ { severity: blocking, text: "stub: a second primary CTA" } ] }
+c__verdict: { ok: false, status: rejected, summary: "stub: C rejected by the judge", problems: [], findings: [ { severity: blocking, text: "stub: a second primary CTA" } ], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "variant-c.html" } }
+fixture:
+  expect: completed
+  reached: [a__verdict, b__verdict, c__verdict, collect, done]
+  inputs:
+    brief: "stub brief"
+exec-code: true

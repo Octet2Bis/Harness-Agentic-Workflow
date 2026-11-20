@@ -1,0 +1,29 @@
+# Issue « one variant rejected » : la B échoue au juge ; `collect` (réel) ne propose que A, C et
+# none (le stub de `choose` est refusé s'il choisit une option non proposée) ; l'humain garde A ;
+# `done` (réel) clôt ok: true, variants.b = false.
+# attendu: ok=true chosen=a variants={"a":true,"b":false,"c":true} statuses={"a":"verified","b":"rejected","c":"verified"}
+# attendu(collect): survivors=2
+work:
+  summary: "stub: page built"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.html" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: page built"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.html" }
+  tries: 1
+a__judge: { approved: true, reason: "stub: clear", findings: [] }
+a__verdict: { ok: true, status: verified, summary: "stub: A sober", problems: [], findings: [], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "variant-a.html" } }
+b__judge: { approved: false, reason: "stub: invented figure in the proof block", findings: [ { severity: blocking, text: "stub: 3x figure absent from the brief" } ] }
+b__verdict: { ok: false, status: rejected, summary: "stub: B rejected by the judge", problems: [], findings: [ { severity: blocking, text: "stub: 3x figure absent from the brief" } ], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "variant-b.html" } }
+c__judge: { approved: true, reason: "stub: clear", findings: [] }
+c__verdict: { ok: true, status: verified, summary: "stub: C narrative", problems: [], findings: [], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "variant-c.html" } }
+choose: { decision: a, text: "je garde A" }
+fixture:
+  expect: completed
+  reached: [a__verdict, b__verdict, c__verdict, collect, choose, done]
+  inputs:
+    brief: "stub brief"
+  resolved-text-contains:
+    choose: "variant-b.html) ok=false, rejected by its judge — stub: B rejected by the judge; not offered."
+exec-code: true

@@ -1,0 +1,52 @@
+{
+  "_doc": "Écrit à la main d'après la documentation de la SmartRecruiters Posting API (GET api.smartrecruiters.com/v1/companies/{company}/postings?limit=100&offset=0), forme à confirmer sur une vraie réponse. Aucune entreprise réelle.",
+  "offset": 0,
+  "limit": 100,
+  "totalFound": 4,
+  "content": [
+    {
+      "id": "744000045001001",
+      "uuid": "c9d8e7f6-0000-4000-8000-000000000001",
+      "name": "Demand Generation Lead",
+      "refNumber": "REF1001A",
+      "company": { "identifier": "Meridian", "name": "Meridian" },
+      "releasedDate": "2026-10-22T09:00:00.000Z",
+      "location": { "city": "Paris", "region": "Île-de-France", "country": "fr", "remote": true },
+      "industry": { "id": "software", "label": "Software" },
+      "department": { "id": "12", "label": "Marketing" },
+      "function": { "id": "marketing", "label": "Marketing" },
+      "typeOfEmployment": { "id": "permanent", "label": "Full-time" },
+      "experienceLevel": { "id": "mid_senior_level", "label": "Mid-Senior Level" },
+      "customField": [],
+      "ref": "https://api.smartrecruiters.com/v1/companies/Meridian/postings/744000045001001"
+    },
+    {
+      "id": "744000045001002",
+      "uuid": "c9d8e7f6-0000-4000-8000-000000000002",
+      "name": "Customer Success Manager",
+      "company": { "identifier": "Meridian", "name": "Meridian" },
+      "releasedDate": "2026-10-21T09:00:00.000Z",
+      "location": { "city": "Boston", "region": "MA", "country": "us", "remote": false },
+      "department": { "id": "14", "label": "Customer Success" },
+      "typeOfEmployment": { "id": "permanent", "label": "Full-time" },
+      "ref": "https://api.smartrecruiters.com/v1/companies/Meridian/postings/744000045001002"
+    },
+    {
+      "id": "744000045001003",
+      "uuid": "c9d8e7f6-0000-4000-8000-000000000003",
+      "name": "Product Marketing Manager &amp; Analyst",
+      "company": { "identifier": "Meridian", "name": "Meridian" },
+      "releasedDate": "2026-10-20T09:00:00.000Z",
+      "location": { "city": "Lisbon", "region": "", "country": "pt", "remote": false },
+      "department": { "id": "12", "label": "Marketing" },
+      "typeOfEmployment": { "id": "contract", "label": "Contract" },
+      "ref": "https://api.smartrecruiters.com/v1/companies/Meridian/postings/744000045001003"
+    },
+    {
+      "id": "",
+      "name": "Posting without id",
+      "releasedDate": "2026-10-19T09:00:00.000Z",
+      "location": { "city": "Lisbon", "country": "pt", "remote": false }
+    }
+  ]
+}

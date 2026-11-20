@@ -1,0 +1,22 @@
+# Issue « verified » : les contrôles passent au premier tour, le juge approuve, le verdict
+# (script réel, exec-code) rend ok: true. Prouve le câblage du bloc sans appeler un modèle.
+# attendu: ok=true status=verified
+work:
+  summary: "stub: 24 entries in fr and en, one voice"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "content.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: 24 entries in fr and en, one voice"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "content.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: the voice holds and the English reads as English"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    request: "stub request"
+exec-code: true

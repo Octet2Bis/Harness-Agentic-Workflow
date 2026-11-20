@@ -1,0 +1,22 @@
+# Issue « verified » : les contrôles passent au premier tour, le juge approuve, le verdict
+# (script réel, exec-code) rend ok: true. Prouve le câblage du bloc sans appeler un modèle.
+# attendu: ok=true status=verified
+work:
+  summary: "stub: tokens and doc written, AA in both themes"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "design-system.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: tokens and doc written, AA in both themes"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "design-system.md" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: the direction follows the brief and the existing theme"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    request: "stub request"
+exec-code: true

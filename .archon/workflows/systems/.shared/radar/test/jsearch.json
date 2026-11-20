@@ -1,0 +1,14 @@
+{
+  "_fixture": "fabriquée à la main d'après la documentation JSearch / OpenWeb Ninja (injoignable)",
+  "status": "OK",
+  "data": [
+    { "job_id": "abc123", "job_title": "Demand Generation Specialist", "employer_name": "Exemple SAS",
+      "job_city": "Lyon", "job_country": "FR", "job_apply_link": "https://jobs.example/demand-gen",
+      "job_posted_at_datetime_utc": "2026-10-23T05:00:00.000Z", "job_description": "Remote within France. B2B SaaS demand generation.",
+      "job_is_remote": true, "job_min_salary": 42000, "job_max_salary": 50000, "job_salary_currency": "EUR" },
+    { "job_id": "def456", "job_title": "Marketing Coordinator", "employer_name": "Beispiel GmbH",
+      "job_city": "Berlin", "job_country": "DE", "job_apply_link": "https://jobs.example/coordinator",
+      "job_posted_at_datetime_utc": "2026-10-23T05:00:00.000Z", "job_description": "Office in Berlin, 2 days a week on site.",
+      "job_is_remote": false, "job_min_salary": null, "job_max_salary": null }
+  ]
+}

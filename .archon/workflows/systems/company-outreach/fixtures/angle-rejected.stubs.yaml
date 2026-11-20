@@ -1,0 +1,33 @@
+# Issue « angle rejected » : le dossier passe, le juge de l'angle refuse (preuve hors sujet).
+# attendu(done): ok=false stage=angle
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+dossier__judge: { approved: true, reason: "stub: fine", findings: [] }
+dossier__verdict:
+  ok: true
+  status: verified
+  summary: "stub: dossier sourced"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "dossier.md" }
+angle__judge:
+  approved: false
+  reason: "stub: the proof does not meet the need"
+  findings:
+    - { severity: blocking, text: "stub: the proof does not meet the need" }
+sequence__verdict: "tripwire: sequence was reached although the angle was rejected"
+fixture:
+  expect: completed
+  reached: [dossier__verdict, angle__judge, angle__verdict, done]
+  inputs:
+    company: '{"name":"Acme","website":"https://acme.example","country":"FR"}'
+    profile: "/tmp/master_profile.md"
+    today: "2026-10-23"
+exec-code: true

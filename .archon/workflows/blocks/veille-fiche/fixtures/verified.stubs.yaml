@@ -1,0 +1,24 @@
+# Issue « verified » : les contrôles passent au premier tour, le juge approuve, le verdict
+# (script réel, exec-code) rend ok: true. Prouve le câblage du bloc sans appeler un modèle.
+# attendu: ok=true status=verified
+work:
+  summary: "stub: the deliverable answers the task; nothing left open"
+  read_content: true
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "fiche.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: the deliverable answers the task; nothing left open"
+  category: "IA & Systèmes Multi-Agents"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "fiche.md" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: the deliverable does what the task asked, with evidence"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    source: "https://www.instagram.com/reel/stub/"
+exec-code: true

@@ -1,0 +1,35 @@
+# Issue « superseded » : entre le go et le clic, l'offre a changé de mains (un run lancé à la
+# main pendant que le listener la tenait ; un vieux run repris après que le filet a clos sa
+# prise et qu'un /valider l'a remise en file). La garde `own` (`always_run`) relit le tableau
+# de l'appelant juste avant `arm` et dit que l'offre n'est plus tenue par la prise. Le dry-run
+# ne lit pas de vrai tableau : le stub `own` porte ce qu'elle a lu (sa règle, `ownership`, est
+# testée dans scripts/own.test.ts, scénarios A et B compris ; dans les autres fixtures elle
+# tourne pour de vrai, sans tableau à vérifier). `decide` (réel) dit approved, `verdict`
+# (réel) rend ok: false, status: superseded, submitted: false : rien n'est envoyé.
+# Preuve de sûreté : aucun stub pour `submit`, `check_receipt` ni `judge` : en atteindre un
+# ferait échouer le dry-run (« Missing reachable stub ») ; `arm` (réel) n'est pas atteint non
+# plus (sinon il écrirait armed.json, qui compterait comme un envoi commencé). La fixture, qui
+# attend `completed`, prouve donc qu'aucun clic n'a lieu quand l'offre n'est plus tenue.
+# attendu(decide): proceed=true path=approved
+# attendu: ok=false status=superseded submitted=false problems=[] findings=[]
+prefill: { summary: "stub: form filled", blocked: false, blocker: "" }
+check_prefill: { ok: true, problems: [], summary: "stub: form filled", filled: 7, attached: true, submitted_early: false, tries: 1 }
+go: { decision: approve, text: "" }
+own:
+  held: false
+  reason: "Not sent: just before the click, the offer was VALIDATED, no longer held by this run's claim (L1); another run or a newer validation owns it now."
+  evidence: []
+fixture:
+  expect: completed
+  reached: [gate, go, decide, own, verdict]
+  inputs:
+    apply_url: "https://jobs.lever.co/acme/123/apply"
+    candidate: "/stub/candidate.json"
+    cv: "/stub/CV.pdf"
+    offer: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\"}"
+    platform: lever
+    mode: confirm
+    claim_board: "/stub/career/pending_gold_jobs.json"
+    claim_slug: acme
+    claim_run: L1
+exec-code: true

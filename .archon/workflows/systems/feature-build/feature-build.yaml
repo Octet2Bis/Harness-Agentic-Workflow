@@ -1,0 +1,188 @@
+name: feature-build
+description: |
+  Système « feature-build » (porté du workflow v0 d'Antoine) : une demande → plan (agent)
+  → bloc `implement` (une tâche par tour jusqu'aux tests verts et au journal vidé) → lint
+  → bloc `review` (verdict lu par du code, jugé en contexte vierge) → validation humaine
+  du diff et de la relecture → PR en brouillon. Le seul système qui modifie un dépôt : à
+  lancer dans un worktree (le défaut d'`archon workflow run`). Rien ne sort du dépôt avant
+  le « go » : `ship` ne tourne qu'après l'approbation, et ouvre un brouillon, jamais une
+  fusion.
+
+  Use when: a change to a repository must be built end to end with a human only at the
+  end — "implémente cette feature", "corrige ce bug et ouvre une PR".
+  NOT for: documents (pipeline, research-report), or the GitHub-issue queue of Archon's
+  sdlc pack (compose it instead, see use-cases/README.md UC-12).
+
+inputs:
+  request:
+    required: true
+    description: The change wanted, in the requester's words (what, for whom, how to know it works).
+  test_cmd:
+    default: npm test
+    description: The project's test command; its exit code decides whether the implementation holds.
+  lint_cmd:
+    default: npm run lint --if-present
+    description: The project's lint command, run once after the implementation.
+  base:
+    default: main
+    description: The git ref the review diffs against and the PR targets.
+
+returns: { node: done, outcome: ok }
+
+nodes:
+  # ── 1. Le plan : une liste de tâches petites et testables ──────────────────────────
+  - id: plan
+    command: plan
+    mutates_checkout: false
+    allowed_tools: [Read, Glob, Grep, Write]
+    with:
+      request: "$INPUTS.request"
+      test_cmd: "$INPUTS.test_cmd"
+    output_format:
+      type: object
+      properties:
+        summary: { type: string, pattern: '\S' }
+        tasks: { type: integer, minimum: 1 }
+        deliverable:
+          type: object
+          properties:
+            type: { type: string, enum: [archon_artifact] }
+            run_id: { type: string }
+            path: { type: string, pattern: '\S' }
+          required: [type, run_id, path]
+      required: [summary, tasks, deliverable]
+
+  # Relais de `plan` pour `done` (voir `ship_result`) : recopie sa sortie quand il a réussi ;
+  # sauté s'il a échoué, et `done` lit alors `null` au lieu d'échouer sur sa liaison.
+  - id: plan_result
+    depends_on: [plan]
+    script: "console.log(process.env.INPUTS_PLAN)"
+    runtime: bun
+    with:
+      plan: "$plan.output"
+
+  # ── 2. Le code, en boucle jusqu'aux tests verts (bloc) ─────────────────────────────
+  # 8 tours au plus : au plafond, tests encore rouges ou tâches restantes, le bloc rend
+  # `ok: false, status: unconverged` et tout l'aval est sauté jusqu'à `done`.
+  - id: implement
+    include: implement
+    depends_on: [plan]
+    with:
+      plan: "$ARTIFACTS_DIR/plan.md"
+      test_cmd: "$INPUTS.test_cmd"
+      out: implement.md
+
+  # ── 3. Le lint, déterministe ────────────────────────────────────────────────────────
+  # Un run direct laisse `$INPUTS.lint_cmd` littéral dans un corps bash : la commande se lit
+  # dans l'environnement (`INPUTS_LINT_CMD`). Le nœud sort toujours 0 et dit l'issue dans
+  # `ok` (sortie complète dans `lint.log`, artefacts du run) ; un dépassement des 10 min le
+  # saute au lieu de le faire échouer, et `done` nomme alors l'étape `lint`.
+  - id: lint
+    depends_on: [implement]
+    when: "$implement.output.ok == true"
+    timeout: 600000
+    on_timeout: skip
+    bash: |
+      if ( eval "$INPUTS_LINT_CMD" ) < /dev/null > "$ARTIFACTS_DIR/lint.log" 2>&1; then code=0; else code=$?; fi
+      if [ "$code" -eq 0 ]; then ok=true; else ok=false; fi
+      printf '{"ok":%s,"exit_code":%d,"log":"lint.log"}\n' "$ok" "$code"
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        exit_code: { type: integer }
+        log: { type: string }
+      required: [ok, exit_code, log]
+
+  # ── 4. La relecture, jugée (bloc) — seulement si le lint passe ────────────────────
+  - id: review
+    include: review
+    depends_on: [lint]
+    when: "$lint.output.ok == true"
+    with:
+      plan: "$ARTIFACTS_DIR/plan.md"
+      base: "$INPUTS.base"
+      out: review.json
+
+  # ── 5. L'humain : le diff et la relecture, avant que quoi que ce soit ne sorte ─────
+  # Le message d'attente ne substitue que les sorties de nœuds et `$INPUTS` : pas de
+  # `$ARTIFACTS_DIR` ici, il resterait littéral.
+  - id: approve
+    depends_on: [review]
+    when: "$review.output.ok == true"
+    wait:
+      attention: "feature-build finished for: $INPUTS.request\n\nPlan: $plan.output.summary\nImplement: $implement.output.summary\nReview says $review.output.code_verdict — $review.output.summary\n\nRead review.json and diff.patch in this run's artifacts (~/.archon/workspaces/<owner>/<repo>/artifacts/runs/<run-id>/). diff.patch is what the review read: commits since the merge-base with $INPUTS.base plus the uncommitted and untracked changes (implement never commits). Live, in the run's worktree: git diff $(git merge-base $INPUTS.base HEAD), and git status for untracked files. Then approve to open a draft PR, or reject with what to change."
+      form: approval
+      labels:
+        system: feature-build
+
+  # ── 6. Expédier : un brouillon de PR, jamais une fusion ────────────────────────────
+  - id: ship
+    command: ship
+    depends_on: [approve]
+    when: "$approve.output.decision == 'approve'"
+    allowed_tools: [Read, Bash]
+    with:
+      request: "$INPUTS.request"
+      base: "$INPUTS.base"
+      plan: "$plan.output.summary"
+      review: "$review.output.summary"
+    output_format:
+      type: object
+      properties:
+        summary: { type: string, pattern: '\S' }
+        pr_url: { type: [string, 'null'], pattern: '^https://' }   # null : rien à publier, ou gh absent
+      required: [summary, pr_url]
+
+  # Refus : le run est annulé, `done` ne tourne pas. Déclaré après `ship` exprès : les deux
+  # partagent une couche, et le dry-run la joue dans l'ordre du YAML, en s'arrêtant au
+  # `cancel`. `ship` passe donc d'abord par son `when` ; sans lui, la fixture
+  # `rejected-by-human` l'atteindrait sans stub et échouerait (le moteur réel, lui, lance
+  # les deux en même temps : seul ce `when` empêche une PR après un refus).
+  - id: drop
+    depends_on: [approve]
+    when: "$approve.output.decision == 'reject'"
+    cancel: "Rejected by the human at review: $approve.output.text"
+
+  # Relais de `ship` pour `done`. Une liaison ne lit jamais un nœud en échec, même avec
+  # `if_skipped` : lier `$ship.output` ferait échouer `done` sur une erreur de `ship`, et le
+  # run n'aurait plus d'issue typée. Ce relais recopie la sortie de `ship` quand il a réussi ;
+  # s'il a échoué, le relais est sauté (cause : amont en échec), et un producteur sauté se lit
+  # par `if_skipped: null`.
+  - id: ship_result
+    depends_on: [ship]
+    script: "console.log(process.env.INPUTS_SHIP)"
+    runtime: bun
+    with:
+      ship: "$ship.output"
+
+  # ── Issue typée, erreurs de plan et de ship comprises ─────────────────────────────
+  # Un bloc arrêté à son plafond de tours rend un verdict typé (`status: unconverged`) ;
+  # seul un bloc dont un nœud a échoué n'en rend pas, et se lit `null` ici. `plan` et `ship`
+  # se lisent par leurs relais : une erreur de l'un d'eux donne `null`, pas un `done` en
+  # échec. Le run finit alors `failed`, avec son issue typée. Sans issue : le refus humain
+  # (`drop` annule), et l'échec d'un nœud lié ici directement (script `verdict` d'un bloc,
+  # `lint`, un relais) ou de `done` lui-même, car une liaison ne lit jamais un nœud en échec.
+  # L'humain n'est donc jamais l'étape de `done` : une relecture `ok` suivie d'autre chose
+  # qu'un « go » n'a pas de chemin, et `done` échoue (« done: unexpected state ») plutôt
+  # que d'inventer une issue si ce YAML change.
+  - id: done
+    script: done
+    runtime: bun
+    depends_on: [plan_result, implement, lint, review, approve, drop, ship_result]
+    trigger_rule: all_done
+    with:
+      plan: { from: "$plan_result.output", if_skipped: null }
+      implement: { from: "$implement.output", if_skipped: null }
+      lint: { from: "$lint.output", if_skipped: null }
+      review: { from: "$review.output", if_skipped: null }
+      approve: { from: "$approve.output", if_skipped: null }
+      ship: { from: "$ship_result.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        stage: { type: string, enum: [plan, implement, lint, review, ship, done] }
+        summary: { type: string }
+        pr_url: { type: [string, 'null'] }
+      required: [ok, stage, summary, pr_url]

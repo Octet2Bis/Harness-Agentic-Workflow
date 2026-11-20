@@ -1,0 +1,167 @@
+name: outbound-sequence
+description: |
+  Bloc « outbound-sequence » : écrit une séquence de cold e-mails B2B (pôle 04 Outbound &
+  CRM de Master Plan) — 3 ou 4 touches courtes, pair-à-pair, chacune avec un angle neuf,
+  une seule demande, un break-up courtois à la fin — pour un ICP et un signal donnés. Un
+  agent rédige ; un script applique les règles que `email_linter.py` et `ai_slop_linter.py`
+  portaient (mots déclencheurs de spam, ≤ 120 mots, variables non résolues, ponctuation
+  agressive, un CTA, angles distincts, phrases creuses) et renvoie l'agent au travail tant
+  que ça ne passe pas ; un juge en contexte vierge vérifie la valeur et la cohérence avec
+  l'ICP. Le bloc n'envoie rien : la séquence vérifiée part vers Lemlist/Brevo après la
+  vérification humaine du système appelant.
+
+  Use when: a campaign needs its cold sequence — "écris la séquence pour", "prépare
+  l'outbound vers".
+  NOT for: choosing the ICP (block design / pôle 01), enriching or verifying contacts
+  (pipelines/uc_b2b_enrichment), or sending.
+
+model: medium
+
+inputs:
+  brief:
+    required: true
+    description: Who we write to (persona, company type), what we offer, the signal or observation that justifies writing now, in the requester's words.
+  icp:
+    default: ""
+    description: Optional path or text of the ICP (01_Strategy_and_Positioning/output/icp.md).
+  proofs:
+    default: ""
+    description: Optional path or text of case studies and figures the sequence may cite. Nothing else may be claimed.
+  touches:
+    default: "4"
+    description: Number of touches (3 or 4).
+  max_words:
+    default: "120"
+    description: Maximum words per touch body.
+  notice:
+    default: "false"
+    description: '"true" for cold outreach to people (France / EU): every touch offers a simple way to stop, and the first says where the address comes from.'
+  out:
+    default: sequence.md
+    description: File name of the deliverable inside the run's artifacts.
+
+returns: { node: verdict, outcome: ok }
+
+nodes:
+  - id: produce
+    loop_group:
+      max_iterations: 3
+      fresh_context: true
+      until_bash: 'ok=$check.output.ok; t=$check.output.tries; [ "$ok" = true ] || [ "$t" -ge 3 ]'
+      nodes:
+        - id: work
+          command: work
+          allowed_tools: [Read, Glob, Grep, Write]
+          with:
+            brief: "$INPUTS.brief"
+            icp: "$INPUTS.icp"
+            proofs: "$INPUTS.proofs"
+            touches: "$INPUTS.touches"
+            max_words: "$INPUTS.max_words"
+            notice: "$INPUTS.notice"
+            out: "$INPUTS.out"
+            problems: "$LOOP_PREV.check.output.problems"
+          output_format:
+            type: object
+            properties:
+              summary: { type: string, pattern: '\S' }
+              deliverable:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, pattern: '\S' }
+                required: [type, run_id, path]
+            required: [summary, deliverable]
+
+        - id: check
+          script: check
+          runtime: bun
+          depends_on: [work]
+          with:
+            touches: "$INPUTS.touches"
+            max_words: "$INPUTS.max_words"
+            notice: "$INPUTS.notice"
+            out: "$INPUTS.out"
+            summary: "$work.output.summary"
+            deliverable: { from: "$work.output.deliverable" }
+            tries: "$LOOP_PREV.check.output.tries"
+          output_format:
+            type: object
+            properties:
+              ok: { type: boolean }
+              problems: { type: array, items: { type: string } }
+              summary: { type: string }
+              deliverable:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, pattern: '\S' }
+                required: [type, run_id, path]
+              tries: { type: integer, minimum: 1 }
+            required: [ok, problems, summary, deliverable, tries]
+
+  - id: judge
+    command: judge
+    context: fresh
+    mutates_checkout: false
+    allowed_tools: [Read, Glob, Grep]   # lecture seule : le juge ne voit que la séquence, le brief, l'ICP, les preuves
+    model: large
+    depends_on: [produce]
+    when: "$produce.output.ok == true"
+    with:
+      brief: "$INPUTS.brief"
+      icp: "$INPUTS.icp"
+      proofs: "$INPUTS.proofs"
+      out: "$INPUTS.out"
+      produced: "$produce.output"
+    output_format:
+      type: object
+      properties:
+        approved: { type: boolean }
+        reason: { type: string, pattern: '\S' }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string, pattern: '\S' }
+            required: [severity, text]
+      required: [approved, reason, findings]
+
+  - id: verdict
+    script: verdict
+    runtime: bun
+    depends_on: [produce, judge]
+    trigger_rule: none_failed_min_one_success
+    with:
+      produced: "$produce.output"
+      approved: { from: "$judge.output.approved", if_skipped: null }
+      reason: { from: "$judge.output.reason", if_skipped: null }
+      findings: { from: "$judge.output.findings", if_skipped: null }
+    output_type: block-verdict
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        status: { type: string, enum: [verified, rejected, unconverged] }
+        summary: { type: string }
+        problems: { type: array, items: { type: string } }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string }
+            required: [severity, text]
+        deliverable:
+          type: object
+          properties:
+            type: { type: string, enum: [archon_artifact] }
+            run_id: { type: string }
+            path: { type: string, pattern: '\S' }
+          required: [type, run_id, path]
+      required: [ok, status, summary, problems, findings, deliverable]

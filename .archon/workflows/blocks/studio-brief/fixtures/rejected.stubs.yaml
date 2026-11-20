@@ -1,0 +1,23 @@
+# Issue « rejected » : les contrôles passent mais le juge refuse. Le run se termine
+# normalement avec une issue autorisée négative (ok: false).
+# attendu: ok=false status=rejected
+work:
+  summary: "stub: brief written: 3 cuts, 2 success criteria"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "BRIEF.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: brief written: 3 cuts, 2 success criteria"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "BRIEF.md" }
+  tries: 1
+judge:
+  approved: false
+  reason: "stub: the brief invents an audience the request never mentions"
+  findings:
+    - { severity: blocking, text: "stub: Cible names teenagers; the request is about knowledge workers" }
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    request: "stub request"
+exec-code: true

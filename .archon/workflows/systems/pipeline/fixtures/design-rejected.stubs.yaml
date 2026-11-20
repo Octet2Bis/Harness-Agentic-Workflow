@@ -1,0 +1,38 @@
+# Issue « design rejected » : research passe (juge favorable, `research__verdict` réel :
+# verified), puis le juge de design refuse (`design__verdict` réel : rejected). `report`, la
+# vérification humaine et `drop` sont sautés ; `done` (réel) clôt ok: false, stage: design.
+# Le run se termine `completed`.
+# Ce qui prouve que `report` est sauté par son `when: "$design.output.ok == true"` (et pas
+# seulement parce que design aurait échoué) : design a réussi, avec un verdict `ok: false`.
+# Sans ce `when`, `report` tournerait (`depends_on: [design]`, design sans échec) : sa boucle
+# tournerait sur les stubs nus `work`/`check` partagés, et comme ce `check` dit `ok: true`, son
+# juge serait atteint. `report__judge` n'a pas de stub : le dry-run le fait échouer (« Missing
+# reachable stub ») et le run finit `failed` au lieu de `completed`. C'est la seule preuve : le
+# juge en échec fait sauter `report__verdict`, et `deliverables` ci-dessous dirait encore
+# `report: null` (vérifié en retirant ce `when`).
+# Sortie réelle de `done` : « Design rejected: stub: produced Judge: stub: option B ignores the
+# budget constraint » (le résumé du verdict, tel quel).
+# attendu: ok=false stage=design deliverables={"research":"x.md","design":"x.md","report":null}
+# attendu(research__verdict): ok=true status=verified
+# attendu(design__verdict): ok=false status=rejected
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+research__judge: { approved: true, reason: "stub: sourced", findings: [] }
+design__judge:
+  approved: false
+  reason: "stub: option B ignores the budget constraint"
+  findings:
+    - { severity: blocking, text: "stub: option B costs twice the stated budget" }
+fixture:
+  expect: completed
+  reached: [research__verdict, design__judge, design__verdict, done]
+  inputs:
+    task: "stub task"
+exec-code: true

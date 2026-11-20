@@ -1,0 +1,41 @@
+# Issue « juge défavorable » : les citations passent mais le juge conteste la lecture ; aucune
+# décision du bloc, l'offre est « à vérifier » avec la raison du juge.
+# attendu(triage__verdict): ok=false status=rejected decision=
+# attendu(classify): decision=a_verifier block_status=rejected
+load:
+  ok: true
+  go: true
+  summary: "stub: offer Smartness to triage; posting read"
+  key: LI-1642423340
+  offer_json: '{"key":"LI-1642423340","id":"LI-1642423340","slug":"smartness","company":"Smartness","title":"Sales Operations & Enablement Specialist","link":"https://pt.linkedin.com/jobs/view/x-4475957729","location":"Portugal","source":"LinkedIn","status":"PENDING_VALIDATION"}'
+  criteria_json: '{"langues":["fr","en"],"salaire_min_annuel":35000}'
+  criteria_hash: abc123
+  posting_full: "true"
+  readable: true
+  unreadable_reason: ""
+  pre_screened: false
+  pre_screen_reason: ""
+  profile_file: "profile.md"
+  attempts: 0
+work: { summary: "stub: italien exigé", deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" } }
+check:
+  ok: true
+  problems: []
+  summary: "stub: italien exigé"
+  decision: ecartee
+  reasons: ["Exige l'italien : « Italian is a plus »"]
+  notes: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+triage__judge:
+  approved: false
+  reason: "stub: l'italien n'est qu'un plus"
+  findings: [{ severity: blocking, text: "stub: 'Italian is a plus' lu comme exigé" }]
+record: { ok: true, written: true, key: LI-1642423340, decision: a_verifier, path: "/stub/career/triage/LI-1642423340.json", summary: "stub: à vérifier" }
+fixture:
+  expect: completed
+  reached: [load, triage__judge, triage__verdict, classify, record]
+  inputs:
+    career_dir: "/stub/career"
+    engine: llm
+exec-code: true

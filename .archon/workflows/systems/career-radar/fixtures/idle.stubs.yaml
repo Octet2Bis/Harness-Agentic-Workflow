@@ -1,0 +1,12 @@
+# Issue « idle » : les sources répondent mais aucune offre brute (ou toutes en attente de
+# cadence). `collect` (réseau, disque) est stubbé ; `screen` est sauté ; `record` (disque :
+# rapport dans le dossier carrière) est stubbé.
+# sans-attendu: rien ne s'exécute pour de vrai — collect lit le réseau et le disque, screen est sauté, record écrit le rapport dans le dossier carrière.
+collect: { ok: true, go: false, summary: "stub: 0 raw offer(s) from 3 source(s) (1 ok, 0 failed, 2 waiting) ; nothing to screen", raw_count: 0, sources_ok: 1, sources_failed: 0, raw_path: { type: archon_artifact, run_id: "fixture-run", path: "radar/raw.json" } }
+record: { ok: true, summary: "stub: nothing to screen", added: 0, skipped: 0, report_path: "/stub/career/last_radar_report.json" }
+fixture:
+  expect: completed
+  reached: [collect, record]
+  inputs:
+    career_dir: "/stub/career"
+exec-code: true

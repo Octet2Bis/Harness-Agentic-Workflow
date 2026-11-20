@@ -1,0 +1,37 @@
+# Issue « variant without verdict » : le juge de la B échoue (en vrai, une erreur du modèle ;
+# ici, faute de stub `b__judge`, le dry-run le fait échouer). Le verdict de la B est alors
+# sauté (`trigger_rule: none_failed_min_one_success` : il ne court pas sur un juge en échec).
+# Ce n'est plus une boucle épuisée : la boucle s'arrête à son plafond par le compteur `tries`
+# et rend alors un verdict `unconverged` (fixture `all-unconverged`). `collect` (réel) nomme la
+# B « sans verdict » sans la proposer, l'humain compare A et C et garde C, `done` (réel) rend
+# quand même son issue typée (ok: true, chosen: c, variants.b: null) ; le run, lui, finit
+# `failed` (un nœud a échoué ; en vrai, Archon rejoue ce juge à la reprise après la réponse,
+# et s'il réussit, le verdict de la B, `collect` et `done` rejouent avec le choix enregistré :
+# voir le README).
+# Archon asserte l'état (fail-node), les nœuds atteints et le message vu par l'humain ;
+# scripts/gates/fixture-outcomes.ts compare les sorties réelles de `collect` et de `done` :
+# attendu(collect): survivors=2
+# attendu(done): ok=true chosen=c variants={"a":true,"b":null,"c":true} statuses={"a":"verified","b":null,"c":"verified"}
+work:
+  summary: "stub: page built"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.html" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: page built"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.html" }
+  tries: 1
+a__judge: { approved: true, reason: "stub: clear", findings: [] }
+a__verdict: { ok: true, status: verified, summary: "stub: A sober", problems: [], findings: [], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "variant-a.html" } }
+c__judge: { approved: true, reason: "stub: clear", findings: [] }
+c__verdict: { ok: true, status: verified, summary: "stub: C narrative", problems: [], findings: [], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "variant-c.html" } }
+choose: { decision: c, text: "" }
+fixture:
+  expect: failed
+  fail-node: b__judge
+  reached: [a__verdict, c__verdict, collect, choose, done]
+  inputs:
+    brief: "stub brief"
+  resolved-text-contains:
+    choose: "variant-b.html): no verdict (a node of the block failed: its judge, or a step of its check loop); not offered."
+exec-code: true

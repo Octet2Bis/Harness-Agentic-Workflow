@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "sourceInstanceId": "harness-timer",
+  "binding": {
+    "bindingId": "board-listener",
+    "bindingRevision": null,
+    "hostId": "pc-hp",
+    "runAsUserId": "REMPLACER-PAR-archon-trigger-whoami",
+    "resource": "harness-agentic-workflow:board",
+    "overlap": "skip",
+    "launch": {
+      "cwd": "C:\\Users\\HP\\Desktop\\Harness-Agentic-Workflow",
+      "workflowName": "board-listener",
+      "inputs": {},
+      "isolation": {
+        "kind": "in-place"
+      }
+    }
+  },
+  "schedule": {
+    "intervalSeconds": 300,
+    "runAtLoad": false
+  }
+}

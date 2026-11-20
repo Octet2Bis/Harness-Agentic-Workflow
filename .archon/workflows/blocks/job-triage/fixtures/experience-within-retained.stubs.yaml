@@ -1,0 +1,31 @@
+# Issue « verified », expérience dans la limite : l'annonce demande « 2 à 3 ans d'expérience »,
+# le candidat en a 3 au plus (`experience_max_annees`), la borne basse 2 ≤ 3 ne fait qu'une
+# note, l'intitulé ne porte aucun label senior, tout le reste est conforme : la règle retient
+# l'offre, le juge confirme ; le verdict (script réel) rend la décision.
+# attendu: ok=true status=verified decision=retenue
+work:
+  summary: "stub: PMM junior, 2 à 3 ans d'expérience, anglais courant, 40-45 k€, 100 % télétravail"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: PMM junior, 2 à 3 ans d'expérience, anglais courant, 40-45 k€, 100 % télétravail"
+  decision: retenue
+  reasons: ["Langues, salaire, mode de travail et expérience conformes à criteres.json"]
+  notes:
+    - "Salaire : 40 000 € à 45 000 € brut par an"
+    - "Télétravail complet : « Poste en 100 % télétravail »"
+    - "Expérience demandée : 2 à 3 ans (max 3) : « 2 à 3 ans d'expérience en marketing produit »"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: l'annonce demande bien deux à trois ans"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Acme","title":"Product Marketing Manager","link":"https://example.org/jobs/acme-pmm","slug":"acme-pmm"}'
+    criteria: '{"langues":["fr","en"],"salaire_min_annuel":35000,"experience_max_annees":3}'
+exec-code: true

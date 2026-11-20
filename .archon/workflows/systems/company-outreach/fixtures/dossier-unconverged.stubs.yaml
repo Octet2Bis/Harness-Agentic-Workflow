@@ -1,0 +1,21 @@
+# Issue « dossier unconverged » : les contrôles du dossier sont encore rouges au plafond ; le
+# verdict (réel) dit unconverged, angle et séquence sont sautés, `done` (réel) nomme l'étape.
+# attendu(done): ok=false stage=dossier
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: false
+  problems: ["stub: only 2 distinct competitor(s)"]
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 3
+angle__verdict: "tripwire: angle was reached although the dossier did not converge"
+fixture:
+  expect: completed
+  reached: [dossier__produce, dossier__verdict, done]
+  inputs:
+    company: '{"name":"Acme","website":"https://acme.example","country":"FR"}'
+    profile: "/tmp/master_profile.md"
+    today: "2026-10-23"
+exec-code: true

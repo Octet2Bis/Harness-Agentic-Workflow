@@ -1,0 +1,165 @@
+name: company-dossier
+description: |
+  Bloc « company-dossier » : pour une entreprise validée full remote, un dossier de deux pages
+  qui prépare la prospection (Activité, Concurrents, Signaux récents, Recrutement, Besoins
+  probables, Contact, Sources). Un agent cherche sur le web ; un script vérifie que chaque
+  affirmation cite une source web listée (≥ 4), ≥ 3 concurrents nommés, des signaux datés de
+  moins de 12 mois, le pays (code ISO) et un canal compatible : pas d'e-mail froid en DE / AT,
+  jamais d'adresse devinée. Un juge en contexte vierge rouvre les sources et refuse toute
+  affirmation qu'elles ne portent pas. Rend un verdict typé (`ok`) ; rien n'est envoyé.
+
+  Use when: a company was validated as full remote and must be researched before any
+  outreach — "fais le dossier de", "qu'est-ce qu'ils font, leurs concurrents, leurs besoins".
+  NOT for: writing the offer or the messages (offer-angle, outbound-sequence).
+
+model: large
+
+inputs:
+  company:
+    required: true
+    description: The company as JSON text (name, website, country if known, offer link, why it is full remote).
+  today:
+    default: ""
+    description: Today's date (YYYY-MM-DD), from which signals must be under 12 months old; empty means the machine's date.
+  out:
+    default: dossier.md
+    description: File name of the dossier inside the run's artifacts.
+
+# Le résultat du bloc est le verdict typé ; `ok` est l'issue autorisée du run.
+returns: { node: verdict, outcome: ok }
+
+nodes:
+  # ── 1. Produire, puis contrôler par du code, en boucle ───────────────────
+  # L'agent travaille ; le script `check` vérifie ; tant que le script dit non,
+  # l'agent reçoit la liste des problèmes et recommence, 3 tours au plus. Au plafond, la
+  # boucle rend la main avec des contrôles encore rouges (le compteur `tries` du script,
+  # pas l'épuisement de max_iterations : une boucle épuisée finit `failed`, et Archon
+  # rejoue les nœuds en échec quand un run reprend après une pause humaine). Le juge est
+  # alors sauté et le verdict dit `unconverged` : le bloc n'est pas « fait », mais il le
+  # dit par une issue typée.
+  - id: produce
+    loop_group:
+      max_iterations: 3
+      fresh_context: true
+      until_bash: 'ok=$check.output.ok; t=$check.output.tries; [ "$ok" = true ] || [ "$t" -ge 3 ]'
+      nodes:
+        - id: work
+          command: work
+          allowed_tools: [Read, Write, WebSearch, WebFetch]   # cherche sur le web, écrit le dossier dans les artefacts
+          with:
+            company: "$INPUTS.company"
+            today: "$INPUTS.today"
+            out: "$INPUTS.out"
+            problems: "$LOOP_PREV.check.output.problems"
+          output_format:
+            type: object
+            properties:
+              summary: { type: string, pattern: '\S' }
+              deliverable:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, pattern: '\S' }
+                required: [type, run_id, path]
+            required: [summary, deliverable]
+
+        - id: check
+          script: check
+          runtime: bun
+          depends_on: [work]
+          with:
+            company: "$INPUTS.company"
+            today: "$INPUTS.today"
+            summary: "$work.output.summary"
+            deliverable: { from: "$work.output.deliverable" }
+            out: "$INPUTS.out"
+            tries: "$LOOP_PREV.check.output.tries"
+          output_format:
+            type: object
+            properties:
+              ok: { type: boolean }
+              problems: { type: array, items: { type: string } }
+              summary: { type: string }
+              deliverable:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, pattern: '\S' }
+                required: [type, run_id, path]
+              tries: { type: integer, minimum: 1 }
+            required: [ok, problems, summary, deliverable, tries]
+
+  # ── 2. Juger ce que le code ne peut pas trancher ─────────────────────────
+  # Second agent, contexte vierge, lecture seule, modèle plus fort : il n'a pas vu
+  # le travail se faire, il ne voit que le livrable et le résultat des contrôles. Il ne
+  # tourne que si les contrôles sont verts.
+  - id: judge
+    command: judge
+    context: fresh
+    mutates_checkout: false
+    allowed_tools: [Read, Glob, Grep, WebFetch]   # lecture seule ; rouvre les sources pour confronter le dossier
+    model: large
+    depends_on: [produce]
+    when: "$produce.output.ok == true"
+    with:
+      company: "$INPUTS.company"
+      today: "$INPUTS.today"
+      produced: "$produce.output"
+      out: "$INPUTS.out"
+    output_format:
+      type: object
+      properties:
+        approved: { type: boolean }
+        reason: { type: string, pattern: '\S' }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string, pattern: '\S' }
+            required: [severity, text]
+      required: [approved, reason, findings]
+
+  # ── 3. Verdict ───────────────────────────────────────────────────────────
+  # Un script dérive l'issue du bloc des deux faits certifiés : contrôles verts et
+  # juge favorable. Une seule déclaration du booléen, jamais deux qui divergent. Il tourne
+  # aussi quand le juge est sauté (contrôles rouges au plafond) : `unconverged`. Il ne
+  # tourne pas si le juge a échoué (erreur du modèle) : une liaison ne lit jamais un nœud
+  # en échec, et le verdict sauté se lit `null` chez l'appelant (`if_skipped: null`).
+  - id: verdict
+    script: verdict
+    runtime: bun
+    depends_on: [produce, judge]
+    trigger_rule: none_failed_min_one_success
+    with:
+      produced: "$produce.output"
+      approved: { from: "$judge.output.approved", if_skipped: null }
+      reason: { from: "$judge.output.reason", if_skipped: null }
+      findings: { from: "$judge.output.findings", if_skipped: null }
+    output_type: block-verdict
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        status: { type: string, enum: [verified, rejected, unconverged] }
+        summary: { type: string }
+        problems: { type: array, items: { type: string } }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string }
+            required: [severity, text]
+        deliverable:
+          type: object
+          properties:
+            type: { type: string, enum: [archon_artifact] }
+            run_id: { type: string }
+            path: { type: string, pattern: '\S' }
+          required: [type, run_id, path]
+      required: [ok, status, summary, problems, findings, deliverable]

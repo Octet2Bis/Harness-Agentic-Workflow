@@ -1,0 +1,14 @@
+# Issue « added » : cinq offres brutes, deux qualifiées par le jury ; l'une est déjà au
+# tableau (même lien), l'autre y entre en PENDING_VALIDATION. Les trois nœuds lisent le disque
+# (réseau, artefacts, tableau sous verrou) : tous stubbés ; le crible et l'ajout sont testés
+# pour de vrai dans systems/.shared/radar.test.ts et scripts/*.test.ts.
+# sans-attendu: rien ne s'exécute pour de vrai — collect lit le réseau, screen les artefacts et le tableau, record écrit le tableau sous son verrou.
+collect: { ok: true, go: true, summary: "stub: 5 raw offer(s) from 4 source(s) (3 ok, 1 failed, 0 waiting)", raw_count: 5, sources_ok: 3, sources_failed: 1, raw_path: { type: archon_artifact, run_id: "fixture-run", path: "radar/raw.json" } }
+screen: { ok: true, go: true, summary: "stub: 2 qualified of 5 raw offer(s), 3 rejected", qualified_count: 2, rejected_count: 3, qualified_path: { type: archon_artifact, run_id: "fixture-run", path: "radar/qualified.json" } }
+record: { ok: true, summary: "stub: 1 offer(s) added to the board (12 row(s) now), 1 already there", added: 1, skipped: 1, report_path: "/stub/career/last_radar_report.json" }
+fixture:
+  expect: completed
+  reached: [collect, screen, record]
+  inputs:
+    career_dir: "/stub/career"
+exec-code: true

@@ -1,0 +1,38 @@
+# Issue « review refused » : implémentation verte, lint réel vert (`lint_cmd: "true"`,
+# exec-code), relecture bien formée mais le juge la récuse ; `review__verdict` (réel) rend
+# ok: false, l'humain n'est pas sollicité ; `done` (réel) clôt ok: false, stage: review.
+# Les stubs `work` / `check` servent aux deux boucles (ids de corps de boucle non préfixés).
+# attendu: ok=false stage=review
+# attendu(lint): ok=true exit_code=0
+# attendu(review__verdict): ok=false status=rejected code_verdict=pass
+plan:
+  summary: "stub: three tasks"
+  tasks: 3
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "plan.md" }
+work:
+  summary: "stub: produced"
+  task_done: "stub task"
+  remaining: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  tests_passed: true
+  remaining: 0
+  code_verdict: pass
+  blocking: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x" }
+  tries: 1
+review__judge:
+  approved: false
+  reason: "stub: the review passes a diff whose new endpoint has no test"
+  findings:
+    - { severity: blocking, text: "stub: src/api/export.ts adds GET /export without a test; the plan's task 2 requires one" }
+fixture:
+  expect: completed
+  reached: [plan, implement__verdict, lint, review__judge, review__verdict, done]
+  inputs:
+    request: "stub request"
+    lint_cmd: "true"
+exec-code: true

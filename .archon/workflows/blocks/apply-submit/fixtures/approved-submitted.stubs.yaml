@@ -1,0 +1,26 @@
+# Issue « approved-submitted » : plateforme pas encore vérifiée, le run attend le go humain,
+# l'humain approuve, l'envoi est confirmé. Après ce premier envoi supervisé, la plateforme
+# entre dans verified_platforms (c'est l'appelant qui tient la liste).
+# attendu(gate): needs_go=true
+# attendu(decide): proceed=true path=approved
+# attendu(own): held=true
+# attendu(arm): clear=true
+# attendu: ok=true status=verified submitted=true
+prefill: { summary: "stub: form filled", blocked: false, blocker: "" }
+check_prefill: { ok: true, problems: [], summary: "stub: form filled", filled: 7, attached: true, submitted_early: false, tries: 1 }
+go: { decision: approve, text: "" }
+submit: { summary: "stub: application submitted banner", clicked: true }
+check_receipt: { ok: true, problems: [], submitted: true, proven: true, confirmation: "application submitted", summary: "stub: application submitted banner" }
+judge: { approved: true, reason: "stub: proven", findings: [] }
+fixture:
+  expect: completed
+  reached: [gate, go, decide, own, arm, submit, check_receipt, judge, verdict]
+  inputs:
+    apply_url: "https://jobs.lever.co/acme/123/apply"
+    candidate: "/stub/candidate.json"
+    cv: "/stub/CV.pdf"
+    offer: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\"}"
+    platform: greenhouse
+    mode: verified-only
+    verified_platforms: "lever"
+exec-code: true

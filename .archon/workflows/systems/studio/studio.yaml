@@ -1,0 +1,121 @@
+name: studio
+description: |
+  Système « studio » (UC-14) : la porte d'entrée de tout projet de design ou de dev. Calibre
+  la demande (graphique, site ou app), puis enchaîne le tronc commun dans un seul run : brief,
+  design system, base de contenu. Chaque bloc ne démarre que si le précédent a rendu
+  `ok: true` ; l'humain ne voit le projet qu'à la fin, avec la route de la ligne qui suit
+  (direction artistique, arborescence et pages, ou PRD et écrans). Un refus annule le run ;
+  une approbation le clôt avec une issue typée.
+
+  Use when: a design or dev project starts from a request — "je veux refaire Aevum", "il me
+  faut un site pour", "une identité pour cette marque".
+  NOT for: one page from an existing design system (landing-page), or a code change in a
+  repository (feature-build).
+
+inputs:
+  request:
+    required: true
+    description: "The project request, in the requester's words."
+  context:
+    default: ""
+    description: "Optional material: notes, links, absolute paths to existing files."
+  project_dir:
+    default: ""
+    description: "Optional absolute path to the existing project folder (its files are the starting point)."
+  locales:
+    default: "fr,en"
+    description: "Comma-separated languages of the content base."
+
+returns: { node: done, outcome: ok }
+
+# Pas de verrou de dossier : les livrables vont dans les artefacts du run (calibrage.json,
+# BRIEF.md, tokens.json, design-system.md, content.json), jamais dans le projet ; les juges
+# sont en lecture seule.
+mutates_checkout: false
+
+nodes:
+  # ── Le cadrage : graphique, site ou app ──────────────────────────────────
+  - id: calibrate
+    include: studio-calibrate
+    with:
+      request: "$INPUTS.request"
+      context: "$INPUTS.context"
+      project_dir: "$INPUTS.project_dir"
+      out: calibrage.json
+
+  # ── Le tronc commun, chaque bloc lit le cadrage dans les artefacts du run ──
+  - id: brief
+    include: studio-brief
+    depends_on: [calibrate]
+    when: "$calibrate.output.ok == true"
+    with:
+      request: "$INPUTS.request"
+      context: "Calibration ($ARTIFACTS_DIR/calibrage.json): $calibrate.output.summary\nRequester material: $INPUTS.context"
+      type: ""
+      out: BRIEF.md
+
+  - id: design
+    include: design-system
+    depends_on: [brief]
+    when: "$brief.output.ok == true"
+    with:
+      request: "$INPUTS.request"
+      context: "Brief ($ARTIFACTS_DIR/BRIEF.md): $brief.output.summary\nRequester material: $INPUTS.context"
+      type: ""
+      tokens_out: tokens.json
+      out: design-system.md
+
+  - id: content
+    include: content-base
+    depends_on: [design]
+    when: "$design.output.ok == true"
+    with:
+      request: "$INPUTS.request"
+      context: "Brief ($ARTIFACTS_DIR/BRIEF.md): $brief.output.summary\nDesign system ($ARTIFACTS_DIR/design-system.md): $design.output.summary\nRequester material: $INPUTS.context"
+      locales: "$INPUTS.locales"
+      out: content.json
+
+  # ── L'humain, seulement à la fin ─────────────────────────────────────────
+  - id: review
+    depends_on: [content]
+    when: "$content.output.ok == true"
+    wait:
+      attention: "Studio finished the common steps for: $INPUTS.request\n\nCalibration: $calibrate.output.summary\n\nBrief: $brief.output.summary\n\nDesign system: $design.output.summary\n\nContent base: $content.output.summary\n\nRead BRIEF.md, design-system.md, tokens.json and content.json in this run's artifacts directory (context.artifactsDir of this attention item), then approve to open the next lane or reject with what to change."
+      form: approval
+      labels:
+        system: studio
+
+  - id: drop
+    depends_on: [review]
+    when: "$review.output.decision == 'reject'"
+    cancel: "Rejected at final review: $review.output.text"
+
+  # ── Issue typée, sauf refus humain (annulé) ou script `verdict` en échec ──
+  - id: done
+    script: done
+    runtime: bun
+    depends_on: [calibrate, brief, design, content, review, drop]
+    trigger_rule: all_done
+    with:
+      calibrate: { from: "$calibrate.output", if_skipped: null }
+      brief: { from: "$brief.output", if_skipped: null }
+      design: { from: "$design.output", if_skipped: null }
+      content: { from: "$content.output", if_skipped: null }
+      review: { from: "$review.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        stage: { type: string, enum: [calibrate, brief, design-system, content-base, done] }
+        summary: { type: string }
+        type: { type: [string, 'null'] }
+        next: { type: array, items: { type: string } }
+        deliverables:
+          type: object
+          properties:
+            calibrage: { type: [string, 'null'] }
+            brief: { type: [string, 'null'] }
+            design_system: { type: [string, 'null'] }
+            content: { type: [string, 'null'] }
+          required: [calibrage, brief, design_system, content]
+      required: [ok, stage, summary, type, next, deliverables]

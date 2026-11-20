@@ -1,0 +1,33 @@
+# Issue « verified », offre trop ancienne : la ligne du tableau dit `date_published` 2026-10-12,
+# le tri tourne le 2026-10-23, le candidat ne veut que des offres d'une semaine au plus
+# (`offre_age_max_jours` : 7, le défaut). L'extraction est fidèle (langues, salaire, télétravail
+# conformes), la règle d'âge (`decideTriage`, `offer-date.ts`) écarte seule ; le juge confirme
+# la lecture ; le verdict (script réel) rend la décision et sa raison. Date illisible ou absente :
+# la règle n'a aucun effet (tests de `triage-checks.test.ts` et `check.test.ts`).
+# attendu: ok=true status=verified decision=ecartee
+work:
+  summary: "stub: Growth Marketing Manager chez Acme, 45-55 k€, 100 % télétravail, publiée le 2026-10-12"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: Growth Marketing Manager chez Acme, 45-55 k€, 100 % télétravail, publiée le 2026-10-12"
+  decision: ecartee
+  reasons:
+    - "offre trop ancienne (publiée le 2026-10-12, > 7 jours)"
+  notes:
+    - "Salaire : 45 000 € à 55 000 € brut par an"
+    - "Télétravail complet : « Fully remote within Europe »"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: langues, salaire et mode de travail lus correctement"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Acme","title":"Growth Marketing Manager","link":"https://example.org/jobs/acme-growth","slug":"acme","source":"Himalayas","date_published":"2026-10-12","radar_at":"2026-10-12T08:00:00.000Z"}'
+    criteria: '{"langues":["fr","en"],"salaire_min_annuel":35000,"offre_age_max_jours":7}'
+exec-code: true

@@ -1,0 +1,28 @@
+# Issue « verified » : le dossier de candidature n'a encore ni CV ni pitch (run career-apply en
+# pause au go, avant `record`), l'offre vient d'offer.json ; les contrôles passent au premier
+# tour (deux personnes, chacune avec sa page et sa citation, note et e-mail en anglais), le juge
+# rouvre les deux pages et note A, le verdict (script réel, exec-code) rend ok: true et écrit
+# decideurs.verdict.json. Prouve le câblage du bloc sans appeler un modèle.
+# attendu: ok=true status=verified findings=[] deliverable={"type":"archon_artifact","run_id":"fixture-run","path":"decideurs.json"}
+work:
+  summary: "stub: le Sales Manager puis la People & Culture Manager, tous deux sur la page carrières ; pas de Head of RevOps public"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "decideurs.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: le Sales Manager puis la People & Culture Manager, tous deux sur la page carrières ; pas de Head of RevOps public"
+  people: 2
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "decideurs.json" }
+  tries: 1
+judge:
+  approved: true
+  grade: "A"
+  reason: "stub: les deux personnes sont sur leur page avec ce rôle ; messages fidèles au profil, l'exigence d'italien dite franchement"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    application: "/stub/career/applications/smartness"
+    profile: "/stub/career/master_profile.md"
+exec-code: true

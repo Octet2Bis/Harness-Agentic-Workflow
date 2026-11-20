@@ -1,0 +1,23 @@
+# Issue « rejected » : les contrôles passent mais le juge refuse. Le run se termine
+# normalement avec une issue autorisée négative (ok: false).
+# attendu: ok=false status=rejected
+work:
+  summary: "stub: tokens and doc written, AA in both themes"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "design-system.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: tokens and doc written, AA in both themes"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "design-system.md" }
+  tries: 1
+judge:
+  approved: false
+  reason: "stub: generic palette that ignores the brief"
+  findings:
+    - { severity: blocking, text: "stub: Intention is a stock SaaS look; the brief asks for a transit signage feel" }
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    request: "stub request"
+exec-code: true

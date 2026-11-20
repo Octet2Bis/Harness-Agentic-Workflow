@@ -1,0 +1,35 @@
+# Issue « unconverged » : au dernier tour permis (deux), le formulaire ne passe toujours pas
+# ses contrôles (un CAPTCHA arrête l'agent). La boucle rend la main (compteur `tries` au
+# plafond, pas d'épuisement de max_iterations) et rien ne part : `gate` est sauté
+# (`when: $prepare.output.ok == true`), `decide` (réel) lit ce cran absent comme un refus
+# d'envoyer, et le verdict (réel) rend ok: false, status: unconverged, submitted: false, avec
+# les derniers problèmes du formulaire.
+# Preuve de sûreté : mode `auto`, où le cran enverrait sans demander, et aucun stub pour `go`,
+# `submit` ni `judge` : en atteindre un ferait échouer le dry-run (« Missing reachable stub ») ;
+# `check_receipt` ne tourne qu'après `submit`. `path=unconverged` prouve que `gate` n'a pas
+# tourné, donc que `go` (qui en dépend) n'a sollicité personne.
+# Le dry-run ne joue qu'un tour de boucle : le stub `check_prefill` porte l'état du dernier tour.
+# attendu(decide): proceed=false path=unconverged
+# attendu: ok=false status=unconverged submitted=false findings=[]
+prefill: { summary: "stub: stopped by a CAPTCHA before the form", blocked: true, blocker: "CAPTCHA on the apply page" }
+check_prefill:
+  ok: false
+  problems:
+    - "blocked before the form could be filled: CAPTCHA on the apply page"
+    - "no field was filled"
+  summary: "stub: stopped by a CAPTCHA before the form"
+  filled: 0
+  attached: false
+  submitted_early: false
+  tries: 2
+fixture:
+  expect: completed
+  reached: [prepare, decide, verdict]
+  inputs:
+    apply_url: "https://jobs.lever.co/acme/123/apply"
+    candidate: "/stub/candidate.json"
+    cv: "/stub/CV.pdf"
+    offer: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\"}"
+    platform: lever
+    mode: auto
+exec-code: true

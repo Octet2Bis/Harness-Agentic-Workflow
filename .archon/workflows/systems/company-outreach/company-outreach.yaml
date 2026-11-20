@@ -1,0 +1,103 @@
+name: company-outreach
+description: |
+  Système « company-outreach » : une entreprise validée full remote → bloc `company-dossier`
+  (recherche sourcée : activité, concurrents, signaux, besoins, contact, canal) → bloc
+  `offer-angle` (axes d'intervention adossés au profil, CDI / freelance / portage,
+  mini-diagnostic, accroche qui sert aussi de note LinkedIn) → bloc `outbound-sequence`
+  (3 e-mails, mentions de prospection vérifiées : source de l'adresse, « stop ») → validation
+  humaine. Rien n'est envoyé : après le go, l'e-mail part de la boîte du candidat et LinkedIn
+  à la main. Un bloc qui ne rend pas `ok` arrête la chaîne ; un refus humain annule le run.
+
+  Use when: a validated full-remote company should be approached with a tailored offer —
+  "prospecte cette entreprise", "prépare l'approche de", "propose mes services à".
+  NOT for: applying to a posted offer (career-apply) or sending anything.
+
+inputs:
+  company:
+    required: true
+    description: The company as JSON text (name, website, country if known, offer link, why it is full remote).
+  profile:
+    required: true
+    description: Absolute path of the candidate's master profile (Markdown).
+  formulas:
+    default: "CDI, freelance, portage"
+    description: Comma-separated formulas the candidate accepts.
+  today:
+    default: ""
+    description: Today's date (YYYY-MM-DD); empty means the machine's date.
+
+returns: { node: done, outcome: ok }
+
+# Pas de verrou de dossier : rien n'écrit dans le checkout (livrables dans `$ARTIFACTS_DIR` :
+# dossier.md, proposal.md, sequence.md), comme research-report.
+mutates_checkout: false
+
+nodes:
+  - id: dossier
+    include: company-dossier
+    with:
+      company: "$INPUTS.company"
+      today: "$INPUTS.today"
+      out: dossier.md
+
+  - id: angle
+    include: offer-angle
+    depends_on: [dossier]
+    when: "$dossier.output.ok == true"
+    with:
+      company: "$INPUTS.company"
+      dossier: dossier.md
+      profile: "$INPUTS.profile"
+      formulas: "$INPUTS.formulas"
+      out: proposal.md
+
+  - id: sequence
+    include: outbound-sequence
+    depends_on: [angle]
+    when: "$angle.output.ok == true"
+    with:
+      brief: "Prospection of one company that was validated as full remote, to open a conversation about the candidate's services. Company: $INPUTS.company. Read the verified dossier ($ARTIFACTS_DIR/dossier.md: activity, signals, needs, contact, channel) and the verified proposal ($ARTIFACTS_DIR/proposal.md). T1 opens with the proposal's « Accroche » and offers the mini-diagnostic; later touches use other signals or needs from the dossier. Address the contact named in the dossier, in the dossier's language for the company (French by default). Proposal: $angle.output.summary"
+      proofs: "$INPUTS.profile"
+      touches: "3"
+      notice: "true"
+      out: sequence.md
+
+  - id: review
+    depends_on: [sequence]
+    when: "$sequence.output.ok == true"
+    wait:
+      attention: "Prospection prête pour : $INPUTS.company\n\nDossier : $dossier.output.summary\n\nProposition : $angle.output.summary\n\nSéquence : $sequence.output.summary\n\nLis dossier.md, proposal.md et sequence.md dans les artefacts du run (context.artifactsDir). Rien n'est envoyé : approuver = le dossier est prêt à l'envoi manuel (e-mail depuis ta boîte, ou LinkedIn à la main selon le canal du dossier) ; refuser = dire quoi changer."
+      form: approval
+      labels:
+        system: company-outreach
+
+  - id: drop
+    depends_on: [review]
+    when: "$review.output.decision == 'reject'"
+    cancel: "Rejected at final review: $review.output.text"
+
+  # Issue typée, sauf refus humain (annulé) ; même garde-fou que research-report (`done.ts`).
+  - id: done
+    script: done
+    runtime: bun
+    depends_on: [dossier, angle, sequence, review, drop]
+    trigger_rule: all_done
+    with:
+      dossier: { from: "$dossier.output", if_skipped: null }
+      angle: { from: "$angle.output", if_skipped: null }
+      sequence: { from: "$sequence.output", if_skipped: null }
+      review: { from: "$review.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        stage: { type: string, enum: [dossier, angle, sequence, done] }
+        summary: { type: string }
+        deliverables:
+          type: object
+          properties:
+            dossier: { type: [string, 'null'] }
+            angle: { type: [string, 'null'] }
+            sequence: { type: [string, 'null'] }
+          required: [dossier, angle, sequence]
+      required: [ok, stage, summary, deliverables]

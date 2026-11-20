@@ -1,0 +1,30 @@
+# Issue « lint failed » : implémentation verte (verdict réel), lint réel en échec
+# (`lint_cmd: "false"`, exec-code) ; la relecture, l'approbation et ship sont sautés ;
+# `done` (réel) clôt ok: false, stage: lint.
+# attendu: ok=false stage=lint
+# attendu(lint): ok=false exit_code=1
+# attendu(implement__verdict): ok=true status=verified
+plan:
+  summary: "stub: three tasks"
+  tasks: 3
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "plan.md" }
+work:
+  summary: "stub: T3 done, suite green"
+  task_done: "T3 : endpoint"
+  remaining: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: T3 done, suite green"
+  tests_passed: true
+  remaining: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+  tries: 1
+fixture:
+  expect: completed
+  reached: [plan, implement__verdict, lint, done]
+  inputs:
+    request: "stub request"
+    lint_cmd: "false"
+exec-code: true

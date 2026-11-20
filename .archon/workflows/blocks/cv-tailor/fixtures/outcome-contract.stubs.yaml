@@ -1,0 +1,32 @@
+# Contrat d'issue : avec le nœud `verdict` lui aussi stubbé, la simulation lit l'issue
+# autorisée (`returns: { node: verdict, outcome: ok }`) et doit la rapporter « succeeded ».
+# sans-attendu: fixture de contrat — `verdict` est stubbé ; Archon valide le stub contre output_format et en dérive l'issue (« Authored outcome »).
+work:
+  summary: "stub: done"
+  language: fr
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: done"
+  coverage: { covered: [], missing: [], ratio: 1 }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+  tries: 1
+judge:
+  approved: true
+  grade: "A-"
+  reason: "stub: approved"
+  findings: []
+verdict:
+  ok: true
+  status: verified
+  summary: "stub: done. Reviewer: A- — stub: approved"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+fixture:
+  expect: completed
+  reached: [verdict]
+  inputs:
+    offer: '{"company":"Acme","title":"Growth Ops Manager","link":"https://jobs.lever.co/acme/123","slug":"acme","skills_required":"n8n, GTM, HubSpot"}'
+    profile: "/stub/master_profile.md"

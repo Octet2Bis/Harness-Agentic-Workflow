@@ -1,0 +1,39 @@
+# Issue « posting-expired » : la garde d'annonce de `load` (systems/.shared/posting-guard.ts) a
+# lu une annonce close (stub : `posting: expirée`, la page disait « no longer accepting
+# applications ») après avoir pris l'offre (`claim_run` du listener) : `load` rend `ok: false`.
+# Ni CV, ni PDF, ni route, ni envoi. `record` (réel, sur le dossier carrière /stub/career qui
+# n'existe pas : il n'écrit rien, `status_written: false`) dérive APPLY_FAILED au stage `load`
+# au lieu de remettre l'offre en file (VALIDATED, qu'un `load` en échec donne sinon) : le
+# listener ne relira pas la même page morte, et `/valider` la remet en file si l'annonce vit
+# encore. La garde est testée règle par règle dans .shared/posting-guard.test.ts, son
+# branchement dans scripts/load.test.ts (pages servies en local, puis `record` qui écrit
+# APPLY_FAILED sur un vrai tableau), l'issue dans .shared/career.test.ts (`outcome`).
+# Preuve que rien d'autre ne tourne : aucun stub pour `work`, `check`, `tailor__judge`,
+# `render`, `resolve`, `prefill` ni `submit__submit` : un nœud atteint sans stub ferait échouer
+# le dry-run.
+# attendu(record): ok=false stage=load status=APPLY_FAILED status_written=false
+# attendu(confirm_route): ok=false
+load:
+  ok: false
+  summary: "stub: Posting expired (posting guard): la page dit « no longer accepting applications ». Nothing was tailored or sent; record closes the offer APPLY_FAILED."
+  slug: acme
+  profile: "/stub/career/master_profile.md"
+  proofs: "/stub/career/skill_proof_graph.json"
+  remarks: ""
+  keywords: ""
+  offer_json: "{}"
+  link: "https://fr.linkedin.com/jobs/view/growth-ops-at-acme-123"
+  board: "/stub/career/pending_gold_jobs.json"
+  claim_run: "listener-run-1"
+  self_claimed: false
+  answers: ""
+  posting: expirée
+  posting_reasons: ["la page dit « no longer accepting applications »"]
+fixture:
+  expect: completed
+  reached: [load, confirm_route, record]
+  inputs:
+    slug: acme
+    career_dir: "/stub/career"
+    claim_run: listener-run-1
+exec-code: true

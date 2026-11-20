@@ -1,0 +1,33 @@
+# Issue « verified », plateforme 100 % télétravail : l'offre vient d'Himalayas (`offer.source`),
+# l'annonce ne dit rien du lieu de travail (l'agent écrit `not_stated`, aucun marqueur hybride ou
+# sur site dans le texte) ; la règle la compte pour du télétravail complet et l'écrit dans les
+# raisons (« Télétravail d'après la source Himalayas »), le juge confirme ; le verdict (script
+# réel) rend la décision. La même annonce venue d'Adzuna resterait « à vérifier »
+# (`work-mode-unstated`). La règle elle-même est testée dans `.shared/triage-checks.test.ts` et
+# `scripts/check.test.ts`.
+# attendu: ok=true status=verified decision=retenue
+work:
+  summary: "stub: anglais courant, 45 k€, rien sur le lieu de travail, offre Himalayas"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: anglais courant, 45 k€, rien sur le lieu de travail, offre Himalayas"
+  decision: retenue
+  reasons:
+    - "Langues, salaire et mode de travail conformes à criteres.json"
+    - "Télétravail d'après la source Himalayas (plateforme 100 % télétravail ; l'annonce ne parle ni d'hybride, ni de sur site, ni de jours au bureau)"
+  notes: ["Salaire : 45 000 € brut par an"]
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: l'annonce ne dit rien du lieu de travail, `not_stated` est la bonne lecture"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Acme","title":"Growth Marketing Manager","link":"https://himalayas.app/companies/acme/jobs/growth-marketing-manager","slug":"acme","source":"Himalayas"}'
+    criteria: '{"langues":["fr","en"],"salaire_min_annuel":35000}'
+exec-code: true

@@ -1,0 +1,19 @@
+# Issue « unconverged » : au dernier tour permis, les contrôles disent encore non. La boucle
+# rend la main (compteur `tries` au plafond), le juge est sauté et le verdict (script réel)
+# rend une issue typée avec les derniers problèmes.
+# attendu: ok=false status=unconverged
+work:
+  summary: "stub: tokens and doc written, AA in both themes"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "design-system.md" }
+check:
+  ok: false
+  problems: ["stub: contrast dark muted on bg is 3.10:1, at least 4.5:1 required (WCAG AA)"]
+  summary: "stub: tokens and doc written, AA in both themes"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "design-system.md" }
+  tries: 3
+fixture:
+  expect: completed
+  reached: [produce, verdict]
+  inputs:
+    request: "stub request"
+exec-code: true

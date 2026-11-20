@@ -1,0 +1,44 @@
+{
+  "_fixture": "réel — réponse jobs.json de Jobgether du 2026-10-23 (keyword=growth marketing, locations=europe, remoteType=full-remote), tronquée à 2 offres ; la 3e est une copie volontaire de la 2e pour tester la déduplication par url",
+  "browseOnSiteUrl": "https://jobgether.com/search-offers?keyword=growth+marketing&limit=25&locations=europe&page=1&remoteType=full-remote&sort=date",
+  "docs": "/astroapi/ai/jobs/docs",
+  "pagination": { "page": 1, "limit": 25, "hasMore": true },
+  "jobs": [
+    {
+      "id": "6adad54322c2644c03e0cc65",
+      "title": "Marketing & Growth Praktikum (m/w/d) - 100 % Remote | 3-6 Monate",
+      "company": "Beglaubigt.de",
+      "url": "https://jobgether.com/offer/6adad54322c2644c03e0cc65-marketing-growth-praktikum-m-w-d---100-remote-3-6-monate",
+      "location": "Anywhere",
+      "remote": "Full Remote",
+      "contractType": "Internships",
+      "experience": "Entry-level / graduate",
+      "jobFunctions": ["Growth Marketing Manager"],
+      "postedAt": "2026-10-23T03:32:19.230Z"
+    },
+    {
+      "id": "6adac74322c2644c03e075db",
+      "title": "Head of Marketing & Growth (m/w/d)",
+      "company": "Julia Goessler GmbH",
+      "url": "https://jobgether.com/offer/6adac74322c2644c03e075db-head-of-marketing-growth-m-w-d",
+      "location": "Anywhere",
+      "remote": "Full Remote",
+      "contractType": "Full time",
+      "experience": "Expert & Leadership (>10 years)",
+      "jobFunctions": ["Head of Marketing"],
+      "postedAt": "2026-10-23T02:32:35.440Z"
+    },
+    {
+      "id": "6adac74322c2644c03e075db",
+      "title": "Head of Marketing & Growth (m/w/d)",
+      "company": "Julia Goessler GmbH",
+      "url": "https://jobgether.com/offer/6adac74322c2644c03e075db-head-of-marketing-growth-m-w-d",
+      "location": "Anywhere",
+      "remote": "Full Remote",
+      "contractType": "Full time",
+      "experience": "Expert & Leadership (>10 years)",
+      "jobFunctions": ["Head of Marketing"],
+      "postedAt": "2026-10-23T02:32:35.440Z"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+# Issue « applied » : une offre est prise, le sous-run career-apply (stubbé) rend APPLIED,
+# `close` (réel) relaie l'issue sans écrire : career-apply a déjà écrit le statut.
+# attendu: ok=true path=done status=APPLIED
+claim: { path: work, slug: acme, company: Acme, title: "Growth Ops Manager", run: "listener-run-1", stale: [], summary: "Picked acme." }
+run: { ok: true, stage: done, status: APPLIED, status_written: true, app_dir: "/stub/career/applications/acme", copied: [], summary: "Application sent and confirmed." }
+fixture:
+  expect: completed
+  reached: [claim, run, close, settle]
+  inputs:
+    career_dir: "/stub/career"
+exec-code: true

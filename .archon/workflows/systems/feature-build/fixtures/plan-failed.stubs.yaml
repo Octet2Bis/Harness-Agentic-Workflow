@@ -1,0 +1,14 @@
+# Issue « plan failed » : `plan` échoue (en vrai, une erreur du modèle ; ici, faute de stub
+# `plan`, le dry-run le fait échouer). Tout l'aval est sauté (cause : amont en échec), dont
+# le relais `plan_result` que lie `done` : `done` (réel) reçoit `null` par `if_skipped`,
+# tourne quand même (`all_done`) et rend ok: false, stage: plan. Le run finit `failed`.
+# fail-node est l'ensemble exact des nœuds en échec : `work` (sans stub) atteint, ou `done`
+# en échec sur une liaison, s'y ajouteraient et feraient échouer la fixture.
+# attendu(done): ok=false stage=plan pr_url=null
+fixture:
+  expect: failed
+  fail-node: plan
+  reached: [done]
+  inputs:
+    request: "stub request"
+exec-code: true

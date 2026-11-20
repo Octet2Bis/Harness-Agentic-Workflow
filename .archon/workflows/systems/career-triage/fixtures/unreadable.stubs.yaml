@@ -1,0 +1,29 @@
+# Issue « annonce illisible » : la page de l'offre ne se lit pas (formulaire Workday d'un ATS) et
+# le radar n'en donne aucun texte (Apify, Jobdatalake, Jobgether) ; `load` (disque, réseau,
+# stubbé) le dit (`readable: false`). Le bloc job-triage est sauté : aucun de ses nœuds n'a de
+# stub, un nœud atteint ferait échouer le dry-run. `classify` (réel) écrit « à vérifier » avec la
+# raison de `load`, `block_status: unreadable` ; avant le 2026-10-23, Opus tournait trois fois
+# et le tri finissait `unconverged` sur « posting_language ».
+# attendu(classify): decision=a_verifier block_status=unreadable
+load:
+  ok: true
+  go: true
+  summary: "stub: offer Exemple SAS to triage; posting not readable (HTTP 0), radar summary only (0 chars) — unreadable, the block is skipped"
+  key: APF-1234
+  offer_json: '{"key":"APF-1234","id":"APF-1234","slug":"exemple_sas","company":"Exemple SAS","title":"Product Operations Manager","link":"https://exemple.wd3.myworkdayjobs.com/x/job/Remote/R1/apply","location":"Remote","source":"Apify ATS","status":"PENDING_VALIDATION"}'
+  criteria_json: '{"langues":["fr","en"],"salaire_min_annuel":35000}'
+  criteria_hash: abc123
+  posting_full: "false"
+  readable: false
+  unreadable_reason: "Annonce illisible : la page de l'offre n'a pas pu être lue (HTTP injoignable) et le radar n'en donne que 0 caractère (source Apify ATS) ; à ouvrir à la main"
+  pre_screened: false
+  pre_screen_reason: ""
+  profile_file: ""
+  attempts: 0
+record: { ok: true, written: true, key: APF-1234, decision: a_verifier, path: "/stub/career/triage/APF-1234.json", summary: "stub: à vérifier (annonce illisible)" }
+fixture:
+  expect: completed
+  reached: [load, classify, record]
+  inputs:
+    career_dir: "/stub/career"
+exec-code: true

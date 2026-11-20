@@ -1,0 +1,21 @@
+# Issue « verified » : tests verts, journal vidé ; le verdict (script réel, exec-code) rend ok: true.
+# attendu: ok=true status=verified
+work:
+  summary: "stub: T3 endpoint added with its tests; suite green"
+  task_done: "T3 : endpoint"
+  remaining: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: T3 endpoint added with its tests; suite green"
+  tests_passed: true
+  remaining: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+  tries: 1
+fixture:
+  expect: completed
+  reached: [verdict]
+  inputs:
+    plan: "stub plan"
+exec-code: true

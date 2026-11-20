@@ -1,0 +1,23 @@
+# Issue « rejected » : les contrôles passent mais le juge refuse. Le run se termine
+# normalement avec une issue autorisée négative (ok: false).
+# attendu: ok=false status=rejected
+work:
+  summary: "stub: app project: iOS app with a design system first"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "calibrage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: app project: iOS app with a design system first"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "calibrage.json" }
+  tries: 1
+judge:
+  approved: false
+  reason: "stub: this is a brand kit, not an app"
+  findings:
+    - { severity: blocking, text: "stub: the request asks for a logo and print material; type should be graphique" }
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    request: "stub request"
+exec-code: true

@@ -1,0 +1,27 @@
+# Issue « unconverged » : au 8e et dernier tour permis, les tests sont encore rouges et des
+# tâches restent sous `## Reste`. La boucle rend la main (compteur `tries` au plafond, pas
+# d'épuisement de max_iterations) et le verdict (script réel, exec-code) rend quand même une
+# issue typée : ok: false, status: unconverged, avec les derniers problèmes. Le dry-run ne
+# joue qu'un tour de boucle : le stub `check` porte directement l'état du dernier tour.
+# attendu: ok=false status=unconverged findings=[]
+work:
+  summary: "stub: T2 migration written; two tests still failing"
+  task_done: "T2 : migration"
+  remaining: 2
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+check:
+  ok: false
+  problems:
+    - "stub: tests failed (exit 1, `npm test`): 2 failed"
+    - "stub: 2 task(s) still under ## Reste: T3 | T4"
+  summary: "stub: T2 migration written; two tests still failing"
+  tests_passed: false
+  remaining: 2
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+  tries: 8
+fixture:
+  expect: completed
+  reached: [produce, verdict]
+  inputs:
+    plan: "stub plan"
+exec-code: true

@@ -1,0 +1,103 @@
+name: pipeline
+description: |
+  Système « pipeline » : enchaîne les blocs research → design → report sur une tâche,
+  dans un seul run (composition par `include:`), puis s'arrête pour la vérification
+  finale par un humain. Chaque bloc ne démarre que si le précédent a rendu `ok: true` ;
+  un refus humain annule le run ; une approbation le clôt avec une issue typée.
+  L'humain n'intervient qu'à la fin.
+
+  Use when: a task needs facts, then a decision, then a readable report — "traite cette
+  demande de bout en bout", "fais-moi le dossier complet sur".
+  NOT for: one block alone (run it directly), or work that must change a repository
+  (use the Archon sdlc pack).
+
+inputs:
+  task:
+    required: true
+    description: The request, in the requester's words.
+  context:
+    default: ""
+    description: Optional material every block can rely on.
+
+returns: { node: done, outcome: ok }
+
+# Pas de verrou de dossier : aucun nœud n'écrit dans le checkout. Les livrables vont dans les
+# artefacts du run (`$ARTIFACTS_DIR` : research.md, design.md, report.md), l'état dans Archon ;
+# les agents `work` ont pour consigne de n'écrire nulle part ailleurs, les juges sont en
+# lecture seule, les scripts ne font que lire et rendre du JSON. Avec le verrou, ce run serait
+# annulé (« This worktree is in use ») dès qu'un autre run plus ancien est actif ou en pause
+# dans le dossier (un autre système en pause à sa revue humaine…).
+mutates_checkout: false
+
+nodes:
+  # ── Les blocs, chacun avec son propre livrable dans les artefacts du run ──
+  - id: research
+    include: research
+    with:
+      task: "$INPUTS.task"
+      context: "$INPUTS.context"
+      out: research.md
+
+  - id: design
+    include: design
+    depends_on: [research]
+    when: "$research.output.ok == true"
+    with:
+      task: "$INPUTS.task"
+      context: "Research summary: $research.output.summary\nFull research report: $ARTIFACTS_DIR/research.md\nRequester material: $INPUTS.context"
+      out: design.md
+
+  - id: report
+    include: report
+    depends_on: [design]
+    when: "$design.output.ok == true"
+    with:
+      task: "Report, for the requester, on this task and what the pipeline produced for it: $INPUTS.task"
+      context: "Research ($ARTIFACTS_DIR/research.md): $research.output.summary\nDesign ($ARTIFACTS_DIR/design.md): $design.output.summary"
+      out: report.md
+
+  # ── L'humain, seulement à la fin ─────────────────────────────────────────
+  - id: review
+    depends_on: [report]
+    when: "$report.output.ok == true"
+    wait:
+      attention: "Pipeline finished for: $INPUTS.task\n\nResearch: $research.output.summary\n\nDesign: $design.output.summary\n\nReport: $report.output.summary\n\nRead report.md in this run's artifacts directory (context.artifactsDir of this attention item), then approve to close the task or reject with what to change."
+      form: approval
+      labels:
+        system: pipeline
+
+  - id: drop
+    depends_on: [review]
+    when: "$review.output.decision == 'reject'"
+    cancel: "Rejected at final review: $review.output.text"
+
+  # ── Issue typée, sauf refus humain (annulé) ou script `verdict` en échec ──
+  # Un verdict sauté (nœud du bloc en échec) se lit `null` ; un verdict en échec ferait
+  # échouer `done` : une liaison ne lit jamais un nœud en échec, même avec `if_skipped`.
+  # L'humain n'est jamais l'étape de `done` : trois blocs `ok` suivis d'autre chose qu'un
+  # « go » n'ont pas de chemin, et `done` échoue (« done: unexpected state ») plutôt que
+  # d'inventer une issue si ce YAML change.
+  - id: done
+    script: done
+    runtime: bun
+    depends_on: [research, design, report, review, drop]
+    trigger_rule: all_done
+    with:
+      research: { from: "$research.output", if_skipped: null }
+      design: { from: "$design.output", if_skipped: null }
+      report: { from: "$report.output", if_skipped: null }
+      review: { from: "$review.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        stage: { type: string, enum: [research, design, report, done] }
+        summary: { type: string }
+        deliverables:
+          type: object
+          properties:
+            research: { type: [string, 'null'] }
+            design: { type: [string, 'null'] }
+            report: { type: [string, 'null'] }
+          required: [research, design, report]
+      required: [ok, stage, summary, deliverables]

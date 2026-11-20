@@ -1,0 +1,34 @@
+# Issue « no-session » : l'annonce est sur Workday. `target` (réel) le reconnaît : un compte
+# propre à l'employeur (`needs_login`), que le robot ne crée jamais ; Antoine le crée lui-même
+# dans le navigateur du robot (2026-10-24). Ici la session manque : `prefill` (stub) tombe sur la
+# page de connexion et se déclare bloqué, avec ce qu'Antoine doit faire. Au plafond (deux tours),
+# la boucle rend la main : `gate` est sauté, `decide` (réel) dit unconverged, le verdict (réel)
+# rend ok: false, status: unconverged, submitted: false : l'appelant écrit TAILORED.
+# Preuve de sûreté : mode `confirm`, aucun stub pour `go`, `submit` ni `judge` : en atteindre un
+# ferait échouer le dry-run ; la fixture, qui attend `completed`, prouve que personne n'est
+# sollicité et que rien n'est cliqué.
+# attendu(target): platform=workday needs_login=true handover=false form_url=https://acme.wd3.myworkdayjobs.com/en-US/External/job/Paris/Growth-Ops_R123/apply
+# attendu(decide): proceed=false path=unconverged
+# attendu: ok=false status=unconverged submitted=false findings=[]
+prefill: { summary: "stub: Workday sign-in page, no session", blocked: true, blocker: "Compte Acme à créer ou à ouvrir sur acme.wd3.myworkdayjobs.com dans le navigateur du robot, puis relancer" }
+check_prefill:
+  ok: false
+  problems:
+    - "blocked before the form could be filled: Compte Acme à créer ou à ouvrir sur acme.wd3.myworkdayjobs.com dans le navigateur du robot, puis relancer"
+    - "no field was filled"
+  summary: "stub: Workday sign-in page, no session\nRéponses libres : aucune.\nÀ remplir par Antoine : rien."
+  filled: 0
+  attached: false
+  submitted_early: false
+  tries: 2
+fixture:
+  expect: completed
+  reached: [target, prepare, decide, verdict]
+  inputs:
+    apply_url: "https://acme.wd3.myworkdayjobs.com/en-US/External/job/Paris/Growth-Ops_R123"
+    platform: workday
+    candidate: "/stub/candidate.json"
+    cv: "/stub/CV.pdf"
+    offer: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\"}"
+    mode: confirm
+exec-code: true

@@ -1,0 +1,36 @@
+# Issue « rejected » : les contrôles passent mais le Reviewer note B (sous A-) avec un constat
+# bloquant. Le run se termine normalement avec une issue autorisée négative (ok: false).
+# attendu: ok=false status=rejected
+write_letter:
+  summary: "stub: lettre complète"
+  language: fr
+  evidence:
+    - { letter: "j'ai conduit des campagnes outbound à ~50% de taux d'ouverture", profile: "campagnes outbound à ~50% de taux d'ouverture" }
+    - { letter: "J'ai refondu le CRM en automatisant avec n8n la qualification des leads entrants", profile: "Automatisation n8n de la qualification des leads entrants" }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/letter.md" }
+check_letter:
+  ok: true
+  problems: []
+  summary: "stub: lettre complète"
+  language: fr
+  words: 288
+  lines: 40
+  traced: 2
+  evidence:
+    - { letter: "j'ai conduit des campagnes outbound à ~50% de taux d'ouverture", profile: "campagnes outbound à ~50% de taux d'ouverture" }
+    - { letter: "J'ai refondu le CRM en automatisant avec n8n la qualification des leads entrants", profile: "Automatisation n8n de la qualification des leads entrants" }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/letter.md" }
+  tries: 1
+judge:
+  approved: false
+  grade: "B"
+  reason: "stub: une preuve gonfle la portée d'une expérience"
+  findings:
+    - { severity: blocking, text: "stub: preuve n°2 : le profil parle de qualification des leads, la lettre en fait une refonte du CRM" }
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Acme","title":"Growth Ops Manager (H/F)","link":"https://jobs.lever.co/acme/123","slug":"acme","skills_required":"n8n, CRM, outbound"}'
+    profile: "/stub/master_profile.md"
+exec-code: true

@@ -1,0 +1,32 @@
+# Issue « verified », cœur du poste couvert : les trois exigences centrales de l'annonce
+# (lifecycle CRM, automatisation des emails, A/B tests) sont étayées par le profil, une en partie
+# seulement ; aucune n'est `missing`, la règle retient l'offre et le note ; le juge confirme ;
+# le verdict (script réel) rend la décision.
+# attendu: ok=true status=verified decision=retenue
+work:
+  summary: "stub: CRM Manager 100 % télétravail, cœur du poste couvert par le profil"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: CRM Manager 100 % télétravail, cœur du poste couvert par le profil"
+  decision: retenue
+  reasons: ["Langues, salaire et mode de travail conformes à criteres.json"]
+  notes:
+    - "Salaire : 40 000 € à 46 000 € brut par an"
+    - "Télétravail complet : « This role is fully remote: work from anywhere in Europe. »"
+    - "Cœur du poste : 2 exigences étayées, 1 en partie, 0 absente du profil, sur 3"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: exigences centrales justes, appuis du profil cités et pertinents"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Exemplia","title":"CRM Manager","link":"https://example.org/jobs/exemplia-crm-manager","slug":"exemplia"}'
+    criteria: '{"langues":["fr","en"],"salaire_min_annuel":35000}'
+    profile: profile.md
+exec-code: true

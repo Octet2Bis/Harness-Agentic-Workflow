@@ -1,0 +1,25 @@
+# Issue « rejected » : la relecture est bien formée mais le juge la récuse (un constat
+# bloquant n'existe pas dans le diff) ; verdict réel rend ok: false.
+# attendu: ok=false status=rejected code_verdict=fail
+work:
+  summary: "stub: one blocking defect in the empty-list path"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "review.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: one blocking defect in the empty-list path"
+  code_verdict: fail
+  blocking: 1
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "review.json" }
+  tries: 1
+judge:
+  approved: false
+  reason: "stub: the blocking finding points at a line the diff does not change"
+  findings:
+    - { severity: blocking, text: "stub: finding 1 (src/a.ts:3) is not in the diff; the empty-list path is guarded on line 7" }
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    plan: "stub plan"
+exec-code: true

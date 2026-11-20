@@ -1,0 +1,54 @@
+{
+  "_doc": "Écrit à la main d'après la documentation de la Workable widget API (GET apply.workable.com/api/v1/widget/accounts/{slug}?details=true), forme à confirmer sur une vraie réponse. Aucune entreprise réelle.",
+  "name": "Balena",
+  "description": "",
+  "jobs": [
+    {
+      "title": "Growth &amp; Lifecycle Marketing Manager",
+      "shortcode": "A1B2C3D4E5",
+      "code": "",
+      "url": "https://apply.workable.com/balena/j/A1B2C3D4E5/",
+      "application_url": "https://apply.workable.com/balena/j/A1B2C3D4E5/apply/",
+      "published_on": "2026-10-21",
+      "created_at": "2026-10-20T10:00:00Z",
+      "department": "Marketing",
+      "employment_type": "Full-time",
+      "industry": "Software",
+      "function": "Marketing",
+      "experience": "Mid-Senior level",
+      "education": "",
+      "location": { "city": "Barcelona", "region": "Catalonia", "country": "Spain", "country_code": "ES", "location_str": "Barcelona, Spain", "telecommuting": true, "workplace_type": "hybrid" },
+      "locations": [{ "city": "Barcelona", "country": "Spain", "country_code": "ES", "location_str": "Barcelona, Spain" }],
+      "description": "<p>Own paid acquisition &amp; lifecycle for the EU market.</p>",
+      "full_description": "<p>Own paid acquisition &amp; lifecycle for the EU market.</p><ul><li>HubSpot</li><li>Google Ads</li></ul>"
+    },
+    {
+      "title": "Growth &amp; Lifecycle Marketing Manager",
+      "shortcode": "F6G7H8I9J0",
+      "url": "https://apply.workable.com/balena/j/F6G7H8I9J0/",
+      "application_url": "https://apply.workable.com/balena/j/F6G7H8I9J0/apply/",
+      "published_on": "2026-10-19",
+      "department": "Marketing",
+      "employment_type": "Full-time",
+      "location": { "city": "Austin", "region": "Texas", "country": "United States", "country_code": "US", "location_str": "Austin, TX, United States", "telecommuting": false, "workplace_type": "remote" },
+      "description": "<p>Same role, US entity.</p>",
+      "full_description": "<p>Same role, US entity.</p>"
+    },
+    {
+      "title": "Account Executive",
+      "shortcode": "K1L2M3N4O5",
+      "url": "https://apply.workable.com/balena/j/K1L2M3N4O5/",
+      "published_on": "2026-10-18",
+      "department": "Sales",
+      "employment_type": "Full-time",
+      "location": { "city": "New York", "region": "New York", "country": "United States", "country_code": "US", "location_str": "New York, NY, United States", "telecommuting": false, "workplace_type": "on_site" },
+      "description": "<p>Close mid-market deals from our NYC office.</p>"
+    },
+    {
+      "title": "Posting without shortcode",
+      "shortcode": "",
+      "url": "https://apply.workable.com/balena/j/ghost/",
+      "location": { "city": "Lisbon", "country": "Portugal", "telecommuting": false }
+    }
+  ]
+}

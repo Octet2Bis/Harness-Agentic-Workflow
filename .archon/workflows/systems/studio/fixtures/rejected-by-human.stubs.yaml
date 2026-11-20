@@ -1,0 +1,50 @@
+# Issue « rejected by human » : tout est ok jusqu'à la vérification finale, l'humain
+# refuse, `drop` annule le run, `done` ne tourne pas : sinon le run finirait `completed` au
+# lieu de `cancelled`.
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+calibrate__judge: { approved: true, reason: "stub: sound", findings: [] }
+calibrate__verdict:
+  ok: true
+  status: verified
+  summary: "stub: app: the request names an iOS app"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "calibrage.json" }
+brief__judge: { approved: true, reason: "stub: sound", findings: [] }
+brief__verdict:
+  ok: true
+  status: verified
+  summary: "stub: brief written"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "BRIEF.md" }
+design__judge: { approved: true, reason: "stub: sound", findings: [] }
+design__verdict:
+  ok: true
+  status: verified
+  summary: "stub: tokens and doc, AA in both themes"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "design-system.md" }
+content__judge: { approved: true, reason: "stub: sound", findings: [] }
+content__verdict:
+  ok: true
+  status: verified
+  summary: "stub: content written"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "content.json" }
+review: { decision: reject, text: "stub: the palette is too cold for the brief" }
+fixture:
+  expect: cancelled
+  reached: [review, drop]
+  inputs:
+    request: "stub request"

@@ -1,0 +1,44 @@
+# Issue « rejected by human » : tout est ok jusqu'à la vérification finale, l'humain
+# refuse, `drop` annule le run, `done` ne tourne pas. L'absence de stub `done` ne le prouve
+# pas : un nœud `trigger_rule: all_done` sans stub reçoit un substitut (« Missing stub
+# tolerated »). Ce qui le prouve : si `drop` n'annulait pas, `done` tournerait et le run
+# finirait `completed` au lieu de `cancelled` (vérifié en rendant faux le `when` de `drop`).
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+research__judge: { approved: true, reason: "stub: sourced", findings: [] }
+research__verdict:
+  ok: true
+  status: verified
+  summary: "stub: research answered the question"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "research.md" }
+design__judge: { approved: true, reason: "stub: sound", findings: [] }
+design__verdict:
+  ok: true
+  status: verified
+  summary: "stub: option A chosen"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "design.md" }
+report__judge: { approved: true, reason: "stub: faithful", findings: [] }
+report__verdict:
+  ok: true
+  status: verified
+  summary: "stub: report written"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "report.md" }
+review: { decision: reject, text: "stub: the recommendation ignores the budget" }
+fixture:
+  expect: cancelled
+  reached: [review, drop]
+  inputs:
+    task: "stub task"

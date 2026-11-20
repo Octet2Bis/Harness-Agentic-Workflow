@@ -1,0 +1,28 @@
+# Issue « research no verdict » : un nœud de research échoue (ici le juge : erreur du modèle,
+# simulée par l'absence de stub `research__judge`), alors `research__verdict` est sauté
+# (`trigger_rule: none_failed_min_one_success`) et research ne rend aucun verdict. Ce n'est
+# jamais un défaut de convergence : au plafond de tours, la boucle rend la main et le verdict
+# dit `unconverged` (fixture `research-unconverged`). Ensuite `report`, la revue et `drop`
+# sont sautés ;
+# `done` (réel) rend quand même son issue typée : ok: false, stage: research, « Research
+# returned no verdict: one of its nodes failed (a model or script error), so its verdict was
+# skipped. ». Le run, lui, finit `failed` (un nœud a échoué).
+# Archon asserte l'état (fail-node) et les nœuds atteints ; scripts/gates/fixture-outcomes.ts
+# compare la sortie réelle de `done` :
+# attendu(done): ok=false stage=research
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+fixture:
+  expect: failed
+  fail-node: research__judge
+  reached: [research__produce, done]
+  inputs:
+    task: "stub question"
+exec-code: true

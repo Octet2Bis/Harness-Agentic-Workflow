@@ -1,0 +1,37 @@
+# Issue « non convergé » : au deuxième tour (le plafond) une citation est encore fausse ; juge sauté,
+# l'offre est « à vérifier » avec le dernier problème.
+# attendu(triage__verdict): ok=false status=unconverged
+# attendu(classify): decision=a_verifier block_status=unconverged
+load:
+  ok: true
+  go: true
+  summary: "stub: offer Smartness to triage; posting read"
+  key: LI-1642423340
+  offer_json: '{"key":"LI-1642423340","id":"LI-1642423340","slug":"smartness","company":"Smartness","title":"Sales Operations & Enablement Specialist","link":"https://pt.linkedin.com/jobs/view/x-4475957729","location":"Portugal","source":"LinkedIn","status":"PENDING_VALIDATION"}'
+  criteria_json: '{"langues":["fr","en"],"salaire_min_annuel":35000}'
+  criteria_hash: abc123
+  posting_full: "true"
+  readable: true
+  unreadable_reason: ""
+  pre_screened: false
+  pre_screen_reason: ""
+  profile_file: ""
+  attempts: 0
+work: { summary: "stub: italien exigé", deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" } }
+check:
+  ok: false
+  problems: ["languages[1] (it): the quote is not in the posting verbatim"]
+  summary: "stub: italien exigé"
+  decision: ""
+  reasons: []
+  notes: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 2
+record: { ok: true, written: true, key: LI-1642423340, decision: a_verifier, path: "/stub/career/triage/LI-1642423340.json", summary: "stub: à vérifier" }
+fixture:
+  expect: completed
+  reached: [load, triage__verdict, classify, record]
+  inputs:
+    career_dir: "/stub/career"
+    engine: llm
+exec-code: true

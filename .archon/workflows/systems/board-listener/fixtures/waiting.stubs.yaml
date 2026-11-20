@@ -1,0 +1,14 @@
+# Issue « waiting » : des cartes NEW, mais un autre run actif tient le dossier et leur sous-run
+# en prendrait le verrou (Archon l'annulerait au départ, « This worktree is in use »), ou ce run
+# prend lui-même le verrou (Archon l'annulerait à sa reprise tant qu'une carte attend son humain
+# ici) : `claim` (stubbé : état et `archon workflow status` ; décision testée par folderWait
+# dans .shared/board.test.ts, script lancé pour de vrai par scripts/listener.test.ts) ne les
+# prend pas. Rien ne tourne, rien n'est écrit, `settle` est sauté : la carte n'est pas vidée
+# en FAILED, elle part au premier run où le dossier est libre.
+# attendu: ok=true path=waiting id=""
+# attendu(outcome): ok=true path=waiting result=null
+claim: { path: waiting, id: "", run: "stub-run", workflow: "", task: "", context: "", revision: 0, note: "stub: 1 card(s) left NEW (20261016150000-wait): run r-0 (career-listener, paused) works in this folder" }
+fixture:
+  expect: completed
+  reached: [claim, hold, outcome, outcome_result, close]
+exec-code: true

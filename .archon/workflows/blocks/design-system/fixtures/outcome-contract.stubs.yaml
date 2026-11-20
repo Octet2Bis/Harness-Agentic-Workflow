@@ -1,0 +1,28 @@
+# Contrat d'issue : avec le nœud `verdict` lui aussi stubbé, la simulation lit l'issue
+# autorisée (`returns: { node: verdict, outcome: ok }`) et doit la rapporter « succeeded ».
+# sans-attendu: fixture de contrat — `verdict` est stubbé ; Archon valide le stub contre output_format et en dérive l'issue (« Authored outcome »).
+work:
+  summary: "stub: tokens and doc written, AA in both themes"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "design-system.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: tokens and doc written, AA in both themes"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "design-system.md" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: approved"
+  findings: []
+verdict:
+  ok: true
+  status: verified
+  summary: "stub: tokens and doc written, AA in both themes Judge: stub: approved"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "design-system.md" }
+fixture:
+  expect: completed
+  reached: [verdict]
+  inputs:
+    request: "stub request"

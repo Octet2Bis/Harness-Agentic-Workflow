@@ -1,0 +1,43 @@
+{
+  "_fixture": "réel — réponse /api/v1/jobs?market=france&remote=true de Growth.Talent du 2026-10-23, 2 offres, logoUrl retiré",
+  "data": [
+    {
+      "id": "cmvki6jlw00bq04jwze3kdm0p",
+      "slug": "social-media-and-content-strategist-community-hcompany",
+      "title": "Social Media and Content Strategist - Community",
+      "category": "content-marketing",
+      "seniority": "MID",
+      "contractType": "FULL_TIME",
+      "remote": "REMOTE",
+      "city": null,
+      "country": null,
+      "location": "Hybrid Paris",
+      "salary": null,
+      "market": "FRANCE",
+      "postedAt": "2026-10-23T05:02:04.484Z",
+      "isBoosted": false,
+      "company": { "name": "Hcompany", "slug": "hcompany", "domain": "hcompany.ai" },
+      "url": "https://www.growthtalent.org/emplois/content-marketing/hcompany/social-media-and-content-strategist-community-hcompany"
+    },
+    {
+      "id": "cmvki6j7q00be04jwl0i0mh00",
+      "slug": "senior-marketing-manager-yubo",
+      "title": "Senior Marketing Manager",
+      "category": "growth-marketing",
+      "seniority": "SENIOR",
+      "contractType": "FULL_TIME",
+      "remote": "REMOTE",
+      "city": null,
+      "country": null,
+      "location": "Paris - Full Remote",
+      "salary": null,
+      "market": "FRANCE",
+      "postedAt": "2026-10-23T05:02:03.974Z",
+      "isBoosted": false,
+      "company": { "name": "Yubo", "slug": "yubo", "domain": "yubo.live" },
+      "url": "https://www.growthtalent.org/emplois/growth-marketing/yubo/senior-marketing-manager-yubo"
+    }
+  ],
+  "pagination": { "page": 1, "limit": 100 },
+  "meta": {}
+}

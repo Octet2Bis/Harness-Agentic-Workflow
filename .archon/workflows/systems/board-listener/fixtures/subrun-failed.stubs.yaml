@@ -1,0 +1,15 @@
+# Le sous-run échoue ou est annulé (erreur d'un juge, refus humain qui annule l'enfant) :
+# `run_pipeline` n'est PAS stubbé, le dry-run le fait échouer comme un enfant en échec. Archon
+# ne laisse aucune liaison lire un nœud en échec : `outcome` échoue (exec-code, liaison) et
+# `close` et le relais `outcome_result` sont sautés. `settle`, qui ne lie que `claim` et ce
+# relais (null), est atteint quand même : c'est lui qui marque la tâche FAILED, avec la cause
+# lue dans le run (écrit dans l'état : stubbé ; décision testée par settleOps et failureReason
+# dans .shared/board.test.ts). Le run finit `failed`, la tâche ne reste pas PICKED UP.
+claim: { path: work, id: "20261016150000-fail", run: "stub-run", workflow: pipeline, task: "stub: faire le point sur X", context: "", revision: 2, note: "" }
+hold: { held: true, status: picked_up, by: "stub-run" }
+settle: { settled: true, id: "20261016150000-fail", summary: "stub: marked failed" }
+fixture:
+  expect: failed
+  fail-node: [run_pipeline, outcome]
+  reached: [claim, hold, settle]
+exec-code: true

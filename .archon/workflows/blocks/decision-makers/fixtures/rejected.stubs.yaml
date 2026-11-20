@@ -1,0 +1,30 @@
+# Issue « rejected » : les contrôles passent (sources listées, citations qui portent le nom,
+# messages à leur longueur), mais le juge rouvre la page citée : la troisième personne n'y
+# figure plus (elle a quitté l'entreprise), et l'e-mail prête à Antoine une documentation de
+# process que le profil ne porte pas. Note C, constat bloquant : ok: false.
+# attendu: ok=false status=rejected
+work:
+  summary: "stub: trois personnes, dont une VP Sales citée dans un article de 2023"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "decideurs.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: trois personnes, dont une VP Sales citée dans un article de 2023"
+  people: 3
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "decideurs.json" }
+  tries: 2
+judge:
+  approved: false
+  grade: "C"
+  reason: "stub: une personne n'est plus sur sa page source ; l'e-mail affirme ce que le profil ne dit pas"
+  findings:
+    - { severity: blocking, text: "stub: people[2] — la page https://www.dana.com/leadership ne nomme plus cette personne ; la retirer ou citer une page à jour" }
+    - { severity: blocking, text: "stub: email.body — « I document each process I change » n'est pas dans le profil" }
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    application: "/stub/career/applications/dana-sales-ops"
+    profile: "/stub/career/master_profile.md"
+    max_people: "3"
+exec-code: true

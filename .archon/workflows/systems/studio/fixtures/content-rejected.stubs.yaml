@@ -1,0 +1,29 @@
+# Issue « content rejected » : les blocs précédents passent (verdicts réels : verified), puis
+# le juge de `content` refuse (`content__verdict` réel : rejected). La suite, la vérification
+# humaine et `drop` sont sautés ; `done` (réel) clôt ok: false, stage: content-base. Le run se
+# termine `completed`. `review` n est pas atteint : un nœud `wait:` atteint mettrait le dry-run en pause.
+# attendu: ok=false stage=content-base deliverables={"calibrage":"x.md","brief":"x.md","design_system":"x.md","content":"x.md"}
+# attendu(content__verdict): ok=false status=rejected
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+calibrate__judge: { approved: true, reason: "stub: sound", findings: [] }
+brief__judge: { approved: true, reason: "stub: sound", findings: [] }
+design__judge: { approved: true, reason: "stub: sound", findings: [] }
+content__judge:
+  approved: false
+  reason: "stub: the English titles are word-for-word French"
+  findings:
+    - { severity: blocking, text: "stub: the English titles are word-for-word French" }
+fixture:
+  expect: completed
+  reached: [calibrate__verdict, brief__verdict, design__verdict, content__judge, content__verdict, done]
+  inputs:
+    request: "stub request"
+exec-code: true

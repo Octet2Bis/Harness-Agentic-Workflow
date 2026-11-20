@@ -1,0 +1,27 @@
+# Issue « rejected » : contrôles verts, mais le juge voit une lecture fausse (italien « a plus »
+# lu comme exigé) ; aucune décision n'est rendue, l'appelant classe l'offre à vérifier.
+# attendu: ok=false status=rejected decision=
+work:
+  summary: "stub: italien exigé"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: italien exigé"
+  decision: ecartee
+  reasons: ["Exige l'italien : « Italian is a plus »"]
+  notes: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+judge:
+  approved: false
+  reason: "stub: l'italien n'est qu'un plus dans l'annonce"
+  findings:
+    - { severity: blocking, text: "stub: 'Italian is a plus' lu comme une exigence" }
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Smartness","title":"Sales Operations & Enablement Specialist","link":"https://pt.linkedin.com/jobs/view/4475957729","slug":"smartness"}'
+    criteria: '{"langues":["fr","en"],"salaire_min_annuel":35000}'
+exec-code: true

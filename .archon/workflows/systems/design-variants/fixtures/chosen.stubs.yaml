@@ -1,0 +1,29 @@
+# Issue « chosen » : les trois variantes passent, `collect` (réel) les propose toutes, l'humain
+# choisit l'option `b` en écrivant « C'est la B » ; `done` (réel) clôt ok: true sur la B (le
+# texte n'est jamais relu : l'ancienne lecture par regex y trouvait la C).
+# attendu: ok=true chosen=b variants={"a":true,"b":true,"c":true} statuses={"a":"verified","b":"verified","c":"verified"}
+# attendu(collect): survivors=3
+work:
+  summary: "stub: page built"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.html" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: page built"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.html" }
+  tries: 1
+a__judge: { approved: true, reason: "stub: clear", findings: [] }
+a__verdict: { ok: true, status: verified, summary: "stub: A sober", problems: [], findings: [], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "variant-a.html" } }
+b__judge: { approved: true, reason: "stub: clear", findings: [] }
+b__verdict: { ok: true, status: verified, summary: "stub: B proof first", problems: [], findings: [], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "variant-b.html" } }
+c__judge: { approved: true, reason: "stub: clear", findings: [] }
+c__verdict: { ok: true, status: verified, summary: "stub: C narrative", problems: [], findings: [], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "variant-c.html" } }
+choose: { decision: b, text: "C'est la B" }
+fixture:
+  expect: completed
+  reached: [a__verdict, b__verdict, c__verdict, collect, choose, done]
+  inputs:
+    brief: "stub brief"
+  resolved-text-contains:
+    choose: "stub: B proof first"
+exec-code: true

@@ -1,0 +1,28 @@
+# Issue « unconverged » : au troisième et dernier tour permis, les contrôles disent encore
+# non (une personne citée depuis LinkedIn, un format d'adresse deviné dans les notes). La
+# boucle rend la main (compteur `tries` au plafond, pas d'épuisement de max_iterations), le
+# juge est sauté (`when: $produce.output.ok == true` ; aucun stub `judge` ici : un nœud
+# atteint sans stub ferait échouer le dry-run) et le verdict (script réel) rend quand même une
+# issue typée — ok: false, status: unconverged, sans constats, avec les derniers problèmes —
+# et l'écrit dans decideurs.verdict.json. Le dry-run ne joue qu'un tour de boucle : le stub
+# `check` porte directement l'état du dernier tour.
+# attendu: ok=false status=unconverged findings=[] deliverable={"type":"archon_artifact","run_id":"fixture-run","path":"decideurs.json"}
+work:
+  summary: "stub: deux personnes, l'une trouvée sur un profil LinkedIn"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "decideurs.json" }
+check:
+  ok: false
+  problems:
+    - "people[1] (Maria Lopez) : source « https://www.linkedin.com/in/marialopez » : linkedin.com n'est pas une source permise (ni LinkedIn, ni courtier de données personnelles) ; citer le site de l'entreprise, un communiqué, un article, une page de conférence"
+    - "adresse e-mail « @dana.com » : aucune adresse dans le fichier, ni trouvée ni devinée (le cockpit ouvre l'outil d'enrichissement, Antoine cherche lui-même)"
+  summary: "stub: deux personnes, l'une trouvée sur un profil LinkedIn"
+  people: 2
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "decideurs.json" }
+  tries: 3
+fixture:
+  expect: completed
+  reached: [produce, verdict]
+  inputs:
+    application: "/stub/career/applications/dana-sales-ops"
+    profile: "/stub/career/master_profile.md"
+exec-code: true

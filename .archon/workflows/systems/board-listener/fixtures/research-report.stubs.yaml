@@ -1,0 +1,17 @@
+# Routage : une carte `--workflow=research-report`. Seul `run_research_report` tourne (sous-run
+# stubbé, approuvé), `outcome` (réel) lit SA sortie et rend DONE. `hold` / `close` / `settle` stubbés
+# (état Archon).
+# attendu(outcome): ok=true path=done workflow=research-report
+claim: { path: work, id: "20261016150000-rrep", run: "stub-run", workflow: research-report, task: "stub: que sait-on de X ?", context: "stub: deux liens", revision: 2, note: "" }
+hold: { held: true, status: picked_up, by: "stub-run" }
+run_research_report:
+  ok: true
+  stage: done
+  summary: "stub: approved at final review"
+  deliverables: { research: research.md, report: report.md }
+close: { ok: true, path: done, id: "20261016150000-rrep", workflow: research-report, summary: "stub: closed" }
+settle: { settled: false, id: "20261016150000-rrep", summary: "stub: already done" }
+fixture:
+  expect: completed
+  reached: [claim, hold, run_research_report, outcome, outcome_result, close, settle]
+exec-code: true

@@ -1,0 +1,16 @@
+# Issue « submit-unconverged » : une offre est prise ; dans le sous-run career-apply (stubbé),
+# le formulaire est resté rouge au dernier tour permis (CAPTCHA) : apply-submit a rendu
+# `unconverged` sans go ni clic, et `record` a écrit TAILORED. Le sous-run finit `completed`
+# avec ok: false (un bloc pas convergé ne fait plus échouer le run) ; `close` (réel) relaie
+# l'issue négative et le statut tel quel, sans écrire : TAILORED est un état final du
+# tableau, l'offre ne revient pas dans la file et n'est pas réécrite en APPLY_FAILED ; `settle`
+# (réel) ne la touche pas non plus.
+# attendu: ok=false path=failed status=TAILORED
+claim: { path: work, slug: acme, company: Acme, title: "Growth Ops Manager", run: "listener-run-1", stale: [], summary: "Picked acme." }
+run: { ok: false, stage: submit, status: TAILORED, status_written: true, app_dir: "/stub/career/applications/acme", copied: [CV_Candidat_acme.md, CV_Candidat_acme.pdf, Message_Accroche_acme.md, candidate.json, interlocuteur_cible.json, prefill.png], summary: "Form did not converge: Checks still failing after 2 round(s); the judge did not run. The form was not sent and no go was asked. stub: stopped by a CAPTCHA before the form Last problems: blocked before the form could be filled: CAPTCHA on the apply page. Status TAILORED." }
+fixture:
+  expect: completed
+  reached: [claim, run, close, settle]
+  inputs:
+    career_dir: "/stub/career"
+exec-code: true

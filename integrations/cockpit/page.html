@@ -1,0 +1,1108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cockpit candidatures</title>
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Papier crème et encre brune, un seul accent (lie-de-vin) ; neutres teintés chaud, jamais de gris pur ni de blanc pur.
+     Un seul thème, clair, même si Windows est en mode sombre : le cockpit se lit comme un dossier papier. */
+  :root {
+    color-scheme: light;
+    --bg:#f3ede2; --surface:#f8f3ea; --raised:#fdfaf4; --ink:#2e2822; --ink-2:#4f473e; --ink-3:#6f6457;
+    --line:#e4d9c7; --line-2:#d3c5ae; --accent:#7a2f42; --accent-ink:#fbf4ec; --accent-soft:#f0e0de;
+    --ok:#4e6b3d; --ok-soft:#e5ead8; --warn:#8a5b14; --warn-soft:#f4e6c8; --bad:#a63a24; --bad-soft:#f5ddd3;
+    --sel:#efe4d6; --focus:#7a2f42;
+    --serif:"Fraunces", Georgia, "Times New Roman", serif;
+    --sans:"Instrument Sans", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    --mono:"IBM Plex Mono", Consolas, ui-monospace, monospace;
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; font:14px/1.55 var(--sans); color:var(--ink); background:var(--bg); -webkit-font-smoothing:antialiased; }
+  button, input, textarea { font:inherit; color:inherit; }
+  [hidden] { display:none !important; } /* un bouton `.btn` caché par l'attribut le reste malgré son display:inline-flex */
+  a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+  :focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+  code { font:12.5px var(--mono); }
+
+  /* ── Structure : barre, liste, fiche ───────────────────────────────── */
+  .top { height:52px; display:flex; align-items:center; gap:20px; padding:0 20px; background:var(--surface); border-bottom:1px solid var(--line); }
+  .top h1 { font:600 17px/1.2 var(--serif); margin:0; letter-spacing:-.01em; }
+  .top .vm { display:flex; align-items:center; gap:10px; color:var(--ink-2); font-size:12.5px; }
+  .top .flight { margin-left:auto; color:var(--ink-2); font-size:12.5px; }
+  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--ink-3); vertical-align:1px; margin-right:6px; }
+  .dot.ok { background:var(--ok); } .dot.bad { background:var(--bad); } .dot.warn { background:var(--warn); } .dot.live { background:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  main { display:grid; grid-template-columns:380px minmax(0,1fr); height:calc(100% - 52px); }
+  @media (max-width:900px) {
+    main { grid-template-columns:1fr; height:auto; } .pane { height:auto; max-height:none; } #list { max-height:55vh; border-right:0; border-bottom:1px solid var(--line); }
+    /* Écran étroit : la barre passe sur plusieurs lignes plutôt que de couper un libellé. */
+    .top { height:auto; min-height:52px; flex-wrap:wrap; gap:6px 16px; padding:10px 16px; } .top .vm { flex-wrap:wrap; } .top .flight { margin-left:0; width:100%; }
+    .tools { padding-left:16px; padding-right:16px; } .radar { padding-left:16px; padding-right:16px; } .offer { padding-left:14px; padding-right:16px; } .batch, .log { padding-left:16px; padding-right:16px; }
+  }
+  .pane { height:100%; overflow:auto; }
+  #list { border-right:1px solid var(--line); background:var(--surface); display:flex; flex-direction:column; }
+  #detail { background:var(--bg); }
+
+  /* ── Liste des offres ───────────────────────────────────────────────── */
+  .tools { padding:12px 14px 8px; display:flex; flex-direction:column; gap:8px; border-bottom:1px solid var(--line); }
+  .search { width:100%; height:34px; padding:0 10px; border:1px solid var(--line-2); border-radius:6px; background:var(--raised); }
+  .search::placeholder { color:var(--ink-3); }
+  .seg { display:inline-flex; flex:none; border:1px solid var(--line-2); border-radius:6px; overflow:hidden; }
+  .seg button { height:28px; padding:0 12px; border:0; background:transparent; color:var(--ink-2); cursor:pointer; white-space:nowrap; flex:none; }
+  .seg button.on { background:var(--accent-soft); color:var(--accent); font-weight:500; }
+  .tools .meta { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:12px; color:var(--ink-3); }
+  .tools .meta #count { text-align:right; min-width:0; }
+  .offers { list-style:none; margin:0; padding:0; flex:1; }
+  .offer { display:grid; grid-template-columns:24px 1fr auto; gap:0 10px; padding:10px 14px 10px 12px; border-bottom:1px solid var(--line); cursor:pointer; align-items:start; }
+  .offer:hover { background:var(--raised); }
+  .offer.sel { background:var(--sel); box-shadow:inset 3px 0 0 var(--accent); }
+  .offer input { margin:3px 0 0; width:15px; height:15px; accent-color:var(--accent); cursor:pointer; }
+  .offer .co { font-weight:600; letter-spacing:-.005em; }
+  .offer .ti { color:var(--ink-2); }
+  .offer .mt { font-size:12px; color:var(--ink-3); margin-top:2px; }
+  .offer .st { font-size:12px; margin-top:4px; }
+  .offer .sc { font-variant-numeric:tabular-nums; font-weight:500; text-align:right; }
+  .offer .sc small { display:block; color:var(--ink-3); font-weight:400; font-size:11.5px; }
+  .offer .sc.forte { color:var(--ok); } .offer .sc.faible { color:var(--ink-3); } .offer .sc.none { color:var(--ink-3); font-weight:400; font-size:12px; }
+  .empty { padding:28px 16px; color:var(--ink-3); text-align:center; }
+  .batch { position:sticky; bottom:0; padding:10px 14px; background:var(--raised); border-top:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  .log { padding:8px 14px; font-size:12px; color:var(--ink-3); border-top:1px solid var(--line); }
+  .log summary { cursor:pointer; } .log pre { margin:6px 0 0; }
+  /* ── Relève des sources (career-radar) : dernière relève, ou relève en cours ─────── */
+  .radar { padding:8px 14px; font-size:12px; color:var(--ink-2); border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
+  .radar details { margin-top:3px; } .radar summary { cursor:pointer; color:var(--ink-3); }
+  .radar ul { list-style:none; margin:4px 0 0; padding:0; } .radar li { padding:2px 0; } .radar li b { font-weight:500; color:var(--ink); }
+  .radar .added { margin:4px 0 0; color:var(--ink-3); }
+
+  /* ── Vues de la liste : offres du tableau, sélection du jour, entreprises full remote ── */
+  .views { display:flex; flex-wrap:wrap; gap:0; padding:6px 8px 0; border-bottom:1px solid var(--line); }
+  .views button { height:34px; padding:0 8px; border:0; border-bottom:2px solid transparent; background:transparent; color:var(--ink-2); cursor:pointer; margin-bottom:-1px; white-space:nowrap; font-size:13px; }
+  .views button:hover { color:var(--ink); }
+  .views button.on { color:var(--accent); border-bottom-color:var(--accent); font-weight:500; }
+  .views .n { font-size:11.5px; color:var(--ink-3); margin-left:4px; font-variant-numeric:tabular-nums; font-weight:400; }
+  .views button.on .n { color:var(--accent); }
+  @media (max-width:420px) { .views { padding:4px 4px 0; } .views button { padding:0 6px; font-size:12.5px; } }
+  .offer.row2 { grid-template-columns:1fr auto; padding-left:14px; }
+  .rjobs { list-style:none; margin:18px 0 0; padding:0; max-width:84ch; }
+  .rjobs li { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px 14px; padding:11px 0; border-bottom:1px solid var(--line); align-items:center; }
+  .rjobs li b { font-weight:600; } .rjobs .mt { font-size:12px; color:var(--ink-3); margin-top:2px; }
+  @media (max-width:600px) { .rjobs li { grid-template-columns:1fr; } .rjobs li .btn { justify-self:start; } }
+
+  /* ── Fiche ───────────────────────────────────────────────────────────── */
+  .fiche { max-width:920px; padding:24px 28px 48px; }
+  .hd h2 { font:600 26px/1.2 var(--serif); margin:0; letter-spacing:-.015em; }
+  .hd .ti { font-size:15px; color:var(--ink-2); margin:2px 0 10px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px 14px; color:var(--ink-2); font-size:12.5px; }
+  .chips b { font-weight:500; color:var(--ink); }
+  .actions { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 8px; align-items:center; }
+  .btn { height:34px; padding:0 14px; border-radius:6px; border:1px solid var(--line-2); background:var(--raised); cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+  .btn:hover { border-color:var(--ink-3); text-decoration:none; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:500; }
+  .btn.go { background:var(--ok); border-color:var(--ok); color:var(--accent-ink); font-weight:500; }
+  .btn.danger { color:var(--bad); border-color:var(--bad); background:transparent; }
+  .btn.quiet { border-color:transparent; background:transparent; color:var(--ink-2); }
+  .btn:disabled { opacity:.5; cursor:default; }
+  .note { font-size:12.5px; color:var(--ink-2); margin:6px 0; }
+  .para { margin:10px 0; }
+  .banner { margin:16px 0; padding:14px 16px; border-left:3px solid var(--warn); background:var(--warn-soft); border-radius:0 6px 6px 0; }
+  .banner.info { border-color:var(--accent); background:var(--accent-soft); }
+  .banner.bad { border-color:var(--bad); background:var(--bad-soft); }
+  .banner.ok { border-color:var(--ok); background:var(--ok-soft, var(--accent-soft)); }
+  .banner.warn { border-color:var(--warn); background:var(--warn-soft); }
+  .tri { display:inline-block; padding:0 6px; border-radius:4px; font-size:11.5px; line-height:18px; background:var(--line-2); color:var(--ink-2); cursor:help; }
+  .tri.bad { background:var(--bad-soft); color:var(--bad); } .tri.ok { background:var(--ok-soft, var(--accent-soft)); color:var(--ok); } .tri.warn { background:var(--warn-soft); color:var(--warn); }
+  #hideWrap { font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; color:var(--ink-3); white-space:nowrap; } #hideWrap input { margin:0; accent-color:var(--accent); }
+  .banner h3 { margin:0 0 4px; font:600 15px/1.3 var(--serif); }
+  .banner .actions { margin:12px 0 0; }
+  textarea { width:100%; min-height:72px; padding:10px; border:1px solid var(--line-2); border-radius:6px; background:var(--raised); resize:vertical; }
+  .tabs { display:flex; flex-wrap:wrap; gap:2px; margin:20px 0 0; border-bottom:1px solid var(--line); }
+  .tabs button { height:36px; padding:0 12px; border:0; border-bottom:2px solid transparent; background:transparent; color:var(--ink-2); cursor:pointer; margin-bottom:-1px; white-space:nowrap; }
+  .tabs button:hover { color:var(--ink); }
+  .tabs button.on { color:var(--accent); border-bottom-color:var(--accent); font-weight:500; }
+  #tabBody { padding-top:16px; }
+  .facts { display:grid; grid-template-columns:max-content 1fr; gap:6px 16px; margin:0 0 14px; }
+  .facts dt { color:var(--ink-3); font-size:12.5px; padding-top:1px; } .facts dd { margin:0; }
+  .src { font-size:12px; color:var(--ink-3); margin:0 0 6px; font-family:var(--mono); }
+  pre { margin:0 0 16px; padding:14px 16px; background:var(--surface); border:1px solid var(--line); border-radius:6px; overflow:auto; max-height:70vh; white-space:pre-wrap; font:12.5px/1.5 var(--mono); }
+  .doc { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:22px 26px; margin:0 0 16px; max-width:72ch; }
+  .doc h3 { font:600 19px/1.3 var(--serif); margin:0 0 10px; } .doc h4 { font-size:14px; margin:16px 0 6px; } .doc h5 { font-size:13.5px; margin:12px 0 4px; color:var(--ink-2); }
+  .doc p { margin:0 0 8px; } .doc ul, .doc ol { margin:0 0 8px; padding-left:20px; } .doc li { margin:2px 0; } .doc hr { border:0; border-top:1px solid var(--line); margin:12px 0; }
+  .steps { list-style:none; margin:0; padding:0; max-width:60ch; }
+  .steps li { display:grid; grid-template-columns:18px 1fr auto; gap:10px; padding:6px 0; border-bottom:1px solid var(--line); align-items:center; }
+  .steps li .state { font-size:12px; color:var(--ink-3); white-space:nowrap; }
+  .steps li.live { background:var(--accent-soft); margin:0 -8px; padding:6px 8px; border-radius:4px; }
+  .bar { height:4px; background:var(--line); border-radius:2px; margin:8px 0 14px; max-width:60ch; overflow:hidden; } .bar i { display:block; height:100%; background:var(--accent); }
+  .form { width:100%; border-collapse:collapse; margin:0 0 16px; font-size:13px; }
+  .form th { text-align:left; font-weight:500; color:var(--ink-3); font-size:12px; padding:6px 10px 6px 0; border-bottom:1px solid var(--line-2); }
+  .form td { padding:7px 10px 7px 0; border-bottom:1px solid var(--line); vertical-align:top; }
+  .form td.v { word-break:break-word; } .form tr.off td { color:var(--ink-3); } .form td.src { font-family:var(--mono); font-size:12px; color:var(--ink-3); }
+  .kv { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:6px 16px; margin:0 0 16px; max-width:80ch; }
+  .kv dt { color:var(--ink-3); font-size:12.5px; padding-top:1px; } .kv dd { margin:0; word-break:break-word; } .kv dd .kv { margin:0; }
+  .jumps { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:8px 0 2px; }
+  details.raw { margin:0 0 16px; } details.raw summary { cursor:pointer; color:var(--ink-3); font-size:12px; }
+  .variants { margin:10px 0 0; padding:0; list-style:none; font-size:12.5px; color:var(--ink-2); } .variants li { padding:2px 0; }
+  .steps li .dot { margin:0; }
+  .remark { padding:8px 0 8px 12px; border-left:2px solid var(--line-2); margin:0 0 10px; white-space:pre-wrap; }
+  .remark .at { display:block; font-size:12px; color:var(--ink-3); margin-bottom:2px; }
+  .muted { color:var(--ink-3); } .err { color:var(--bad); }
+  /* ── Ce qui attend ton geste (alerte « à toi ») : en tête de la liste, donc aussi en premier sur le téléphone ── */
+  .attn { border-bottom:1px solid var(--line); background:var(--warn-soft); }
+  .attn h2 { margin:0; padding:10px 14px 4px; font:600 14px/1.3 var(--serif); color:var(--warn); }
+  .attn ul { list-style:none; margin:0; padding:0 0 6px; }
+  .attn li { display:grid; grid-template-columns:1fr auto; gap:2px 8px; padding:6px 14px; cursor:pointer; align-items:start; }
+  .attn li:hover { background:var(--raised); }
+  .attn li b { font-weight:600; } .attn li span { grid-column:1; font-size:12px; color:var(--ink-2); }
+  .attn li button { grid-row:1 / span 2; grid-column:2; height:24px; padding:0 8px; font-size:12px; }
+  .attn li.go b { color:var(--accent); }
+  .attn .old { padding:0 14px 8px; font-size:12px; color:var(--ink-3); }
+  /* ── Run en cours, dans la fiche : l'étape, la barre, depuis quand ── */
+  /* ── Postuler : l'ordre, puis le parcours jusqu'à « envoyée » ou « à envoyer toi-même » ── */
+  .order { margin:16px 0 0; padding:16px; border:1px solid var(--line-2); border-radius:8px; background:var(--surface); max-width:72ch; }
+  .order label { display:block; font-size:12.5px; color:var(--ink-2); margin:0 0 6px; }
+  .order textarea { min-height:56px; }
+  .order .actions { margin:12px 0 0; }
+  .order .note { margin:8px 0 0; }
+  .journey { list-style:none; margin:16px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:8px 0; max-width:72ch; counter-reset:j; }
+  .journey li { flex:1 1 0; min-width:96px; position:relative; padding:24px 8px 0 0; font-size:12.5px; color:var(--ink-3); }
+  .journey li::before { content:''; position:absolute; top:7px; left:0; right:0; height:2px; background:var(--line-2); }
+  .journey li::after { content:''; position:absolute; top:2px; left:0; width:12px; height:12px; border-radius:50%; background:var(--raised); border:2px solid var(--line-2); box-sizing:border-box; }
+  .journey li.done { color:var(--ink-2); } .journey li.done::before, .journey li.done::after { background:var(--ok); border-color:var(--ok); }
+  .journey li.now { color:var(--ink); font-weight:600; } .journey li.now::after { background:var(--accent); border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+  .journey li.bad { color:var(--bad); font-weight:600; } .journey li.bad::after { background:var(--bad); border-color:var(--bad); }
+  .journey li.warn { color:var(--warn); font-weight:600; } .journey li.warn::after { background:var(--warn); border-color:var(--warn); }
+  .journey li.skip { text-decoration:line-through; }
+  @media (max-width:600px) {
+    .journey { flex-direction:column; gap:0; }
+    .journey li { flex:none; min-width:0; padding:0 0 12px 24px; }
+    .journey li::before { top:0; bottom:0; left:5px; right:auto; width:2px; height:auto; }
+    .journey li:last-child::before { display:none; }
+    .journey li::after { top:3px; }
+  }
+  .received { font-size:12.5px; color:var(--ink-2); margin:8px 0 0; }
+  .runband { margin:14px 0 0; padding:12px 14px; border-radius:6px; background:var(--accent-soft); border-left:3px solid var(--accent); }
+  .runband b { font-weight:600; } .runband .bar { margin:8px 0 4px; background:var(--raised); }
+  .runband .sub { font-size:12px; color:var(--ink-2); }
+  @keyframes pulse { 0%,100% { box-shadow:0 0 0 3px var(--accent-soft); } 50% { box-shadow:0 0 0 5px var(--accent-soft); } }
+  .dot.live { animation:pulse 1.6s ease-in-out infinite; }
+  .person { padding:12px 0; border-bottom:1px solid var(--line); max-width:80ch; }
+  .person h4 { margin:0; font-size:15px; } .person .role { color:var(--ink-2); }
+  .person .why { margin:4px 0 6px; } .person .jumps { margin:6px 0 0; }
+  .msg { max-width:80ch; margin:0 0 16px; } .msg pre { margin:6px 0 6px; max-height:none; }
+  .msg .count { font-size:12px; color:var(--ink-3); } .msg h3 { margin:0; font:600 15px/1.3 var(--serif); }
+  .foot { padding:14px 28px; font-size:12px; color:var(--ink-3); font-family:var(--mono); }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1 id="title">Cockpit candidatures</h1>
+  <div class="vm"><span id="pullState"></span><button class="btn quiet" id="pull" style="height:28px;padding:0 8px">Rafraîchir</button><button class="btn quiet" id="radar" style="height:28px;padding:0 8px" hidden>Relever les sources</button></div>
+  <div class="flight" id="live"></div>
+</header>
+<main>
+  <section class="pane" id="list">
+    <div class="attn" id="attention" hidden></div>
+    <nav class="views" id="views" aria-label="Vues"><button data-v="offres" class="on" title="Le tableau des offres">Offres</button><button data-v="selection" title="Les offres choisies chaque matin par la sélection du jour, avec ta réponse">Sélectionnées<span class="n" id="nSel"></span></button><button data-v="remote" title="Toutes les entreprises full remote trouvées par le radar, et leurs postes de ton champ, quel que soit le tri">Entreprises full remote</button><button data-v="signals" title="Les entreprises qui bougent : levée, nouveau CMO, vague de recrutement, nouvel outil marketing, ouverture d'un pays… avant que le poste soit publié">Signaux<span class="n" id="nSig"></span></button></nav>
+    <div class="tools">
+      <input class="search" id="q" type="search" placeholder="Filtrer : entreprise, poste, lieu…" autocomplete="off">
+      <div class="meta">
+        <div class="seg" id="segOffres"><button data-f="todo" class="on" title="Offres retenues ou à vérifier par le tri, et celles où une candidature est en route">À traiter</button><button data-f="wait" title="Offres que le tri n'a pas encore lues">En tri</button><button data-f="all">Toutes</button></div>
+        <div class="seg" id="segSel" hidden><button data-sf="todo" class="on" title="Pas encore de oui ni de non">À répondre</button><button data-sf="go">Oui</button><button data-sf="non">Non</button><button data-sf="all">Toutes</button></div>
+        <div class="seg" id="segRemote" hidden><button data-rf="field" class="on" title="Les entreprises qui ont aujourd'hui au moins un poste de ton champ en full télétravail">Avec postes</button><button data-rf="full" title="Les entreprises dont presque tous les postes sont en full remote">100 % remote</button><button data-rf="all" title="Aussi celles qui n'ont rien pour toi en ce moment">Toutes</button></div>
+        <div class="seg" id="segSig" hidden><button data-gf="fort" class="on" title="Les entreprises au score de signal le plus haut (≥ 1)">Fortes</button><button data-gf="remote" title="Seulement celles qui ont des postes en full remote">Remote</button><button data-gf="bon" title="Tes bonnes pistes et la file À prospecter">Mes pistes</button><button data-gf="all" title="Toutes, y compris les signaux faibles et négatifs">Toutes</button></div>
+        <span id="count"></span>
+      </div>
+      <div class="meta" id="orderRow">
+        <div class="seg" id="segSort" title="L'ordre de la liste"><button data-s="recent" class="on" title="Les offres publiées le plus récemment d'abord">Plus récentes</button><button data-s="pertinence" title="Retenues par le tri d'abord, la meilleure adéquation au cœur du poste devant, puis la plus récente">Pertinence</button></div>
+        <div class="seg" id="segPeriod" title="Seulement les offres publiées depuis…"><button data-p="7">7 j</button><button data-p="14" class="on">14 j</button><button data-p="30">30 j</button><button data-p="0">Tout</button></div>
+      </div>
+      <div class="meta" id="hideRow" style="display:none">
+        <label id="hideWrap" title="Les offres écartées par le tri (criteres.json) restent dans le tableau, mais sont cachées ici"><input type="checkbox" id="hideDiscarded" checked> masquer les écartées par le tri</label>
+      </div>
+      <div class="note" id="queue" style="display:none"></div>
+    </div>
+    <div class="radar" id="radarPanel"></div>
+    <div class="radar" id="viewNote" hidden></div>
+    <ul class="offers" id="offers"></ul>
+    <div class="batch" id="batch" style="display:none"><button class="btn primary" id="launch"></button><span class="note">une à la fois, en mode confirm</span></div>
+    <details class="log" id="errors" style="display:none"><summary></summary><pre id="errorsBody"></pre></details>
+  </section>
+  <section class="pane" id="detail"></section>
+</main>
+<script>
+const $ = (s) => document.querySelector(s);
+/** Lecture par slug sans tomber sur le prototype (un slug « constructor » rendait la liste vide). */
+const own = (o, k) => (o && Object.prototype.hasOwnProperty.call(o, k)) ? o[k] : null;
+const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const when = (iso) => iso ? new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+/** « 2026-10-22 » → « 22 oct. » ; une date qu'on ne sait pas lire reste telle quelle. */
+/** « publiée il y a 45 j » : l'âge de l'annonce, toujours visible (Antoine, 2026-11-14 : une vieille offre du site de l'employeur reste une opportunité). */
+const ageLabel = (o) => { const t = Date.parse(String(o.date || '').slice(0, 10)); if (!Number.isFinite(t)) return ''; const n = Math.max(0, Math.floor((Date.now() - t) / 86_400_000)); const a = n === 0 ? "publiée aujourd'hui" : n === 1 ? 'publiée hier' : n < 60 ? `publiée il y a ${n} j` : `publiée il y a ${Math.round(n / 30)} mois`; return o.seen && o.seen !== String(o.date).slice(0, 10) ? `${a} (trouvée le ${day(o.seen)})` : a; };
+const day = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d || '')); if (!m) return d || ''; const x = new Date(+m[1], +m[2] - 1, +m[3]); return x.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', ...(x.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }); };
+const srcName = (s) => String(s || '').replace(/\s*\(Live[^)]*\)\s*/i, '').trim();
+/** Les annonces du tableau partagent souvent un slug (même poste publié par pays) : une ligne par slug, la plus récente devant. */
+function groups() {
+  const by = new Map();
+  for (const o of S.offers) { const g = by.get(o.slug); if (g) g.rows.push(o); else by.set(o.slug, { slug: o.slug, main: o, rows: [o] }); }
+  return [...by.values()];
+}
+/** Le tri d'un groupe : écartée si toutes le sont, retenue dès qu'une l'est, sinon à vérifier. */
+function groupTriage(g) {
+  const ts = g.rows.map((o) => o.triage).filter(Boolean); if (!ts.length) return null;
+  if (ts.length === g.rows.length && ts.every((t) => t.decision === 'ecartee')) return ts[0];
+  const best = ts.find((t) => t.decision === 'retenue') || ts.find((t) => t.decision === 'a_verifier');
+  if (best) return best;
+  // Seulement des « écartée » mais pas sur toutes les annonces : le tri n'est pas fini, on ne cache rien.
+  return { decision: 'partiel', reasons: [`${ts.length} annonce${ts.length > 1 ? 's' : ''} sur ${g.rows.length} triée${ts.length > 1 ? 's' : ''} (écartée${ts.length > 1 ? 's' : ''}), le reste attend son tour`], stale: false };
+}
+/** La durée d'un run en cours : « depuis 4 min », « depuis 1 h 05 ». */
+const since = (iso) => { if (!iso) return ''; const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000)); return m < 1 ? 'depuis moins d’une minute' : m < 60 ? `depuis ${m} min` : `depuis ${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`; };
+const LIVE = ['running', 'paused', 'waiting', 'pending', 'queued'];
+/** La ligne d'état d'un run dans la liste : l'étape en cours et depuis quand, ou le go attendu. */
+function runLine(run) {
+  if (run.waitingLabel) return `<span class="dot warn"></span>ton go est attendu`;
+  if (LIVE.includes(run.status)) return `<span class="dot live"></span>${esc(run.runningLabel || 'démarrage')} · ${since(run.startedAt)}`;
+  return `<span class="dot bad"></span>${esc(run.statusLabel)}${run.progress.failed.length ? ' · ' + esc(run.progress.failed.join(', ')) : ''}`;
+}
+/** Copie un texte ; hors contexte sûr (le téléphone par Tailscale en http), par une zone de texte temporaire. */
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; } catch {}
+  const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch {} ta.remove(); return ok;
+}
+const ago = (iso) => { if (!iso) return ''; const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 1 ? 'à l’instant' : m < 60 ? `il y a ${m} min` : `à ${new Date(iso).toLocaleTimeString('fr-FR', { timeStyle: 'short' })}`; };
+const STATUS = { PENDING_VALIDATION: ['à valider', ''], VALIDATED: ['validée', 'ok'], TAILORED: ['CV prêt', 'ok'], APPLYING: ['en cours', 'live'], APPLIED: ['envoyée', 'ok'], APPLY_UNPROVEN: ['envoi non prouvé', 'warn'], APPLY_FAILED: ['échec', 'bad'] };
+const statusHtml = (s) => { const [label, cls] = own(STATUS, s) || [s, '']; return `<span class="dot ${cls}"></span>${esc(label)}`; };
+
+let S = { offers: [], runs: {}, live: [], queue: [], errors: [], config: {}, pull: {}, triage: {}, radar: {}, attention: [], contacts: { runs: {} } };
+let radarOpen = false;
+const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`;
+const dur = (ms) => ms < 1000 ? `${ms} ms` : `${(ms / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} s`;
+/**
+ * La relève des sources (career-radar) : le bouton de la barre (grisé, « relève en cours », tant qu'un run est
+ * vivant) et le panneau sous les outils : dernière relève (sources OK / en échec, offres brutes, retenues,
+ * ajoutées, le détail par source déplié à la demande), ou « Relève en cours… » avec l'étape. Les statuts
+ * viennent du radar et ne nomment que des variables, jamais une valeur de clé.
+ */
+function renderRadar() {
+  const r = S.radar || {}, p = r.report, btn = $('#radar');
+  btn.hidden = !r.enabled;
+  btn.disabled = !!r.live;
+  btn.title = r.live ? 'relève en cours' : r.auto ? `lire les sources d'offres maintenant (sinon toutes les ${r.every} min)` : 'lire les sources d\'offres maintenant';
+  let h;
+  if (!r.enabled) h = `<span class="dot"></span>${esc(r.reason || 'relève arrêtée')}`;
+  else if (r.live) h = `<span class="dot live"></span>Relève en cours… ${esc(r.live.stepLabel)}${r.live.progress && r.live.progress.total ? ` (${r.live.progress.done}/${r.live.progress.total} étapes)` : ''}`;
+  else if (p) {
+    const dot = p.failedCount ? (p.okCount ? 'warn' : 'bad') : 'ok';
+    const sources = p.sources.map((s) => `<li><span class="dot ${s.kind}"></span><b>${esc(s.name)}</b> · ${esc(s.status)} · ${plural(s.count, 'offre', 'offres')} · ${dur(s.durationMs)}</li>`).join('');
+    h = `<span class="dot ${dot}" data-at="${esc(p.at)}"></span>Dernière relève : ${ago(p.at)} · ${plural(p.okCount, 'source OK', 'sources OK')}, ${p.failedCount} en échec · ${plural(p.rawCount, 'offre brute', 'offres brutes')}, ${p.qualifiedCount} retenue${p.qualifiedCount > 1 ? 's' : ''}, ${p.added} ajoutée${p.added > 1 ? 's' : ''}
+      <details id="radarDetails"${radarOpen ? ' open' : ''}><summary>${plural(p.sources.length, 'source', 'sources')}${p.rejectedCount ? ` · ${plural(p.rejectedCount, 'offre écartée aux contrôles', 'offres écartées aux contrôles')}` : ''}</summary><ul>${sources || '<li class="muted">aucune source dans le rapport</li>'}</ul>${p.addedSlugs.length ? `<p class="added">ajoutées au tableau : ${p.addedSlugs.map(esc).join(', ')}</p>` : ''}</details>`;
+  } else h = `<span class="dot"></span>aucune relève encore${r.auto ? ` : la première part 60 s après le démarrage du cockpit, puis toutes les ${r.every} min` : ''}${r.reason ? ` · ${esc(r.reason)}` : ''}`;
+  if (r.reportError) h += ` <span class="err">${esc(r.reportError)}</span>`;
+  put($('#radarPanel'), h, () => { const d = $('#radarDetails'); if (d) d.addEventListener('toggle', () => { radarOpen = d.open; }); });
+}
+let selected = null, tab = 'annonce', cache = {}, checked = new Set(), filter = 'todo', query = '', hideDiscarded = true;
+// L'ordre et la période de la liste (Antoine, 2026-11-13 : les plus récentes d'abord, ou par pertinence, avec un filtre de date), gardés d'une visite à l'autre.
+let sortBy = 'recent', period = 14;
+try { const v = localStorage.getItem('cockpit.sort'); if (v === 'recent' || v === 'pertinence') sortBy = v; const p = Number(localStorage.getItem('cockpit.period')); if ([0, 7, 14, 30].includes(p) && localStorage.getItem('cockpit.period') !== null) period = p; } catch {}
+// Les vues de la liste : le tableau (offres), la sélection du jour (sélectionnées), les entreprises full remote (remote).
+let view = 'offres', selFilter = 'todo', remoteFilter = 'field', R = null, remoteAt = 0, selectedCo = null;
+try { const v = localStorage.getItem('cockpit.view'); if (['offres', 'selection', 'remote', 'signals'].includes(v)) view = v; } catch {}
+const TRIAGE = { ecartee: ['écartée', 'bad'], a_verifier: ['à vérifier', 'warn'], retenue: ['retenue', 'ok'], partiel: ['en cours', ''] };
+/** Le badge du tri (career-triage) : décision, et en survol les raisons. */
+/** L'adéquation au cœur du poste (note du tri), à la place du score du radar qui ne départageait rien. */
+const FIT = { forte: 'forte', moyenne: 'moyenne', faible: 'faible' };
+const fitTitle = (f) => f ? `Cœur du poste : ${f.proven} exigence${f.proven > 1 ? 's' : ''} sur ${f.total} étayée${f.proven > 1 ? 's' : ''} par ton profil, ${f.partial} en partie, ${f.missing} absente${f.missing > 1 ? 's' : ''}` : '';
+const fitCell = (t) => { const f = t && t.fit; if (f) return `<div class="sc ${f.level}" title="${esc(fitTitle(f))}">${esc(FIT[f.level])}<small>adéquation</small></div>`; return `<div class="sc none">${!t ? 'à trier' : t.decision === 'partiel' ? 'en tri' : ''}</div>`; };
+/** Une offre où il s'est passé quelque chose (préparée, envoyée, run en cours) : toujours à traiter, quel que soit le tri. */
+const fromRemote = (o) => /^Entreprise full remote/.test(o.source || '');
+const touched = (o) => !!own(S.runs, o.slug) || !!o.harness || fromRemote(o) || !['PENDING_VALIDATION', 'VALIDATED', ''].includes(o.status || '');
+const RANK = { forte: 0, moyenne: 1, '': 2, faible: 3 };
+/** En cours pour de vrai (un run qui tourne, une candidature en vol, en file) : toujours en haut, quelle que soit la date. Une offre seulement « touchée » autrefois (envoyée, en échec, CV fait) reprend sa place par date. */
+const inProgress = (g) => g.rows.some((o) => liveRun(o.slug) || o.status === 'APPLYING' || (S.queue || []).includes(o.slug));
+/** « Pertinence » : retenues avant les « à vérifier », la meilleure adéquation au cœur du poste devant ; à égalité, la plus récente. */
+const relevanceRank = (g) => { const t = groupTriage(g); return (t && t.decision === 'retenue' ? 0 : 4) + RANK[(t && t.fit && t.fit.level) || '']; };
+/** L'âge en jours de la plus récente annonce du groupe, depuis son ajout quand Antoine l'a mise au tableau lui-même (null : date absente ou illisible, gardée). */
+const ageDays = (g) => { const r = g.rows[0]; const d = Date.parse(String((r && (r.added || r.seen || r.date)) || '').slice(0, 10)); return Number.isFinite(d) ? (Date.now() - d) / 86_400_000 : null; };
+const triageHtml = (t) => { if (!t) return ''; const [label, cls] = own(TRIAGE, t.decision) || [t.decision, '']; return `<span class="tri ${cls}" title="${esc((t.reasons || []).join('\n'))}">tri : ${esc(label)}${t.stale ? ' (à refaire)' : ''}</span>`; };
+let detailLast = '';
+
+/** Ce qui attend ton geste (go, compte à ouvrir, candidature à finir, envoi à vérifier, étape en échec) : un clic ouvre la fiche, « vu » range l'alerte jusqu'à ce que la situation change. */
+function renderAttention() {
+  const items = S.attention || [], todo = items.filter((i) => !i.seen), old = items.filter((i) => i.seen);
+  const el = $('#attention'); el.hidden = !items.length;
+  const who = S.candidate && S.candidate.name ? ` · ${S.candidate.name}` : '';
+  const title = `${todo.length ? `(${todo.length}) ` : ''}Cockpit${who}`; if (document.title !== title) document.title = title;
+  put(el, items.length ? `<h2>À toi${todo.length ? ` (${todo.length})` : ''}</h2>${todo.length ? `<ul>${todo.map((i) => `<li class="${esc(i.kind)}" data-slug="${esc(i.slug)}"><b>${esc(i.title)}</b><button class="btn quiet" data-seen="${esc(i.key)}" title="Ranger cette alerte : elle revient si la situation change">vu</button><span>${esc(i.detail)}</span></li>`).join('')}</ul>` : ''}${old.length ? `<p class="old">${plural(old.length, 'alerte vue', 'alertes vues')} : ${old.map((i) => `<a href="#${encodeURIComponent(i.slug)}" data-slug="${esc(i.slug)}">${esc(i.company)}</a>`).join(', ')}</p>` : ''}` : '');
+}
+
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : undefined);
+  return r.json();
+}
+/** Ne redessine que si le contenu change : la saisie, le défilement et le focus survivent au rafraîchissement. */
+function put(el, html, bind) {
+  if (!el || el._last === html) return;
+  el._last = html; el.innerHTML = html;
+  if (bind) bind();
+}
+
+async function refresh() {
+  try { S = await api('/api/state'); } catch (e) { $('#live').innerHTML = `<span class="dot bad"></span>cockpit injoignable`; return; }
+  const who = S.candidate && S.candidate.name ? ` · ${S.candidate.name}` : '';
+  if ($('#title').textContent !== `Cockpit candidatures${who}`) $('#title').textContent = `Cockpit candidatures${who}`;
+  renderAttention();
+  const p = S.pull || {};
+  $('#pull').hidden = !p.command;
+  $('#pull').disabled = !!p.running;
+  put($('#pullState'), p.running ? `<span class="dot live"></span>lecture du tableau de la VM…`
+    : p.at ? (p.ok ? `<span class="dot ok"></span>tableau de la VM fusionné ${ago(p.at)}` : `<span class="dot bad"></span><span class="err" title="${esc(p.output)}">VM : échec ${ago(p.at)}</span>`)
+    : !p.command ? `<span class="dot"></span>${esc(p.output || 'tableau du PC seulement')}`
+    : (p.every ? `<span class="dot"></span>premier rafraîchissement…` : `<span class="dot"></span>tableau du PC seulement`));
+  renderRadar();
+  const t = S.triage || {};
+  const tri = t.live ? `  <span class="dot live"></span>tri de ${esc(t.live.slug || t.live.key)}` : t.enabled && t.waiting ? `  <span class="dot"></span>${t.waiting} offre${t.waiting > 1 ? 's' : ''} à trier` : '';
+  const cl = Object.entries((S.contacts || {}).runs || {}).filter(([, r]) => LIVE.includes(r.status)).map(([slug]) => `  <span class="dot live"></span>décideurs de ${esc(slug)}`).join('');
+  put($('#live'), (S.runsLoading ? `<span class="dot live"></span>lecture des runs…`
+    : S.live.length ? S.live.map((l) => { const r = own(S.runs, l.slug) || {}; return `<span class="dot ${r.waitingLabel ? 'warn' : 'live'}"></span>${esc(l.slug)} · ${esc(r.waitingLabel ? 'ton go est attendu' : r.runningLabel || r.statusLabel || l.status)}${r.waitingLabel ? '' : ' · ' + since(r.startedAt)}`; }).join('  ') : `<span class="dot"></span>aucune candidature en vol`) + tri + cl);
+  renderList();
+  if (!(document.activeElement && document.activeElement.matches('#detail textarea'))) renderDetail();
+}
+
+/** Un run encore en cours (pas un run fini ou échoué de l'historique). */
+const liveRun = (slug) => { const r = own(S.runs, slug); return !!r && ['running', 'paused', 'waiting', 'pending', 'queued'].includes(r.status); };
+/** Une annonce écartée par le tri, cachée quand la case est cochée, sauf si un run EN COURS la tient (un ancien run ne la garde plus). */
+const hidden = (o) => hideDiscarded && o.triage && o.triage.decision === 'ecartee' && !liveRun(o.slug) && o.status !== 'APPLYING' && !fromRemote(o);
+/**
+ * Les groupes à afficher, réduits à leurs annonces visibles : le radar donne parfois le même slug à
+ * des annonces différentes (Darkroom et une annonce Smartness en allemand), et une annonce écartée ne
+ * doit pas rester visible parce qu'une voisine de même slug ne l'est pas.
+ */
+function visible() {
+  const q = query.trim().toLowerCase();
+  const show = (o) => (filter === 'all' || o.launch.ok || own(S.runs, o.slug) || o.status === 'APPLYING')
+    && !hidden(o)
+    && (!q || `${o.company} ${o.title} ${o.location} ${o.source}`.toLowerCase().includes(q));
+  const out = groups().map((g) => { const rows = g.rows.filter(show); return rows.length ? { ...g, main: rows[0], rows } : null; }).filter(Boolean)
+    .filter((g) => { if (filter === 'all') return true; const t = groupTriage(g), sorted = !!t && t.decision !== 'partiel'; return filter === 'wait' ? !sorted && !g.rows.some(touched) : sorted || g.rows.some(touched); });
+  // La période ne cache jamais ce qui est en cours, ni une recherche par nom (on cherche aussi les vieilles).
+  const inPeriod = (g) => period === 0 || q !== '' || inProgress(g) || (() => { const a = ageDays(g); return a === null || a <= period + 0.99; })();
+  const kept = out.filter(inPeriod);
+  // Le serveur rend les offres de la plus récente à la plus ancienne : à rang égal, cet ordre reste (tri stable).
+  const order = new Map(kept.map((g, i) => [g, i]));
+  kept.sort((a, b) => (inProgress(b) ? 1 : 0) - (inProgress(a) ? 1 : 0) || (sortBy === 'pertinence' ? relevanceRank(a) - relevanceRank(b) : 0) || order.get(a) - order.get(b));
+  return kept;
+}
+
+function renderList() {
+  viewChrome();
+  if (view !== 'offres') {
+    $('#hideRow').style.display = 'none'; $('#batch').style.display = 'none'; $('#queue').style.display = 'none';
+    if (view === 'selection') renderSelectionList(); else if (view === 'signals') renderSignalList(); else renderRemoteList();
+    renderErrors();
+    return;
+  }
+  const rows = visible();
+  const all = groups();
+  const discarded = S.offers.filter((o) => o.triage && o.triage.decision === 'ecartee').length;
+  $('#hideRow').style.display = discarded ? '' : 'none';
+  const dup = S.offers.length - all.length;
+  const waiting = all.filter((g) => { const t = groupTriage(g); return (!t || t.decision === 'partiel') && !g.rows.some(touched); }).length;
+  $('#count').textContent = `${rows.length} offre${rows.length > 1 ? 's' : ''}${filter !== 'wait' && waiting ? ` · ${waiting} en tri` : ''}${discarded ? ` · ${discarded} écartée${discarded > 1 ? 's' : ''}${hideDiscarded ? ' (masquées)' : ''}` : ''}`;
+  $('#count').title = dup ? `${S.offers.length} annonces dans le tableau, groupées par poste (${dup} doublon${dup > 1 ? 's' : ''})` : `${S.offers.length} annonces dans le tableau`;
+  const q = $('#queue'); q.style.display = S.queue.length ? '' : 'none'; q.textContent = S.queue.length ? `En file : ${S.queue.join(', ')}` : '';
+  put($('#offers'), rows.length ? rows.map((g) => {
+    const o = g.main, run = own(S.runs, o.slug), t = groupTriage(g);
+    const cr = own((S.contacts || {}).runs, o.slug);
+    const st = (run && (LIVE.includes(run.status) || run.status === 'failed') ? runLine(run)
+      : (o.status !== 'PENDING_VALIDATION' ? statusHtml(o.status) : '') + (o.harness ? ` <span class="muted" title="${esc(o.harness.summary)}">${o.status !== 'PENDING_VALIDATION' ? '· ' : 'dernier passage : '}${esc(o.harness.stage)} ${when(o.harness.at)}</span>` : ''))
+      + (cr && LIVE.includes(cr.status) ? ` · <span class="dot live"></span>décideurs…` : '');
+    const places = [...new Set(g.rows.map((r) => r.location).filter(Boolean))];
+    const where = g.rows.length > 1 ? `${g.rows.length} annonces · ${places.slice(0, 3).join(', ')}${places.length > 3 ? '…' : ''}` : o.location;
+    return `<li class="offer ${selected === o.slug ? 'sel' : ''}" data-slug="${esc(o.slug)}">
+      <input type="checkbox" data-check="${esc(o.slug)}" ${checked.has(o.slug) ? 'checked' : ''} ${o.launch.ok ? '' : 'disabled title="' + esc(o.launch.reason) + '"'}>
+      <div><div class="co">${esc(o.company)}</div><div class="ti">${esc(o.title)}</div>
+        <div class="mt">${[where, srcName(o.source), ageLabel(o) || day(o.date)].filter(Boolean).map(esc).join(' · ')}</div>
+        <div class="st">${st}${t ? ' ' + triageHtml(t) : ''}</div></div>
+      ${fitCell(t)}</li>`;
+  }).join('') : `<li class="empty">${S.offers.length ? 'Aucune offre ne correspond au filtre.' : 'Le tableau est vide.'}</li>`);
+  const b = $('#batch'); b.style.display = checked.size ? '' : 'none';
+  $('#launch').textContent = checked.size > 1 ? `Postuler à ${checked.size} offres` : 'Postuler à cette offre';
+  renderErrors();
+}
+function renderErrors() {
+  const e = $('#errors'); e.style.display = S.errors.length ? '' : 'none';
+  if (S.errors.length) { e.querySelector('summary').textContent = `${S.errors.length} message${S.errors.length > 1 ? 's' : ''} du cockpit`; put($('#errorsBody'), esc(S.errors.join('\n'))); }
+}
+
+// ── Vues « Sélectionnées » et « Entreprises full remote » ───────────────────────────
+const LIST_MAX = 300;
+const ATS = { greenhouse: 'Greenhouse', lever: 'Lever', ashby: 'Ashby' };
+const keur = (n) => `${Math.round(n / 1000)} k€`;
+const salaryOf = (s) => !s ? '' : s.min && s.max && s.min !== s.max ? `${Math.round(s.min / 1000)}–${keur(s.max)}` : keur(s.min || s.max);
+const isFresh = (iso, days = 3) => !!iso && Date.now() - new Date(iso) < days * 86400000;
+
+function setView(v) {
+  if (v === view) return;
+  view = v; try { localStorage.setItem('cockpit.view', v); } catch {}
+  if (v === 'remote') loadRemote(true);
+  if (v === 'signals') loadSignals(true);
+  renderList(); renderDetail();
+}
+/** Les boutons et filtres de la vue en cours ; les compteurs des onglets. */
+function viewChrome() {
+  document.querySelectorAll('#views button').forEach((b) => b.classList.toggle('on', b.dataset.v === view));
+  $('#orderRow').style.display = view === 'offres' ? '' : 'none';
+  $('#segOffres').hidden = view !== 'offres'; $('#segSel').hidden = view !== 'selection'; $('#segRemote').hidden = view !== 'remote'; $('#segSig').hidden = view !== 'signals';
+  $('#radarPanel').hidden = view !== 'offres'; $('#viewNote').hidden = view === 'offres';
+  const waiting = ((S.selection && S.selection.history) || []).reduce((n, d) => n + (d.picks || []).filter((p) => !own(d.answers || {}, p.key)).length, 0);
+  const nSel = waiting ? String(waiting) : ''; if ($('#nSel').textContent !== nSel) $('#nSel').textContent = nSel;
+}
+
+/** Les offres choisies par la sélection du jour (le plus récent d'abord), filtrées par ta réponse et la recherche. */
+function selRows() {
+  const q = query.trim().toLowerCase(), out = [];
+  for (const d of (S.selection && S.selection.history) || []) for (const p of d.picks || []) {
+    const a = own(d.answers || {}, p.key), state = !a ? 'todo' : a.decision === 'go' ? 'go' : 'non';
+    if (selFilter !== 'all' && selFilter !== state) continue;
+    if (q && ![p.company, p.title, p.location, p.source].join(' ').toLowerCase().includes(q)) continue;
+    out.push({ d, p, a, state });
+  }
+  return out;
+}
+function selectionNote() {
+  const sel = S.selection || {}, c = sel.config, t = sel.today;
+  if (sel.error) return `<span class="dot bad"></span><span class="err">selection.json : ${esc(sel.error)}</span>`;
+  if (!sel.enabled) return `<span class="dot"></span>sélection du jour coupée (pas de selection.json, ou « actif » à false)`;
+  const at = c ? `${String(c.hour).padStart(2, '0')}:${String(c.minute).padStart(2, '0')}` : '08:00';
+  if (!t) return `<span class="dot"></span>prochaine sélection à ${at} : ${c ? c.perDay : 2} offres jugées par Claude, ta réponse dans le fil « Valider les offres du jour »`;
+  if (t.status === 'tri') return `<span class="dot live"></span>sélection du jour en cours : ${(t.launched || []).length} offre${(t.launched || []).length > 1 ? 's' : ''} sur ${(t.shortlist || []).length} lue${(t.launched || []).length > 1 ? 's' : ''} par Claude`;
+  if (t.status === 'vide') return `<span class="dot warn"></span>pas d'offre aujourd'hui${(t.notes || []).length ? ` : ${esc(t.notes[t.notes.length - 1])}` : ''}`;
+  return `<span class="dot ok"></span>sélection du jour prête : ${plural((t.picks || []).length, 'offre', 'offres')}, ta réponse dans le fil « Valider les offres du jour »`;
+}
+function renderSelectionList() {
+  put($('#viewNote'), selectionNote());
+  const rows = selRows(), all = ((S.selection && S.selection.history) || []).reduce((n, d) => n + (d.picks || []).length, 0);
+  $('#count').textContent = rows.length !== all ? `${rows.length} sur ${all}` : `${rows.length} offre${rows.length > 1 ? 's' : ''}`; $('#count').title = `${rows.length} offre${rows.length > 1 ? 's' : ''} affichée${rows.length > 1 ? 's' : ''} sur ${all}`;
+  const today = new Date().toISOString().slice(0, 10);
+  put($('#offers'), rows.length ? rows.map(({ d, p, a, state }) => {
+    const o = offerOf(p.slug), run = own(S.runs, p.slug);
+    const st = state === 'todo' ? (d.date >= today ? `<span class="dot warn"></span>ta réponse est attendue` : `<span class="dot"></span>sans réponse`)
+      : state === 'non' ? `<span class="dot"></span>non : passée`
+      : run && (LIVE.includes(run.status) || run.status === 'failed') ? `oui · ${runLine(run)}`
+      : `<span class="dot ok"></span>oui${o && o.status !== 'PENDING_VALIDATION' ? ' · ' + statusHtml(o.status) : a && a.note ? ' · ' + esc(a.note) : ''}`;
+    const core = p.core ? `<div class="sc ${p.core.backed >= 3 ? 'forte' : p.core.backed >= 2 ? '' : 'faible'}" title="Cœur du poste : ${p.core.backed} exigence(s) étayée(s), ${p.core.partial} en partie, ${p.core.missing} absente(s), sur 3">${p.core.backed}/3<small>cœur étayé</small></div>` : '<div class="sc none"></div>';
+    return `<li class="offer row2 ${selected === p.slug ? 'sel' : ''}" data-slug="${esc(p.slug)}">
+      <div><div class="co">${esc(p.company)}</div><div class="ti">${esc(p.title)}</div>
+        <div class="mt">${[p.location, salaryOf(p.salary_annual_eur), srcName(p.source), `choisie le ${day(d.date)}`].filter(Boolean).map(esc).join(' · ')}</div>
+        <div class="st">${st}</div></div>${core}</li>`;
+  }).join('') : `<li class="empty">${all ? 'Aucune offre sélectionnée ne correspond au filtre.' : 'Aucune offre sélectionnée encore : la sélection du jour les met ici, avec ta réponse.'}</li>`);
+}
+
+async function loadRemote(force = false) {
+  if (!force && Date.now() - remoteAt < 60000) return;
+  remoteAt = Date.now();
+  try { R = await api('/api/remote-companies'); } catch { R = R || { companies: [], error: 'cockpit injoignable' }; }
+  if (view === 'remote') { renderList(); renderDetail(); } else viewChrome();
+}
+/** Les entreprises à montrer : la recherche porte sur le nom et sur les postes (l'entreprise reste, avec les postes qui correspondent). */
+function remoteRows() {
+  const q = query.trim().toLowerCase();
+  return ((R && R.companies) || []).map((c) => {
+    const byName = !q || c.name.toLowerCase().includes(q);
+    const jobs = byName ? c.jobs : c.jobs.filter((j) => `${j.title} ${j.location}`.toLowerCase().includes(q));
+    return { c, jobs, hit: byName || jobs.length > 0 };
+  }).filter((r) => r.hit && (remoteFilter === 'all' || (remoteFilter === 'full' ? r.c.kind === 'full' : r.c.jobs.length > 0)));
+}
+const shareText = (c) => !c.board ? (c.probed ? 'pas de tableau d’offres lisible' : 'tableau d’offres pas encore cherché') : c.kind === 'full' ? `${c.remote}/${c.total} postes remote` : `${plural(c.remote, 'poste remote', 'postes remote')} sur ${c.total}`;
+const SOURCE = { manuel: 'listée à la main', index: 'de ton index remote', tableau: '' };
+function renderRemoteList() {
+  const all = (R && R.companies) || [], full = all.filter((c) => c.kind === 'full').length;
+  put($('#viewNote'), !R ? `<span class="dot live"></span>lecture de la liste du radar…`
+    : R.error ? `<span class="dot bad"></span><span class="err">${esc(R.error)}</span>`
+    : R.at ? `<span class="dot ok"></span>liste du radar ${ago(R.at)} · ${plural(all.length, 'entreprise', 'entreprises')} en full télétravail, dont ${full} 100 % remote<details><summary>comment le radar les trouve</summary><p class="added">Les tableaux d'offres publics (Greenhouse, Lever, Ashby) que le radar lit : toute entreprise qui y a au moins un poste en full remote (jamais hybride). « 100 % remote » : ${esc(R.rule.replace(/^full : /, '').replace(/ ; partiel.*$/, ''))}, ou dans ton index des entreprises remote (ancien radar), dont le radar cherche le tableau. Leurs postes de ton champ (marketing, growth, vente, produit, design, QA, ops…) restent ici même quand le tri ne les retient pas.</p></details>`
+    : `<span class="dot"></span>pas encore de liste : le radar la fait en lisant les tableaux d'offres (premier passage dans l'heure)`);
+  const rows = remoteRows();
+  $('#count').textContent = rows.length !== all.length ? `${rows.length} sur ${all.length}` : `${rows.length} entreprise${rows.length > 1 ? 's' : ''}`; $('#count').title = `${rows.length} entreprise${rows.length > 1 ? 's' : ''} affichée${rows.length > 1 ? 's' : ''} sur ${all.length}`;
+  put($('#offers'), rows.length ? rows.slice(0, LIST_MAX).map(({ c, jobs }) => {
+    const nouveaux = c.jobs.filter((j) => isFresh(j.first_seen) && !isFresh(c.first_seen, 1)).length;
+    return `<li class="offer row2 ${selectedCo === c.key ? 'sel' : ''}" data-co="${esc(c.key)}">
+      <div><div class="co">${esc(c.name)}</div>
+        <div class="ti">${jobs.length ? esc(jobs.slice(0, 2).map((j) => j.title).join(' · ')) + (jobs.length > 2 ? ` · +${jobs.length - 2}` : '') : `<span class="muted">${c.board ? 'rien dans ton champ en ce moment' : 'postes à lire sur sa page carrières'}</span>`}</div>
+        <div class="mt">${[shareText(c), ATS[c.ats] || c.ats, own(SOURCE, c.source) || ''].filter(Boolean).map(esc).join(' · ')}</div>
+        <div class="st">${c.kind === 'full' ? '<span class="tri ok">100 % remote</span>' : '<span class="tri">quelques postes remote</span>'}${nouveaux ? ` <span class="tri warn">${plural(nouveaux, 'nouveau poste', 'nouveaux postes')}</span>` : ''}</div></div>
+      ${c.board ? `<div class="sc ${jobs.length ? '' : 'none'}">${jobs.length}<small>pour toi</small></div>` : '<div class="sc none"></div>'}</li>`;
+  }).join('') + (rows.length > LIST_MAX ? `<li class="empty">${rows.length - LIST_MAX} entreprises de plus : affine la recherche.</li>` : '')
+    : `<li class="empty">${all.length ? 'Aucune entreprise ne correspond au filtre.' : 'Aucune entreprise full remote trouvée pour l\'instant.'}</li>`);
+}
+// ── Vue « Signaux » : les entreprises qui bougent (collecte sur la VM, sans Claude) ──────────────
+let G = null, sigAt = 0, sigFilter = 'fort', selectedSig = null, sigMsg = {};
+const SIG_SOURCE_NAME = { yc: 'Y Combinator', registre: 'registre du radar', sites: 'sites des entreprises', 'registre-fr': 'API Recherche d’entreprises', bodacc: 'BODACC', gleif: 'GLEIF', brreg: 'Brønnøysund', 'companies-house': 'Companies House' };
+const sigSourceName = (id) => id.startsWith('rss:') ? id.slice(4) : (SIG_SOURCE_NAME[id] || id);
+async function loadSignals(force = false) {
+  if (!force && Date.now() - sigAt < 60000) return;
+  sigAt = Date.now();
+  try { G = await api('/api/signals'); } catch { G = G || { companies: [], error: 'cockpit injoignable' }; }
+  const strong = ((G && G.companies) || []).filter((c) => c.score >= 1 && !c.verdict).length;
+  const n = strong ? String(strong) : ''; if ($('#nSig').textContent !== n) $('#nSig').textContent = n;
+  if (view === 'signals') { renderList(); renderDetail(); } else viewChrome();
+}
+function sigRows() {
+  const q = query.trim().toLowerCase();
+  return ((G && G.companies) || []).filter((c) => {
+    if (q && ![c.name, c.country, ...(c.facts.sectors || []), ...c.signals.map((s) => `${s.label} ${s.evidence}`)].join(' ').toLowerCase().includes(q)) return false;
+    if (sigFilter === 'fort') return c.score >= 1 && c.verdict !== 'non';
+    if (sigFilter === 'remote') return !!c.remote_kind && c.score > 0 && c.verdict !== 'non';
+    if (sigFilter === 'bon') return c.verdict === 'bon' || c.prospect;
+    return true;
+  });
+}
+function sigNote() {
+  if (!G) return `<span class="dot live"></span>lecture des signaux…`;
+  if (G.error) return `<span class="dot bad"></span><span class="err">${esc(G.error)}</span>`;
+  if (!G.at) return `<span class="dot"></span>pas encore de signaux : la VM les relève après chaque cycle du radar (il faut relancer Installer-radar-VM une fois)`;
+  const st = G.status, failed = st && st.failed && st.failed.length ? ` · <span class="err" title="${esc(st.failed.map((f) => `${f.source} (${f.status})`).join(', '))}">${plural(st.failed.length, 'source en échec', 'sources en échec')}</span>` : '';
+  const d = G.directions || {};
+  const dir = (d.lines || []).length ? `<details open><summary>directions tirées de tes bonnes pistes (${d.good} bonne${d.good > 1 ? 's' : ''}, ${d.bad} écartée${d.bad > 1 ? 's' : ''})</summary><ul class="added">${d.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>`
+    : `<details><summary>directions</summary><p class="added">Dis « bonne piste » ou « pas pour moi » sur quelques entreprises : la VM en tire les signaux, secteurs et pays qui te réussissent, et les remonte dans la liste. Tes entreprises suivies à la main et tes offres « oui » comptent déjà comme bonnes pistes.</p></details>`;
+  const srcs = (G.sources || []).map((s) => `<li>${s.last_status === 200 ? '<span class="dot ok"></span>' : '<span class="dot bad"></span>'}${esc(sigSourceName(s.id))} : ${s.ok} lecture${s.ok > 1 ? 's' : ''} réussie${s.ok > 1 ? 's' : ''}, ${s.fail} en échec${s.last_at ? `, dernière ${esc(ago(s.last_at))}` : ''}${s.last_status !== 200 ? ` (code ${esc(String(s.last_status))})` : ''}</li>`).join('');
+  return `<span class="dot ok"></span>signaux relevés ${ago(G.at)}${st ? ` · ${plural(st.new_signals || 0, 'nouveau', 'nouveaux')} au dernier passage` : ''}${failed}${dir}<details><summary>sources et règle du score</summary><ul class="added">${srcs}</ul><p class="added">${esc(G.rule || '')}. Collecte sur la VM, sans Claude : flux d'actualité (levées, nominations, expansion, rachats, licenciements), YC, le registre du radar (nouveaux postes de responsable, premier poste marketing, vagues), le site de l'entreprise (nouvel outil marketing, nouvelle langue, blog), registres (SIREN et BODACC en France, GLEIF, Norvège, Companies House avec une clé).</p></details>`;
+}
+function renderSignalList() {
+  put($('#viewNote'), sigNote());
+  const all = (G && G.companies) || [], rows = sigRows();
+  $('#count').textContent = rows.length !== all.length ? `${rows.length} sur ${all.length}` : `${rows.length} entreprise${rows.length > 1 ? 's' : ''}`; $('#count').title = `${rows.length} entreprise${rows.length > 1 ? 's' : ''} affichée${rows.length > 1 ? 's' : ''} sur ${all.length}`;
+  put($('#offers'), rows.length ? rows.slice(0, LIST_MAX).map((c) => {
+    const top = c.signals[0];
+    const tags = [c.remote_kind === 'full' ? '<span class="tri ok">100 % remote</span>' : c.remote_kind === 'partiel' ? '<span class="tri">postes remote</span>' : '', c.verdict === 'bon' ? '<span class="tri ok">bonne piste</span>' : c.verdict === 'non' ? '<span class="tri">pas pour toi</span>' : '', c.prospect ? '<span class="tri warn">à prospecter</span>' : '', c.signals.some((s) => s.negative) ? '<span class="tri bad">signal négatif</span>' : ''].filter(Boolean).join(' ');
+    return `<li class="offer row2 ${selectedSig === c.norm ? 'sel' : ''}" data-sig="${esc(c.norm)}">
+      <div><div class="co">${esc(c.name)}</div>
+        <div class="ti">${top ? esc(`${top.label}${top.amount ? ` (${top.amount})` : ''}`) + (c.signals.length > 1 ? ` · +${c.signals.length - 1}` : '') : '<span class="muted">pas de signal récent</span>'}</div>
+        <div class="mt">${[c.country, (c.facts.sectors || []).join(', '), top ? `${top.source}, ${day(top.date)}` : ''].filter(Boolean).map(esc).join(' · ')}</div>
+        <div class="st">${tags}</div></div>
+      <div class="sc ${c.score >= 2 ? 'forte' : c.score >= 1 ? '' : 'faible'}" title="Score de signal : ${esc(c.why.join(' ; '))}">${c.score.toFixed(1)}<small>signal</small></div></li>`;
+  }).join('') + (rows.length > LIST_MAX ? `<li class="empty">${rows.length - LIST_MAX} entreprises de plus : affine la recherche.</li>` : '')
+    : `<li class="empty">${all.length ? 'Aucune entreprise ne correspond au filtre (essaie « Toutes »).' : 'Aucun signal relevé pour l’instant.'}</li>`);
+}
+function selectSignal(norm, byKeyboard = false) {
+  if (!norm) return;
+  selectedSig = norm;
+  if (window.innerWidth <= 900 && !byKeyboard) setTimeout(() => $('#detail').scrollIntoView({ block: 'start', behavior: 'smooth' }), 0);
+  renderList(); renderDetail();
+  const el = document.querySelector(`.offer[data-sig="${CSS.escape(norm)}"]`); if (el) el.scrollIntoView({ block: 'nearest' });
+}
+function renderSignalCompany(root) {
+  const c = ((G && G.companies) || []).find((x) => x.norm === selectedSig);
+  if (!c) {
+    put(root, `<div class="fiche"><h2 style="font-size:17px;margin:0 0 8px">Choisis une entreprise</h2>
+      <p class="para muted">Ici, les entreprises qui bougent avant de publier un poste : levée de fonds, nouveau responsable marketing ou ventes, vague de recrutement, premier poste marketing, nouvel outil marketing sur leur site, ouverture d'un pays… Les plus fortes d'abord ; celles qui ont des postes en full remote sont favorisées, le Royaume-Uni pénalisé, le reste du monde écarté.</p>
+      <p class="para muted">Chaque signal a sa preuve (le titre de l'article, l'annonce légale, le poste) et son lien. Dis « bonne piste » ou « pas pour moi » : la VM en tire des directions. « À prospecter » met l'entreprise dans une file que Claude prépare quand tu le lui demandes ; rien n'est envoyé sans ton go.</p></div>`);
+    return;
+  }
+  const f = c.facts || {}, msg = own(sigMsg, c.norm);
+  const facts = [f.siren ? `SIREN <a href="https://annuaire-entreprises.data.gouv.fr/entreprise/${esc(f.siren)}" target="_blank" rel="noopener"><b>${esc(f.siren)}</b></a>` : '', f.effectif ? `effectif <b>${esc(f.effectif)}</b>` : '', f.naf ? `NAF <b>${esc(f.naf)}</b>` : '', f.ville ? `<b>${esc(f.ville)}</b>` : '', f.date_creation ? `créée en <b>${esc(String(f.date_creation).slice(0, 4))}</b>` : '', f.lei ? `LEI <b>${esc(f.lei)}</b>` : '', f.uk_number ? `Companies House <b>${esc(f.uk_number)}</b>` : '', f.org_no ? `org.nr <b>${esc(f.org_no)}</b>` : '', (f.stack || []).length ? `outils : <b>${esc(f.stack.join(', '))}</b>` : '', (f.languages || []).length ? `langues du site : <b>${esc(f.languages.join(', '))}</b>` : ''].filter(Boolean).map((x) => `<span>${x}</span>`).join('');
+  const sigs = c.signals.map((s) => `<li><div><a href="${esc(s.url)}" target="_blank" rel="noopener"><b>${esc(s.label)}${s.amount ? ` · ${esc(s.amount)}` : ''}</b></a>${s.negative ? ' <span class="tri bad">négatif</span>' : ''}
+      <div class="mt">${esc(s.evidence)}</div><div class="mt">${[s.source, day(s.date), s.detail].filter(Boolean).map(esc).join(' · ')}</div></div></li>`).join('');
+  const btn = (v, label) => `<button class="btn${c.verdict === v ? ' primary' : ''}" data-verdict="${v}">${label}</button>`;
+  put(root, `<div class="fiche"><div class="hd"><h2>${esc(c.name)}</h2>
+      <div class="ti">${esc([c.country, (f.sectors || []).join(', '), c.remote_kind === 'full' ? '100 % remote' : c.remote_kind === 'partiel' ? 'quelques postes en full remote' : ''].filter(Boolean).join(' · ')) || 'pays et secteur pas encore connus'}</div>
+      <div class="chips">${facts || '<span>registres pas encore lus (les mieux notées d’abord, 20 par passage)</span>'}</div></div>
+    <div class="actions">${btn('bon', 'Bonne piste')}${btn('non', 'Pas pour moi')}<button class="btn" data-prospect ${c.prospect ? 'disabled' : ''}>${c.prospect ? 'Dans la file À prospecter' : 'À prospecter'}</button>${f.website ? `<a class="btn quiet" href="${esc(f.website)}" target="_blank" rel="noopener">Site</a>` : ''}${c.careers ? `<a class="btn quiet" href="${esc(c.careers)}" target="_blank" rel="noopener">Page carrières</a>` : ''}${c.remote_key ? `<button class="btn quiet" data-remote="${esc(c.remote_key)}">Ses postes remote (${c.remote_jobs})</button>` : ''}</div>
+    ${msg ? `<p class="note ${msg.startsWith('!') ? 'err' : ''}">${esc(msg.replace(/^!/, ''))}</p>` : ''}
+    <div class="banner info"><h3>Score ${c.score.toFixed(1)}</h3><ul>${c.why.map((w) => `<li>${esc(w)}</li>`).join('')}</ul></div>
+    ${sigs ? `<ul class="rjobs">${sigs}</ul>` : '<p class="note">Pas de signal récent : l’entreprise est là parce que tu l’as notée ou suivie.</p>'}</div>`, bindSignal);
+}
+function bindSignal() {
+  document.querySelectorAll('#detail [data-verdict]').forEach((b) => b.onclick = async () => {
+    const c = ((G && G.companies) || []).find((x) => x.norm === selectedSig); if (!c) return;
+    const verdict = c.verdict === b.dataset.verdict ? null : b.dataset.verdict;
+    const r = await api('/api/signals/verdict', { norm: c.norm, verdict }).catch(() => ({ ok: false, note: 'cockpit injoignable' }));
+    sigMsg[c.norm] = r.ok ? r.note : '!' + (r.note || r.error || 'refusé');
+    await loadSignals(true);
+  });
+  const p = $('#detail [data-prospect]'); if (p) p.onclick = async () => {
+    const r = await api('/api/signals/prospect', { norm: selectedSig }).catch(() => ({ ok: false, note: 'cockpit injoignable' }));
+    sigMsg[selectedSig] = r.ok ? r.note : '!' + (r.note || r.error || 'refusé');
+    await loadSignals(true);
+  };
+  const rem = $('#detail [data-remote]'); if (rem) rem.onclick = async () => { const key = rem.dataset.remote; setView('remote'); await loadRemote(true); selectCompany(key); };
+}
+function selectCompany(key, byKeyboard = false) {
+  if (!key) return;
+  selectedCo = key;
+  if (window.innerWidth <= 900 && !byKeyboard) setTimeout(() => $('#detail').scrollIntoView({ block: 'start', behavior: 'smooth' }), 0);
+  renderList(); renderDetail();
+  const el = document.querySelector(`.offer[data-co="${CSS.escape(key)}"]`); if (el) el.scrollIntoView({ block: 'nearest' });
+}
+let remoteMsg = {};
+function renderCompany(root) {
+  const c = ((R && R.companies) || []).find((x) => x.key === selectedCo);
+  if (!c) {
+    put(root, `<div class="fiche"><h2 style="font-size:17px;margin:0 0 8px">Choisis une entreprise</h2>
+      <p class="para muted">Ici, toutes les entreprises que le radar a vues avec au moins un poste en full télétravail sur leur tableau d'offres (Greenhouse, Lever, Ashby), et celles de ton index des entreprises 100 % remote. Les 100 % remote d'abord. Leurs postes de ton champ y restent même quand le tri ne les retient pas.</p>
+      <p class="para muted">« Mettre au tableau » fait d'un poste une offre comme les autres : sa fiche, son tri, et le bouton Postuler. Pour suivre une entreprise que le radar ne voit pas, ajoute-la à <code>entreprises_full_remote.json</code> dans le dossier carrière.</p></div>`);
+    return;
+  }
+  const jobs = c.jobs.map((j) => {
+    const msg = own(remoteMsg, j.id);
+    const act = j.onBoard ? `<button class="btn" data-open="${esc(j.onBoard)}">Ouvrir la fiche</button>` : `<button class="btn primary" data-add="${esc(j.id)}"${msg === '…' ? ' disabled' : ''}>Mettre au tableau</button>`;
+    return `<li><div><a href="${esc(j.link)}" target="_blank" rel="noopener"><b>${esc(j.title)}</b></a>${j.target ? ' <span class="tri ok">ton métier</span>' : ''}${isFresh(j.first_seen) && !isFresh(c.first_seen, 1) ? ' <span class="tri warn">nouveau</span>' : ''}
+      <div class="mt">${[j.location + (j.more ? ` (+${plural(j.more, 'autre lieu', 'autres lieux')})` : ''), j.posted ? `publiée le ${day(j.posted)}` : '', j.remote ? '' : 'remote non écrit sur l\'annonce'].filter(Boolean).map(esc).join(' · ')}${msg && msg !== '…' ? ` · <span class="${msg.startsWith('!') ? 'err' : ''}">${esc(msg.replace(/^!/, ''))}</span>` : ''}</div></div>${act}</li>`;
+  }).join('');
+  put(root, `<div class="fiche"><div class="hd"><h2>${esc(c.name)}</h2>
+      <div class="ti">${!c.board ? 'Entreprise 100 % remote de ton index' : `${c.kind === 'full' ? 'Entreprise 100 % remote' : 'Quelques postes en full télétravail'} : ${esc(shareText(c))}${c.hybrid ? `, ${c.hybrid} hybride${c.hybrid > 1 ? 's' : ''}` : ''} sur son tableau ${esc(ATS[c.ats] || c.ats)}`}</div>
+      <div class="chips"><span>${c.source === 'manuel' ? '<b>listée à la main</b>' : c.source === 'index' ? '<b>de ton index remote</b>' : 'repérée par le radar le <b>' + esc(day(c.first_seen)) + '</b>'}</span>${c.board ? `<span>tableau relu <b>${esc(ago(c.last_read))}</b></span>` : ''}${c.note ? `<span>${esc(c.note)}</span>` : ''}</div></div>
+    <div class="actions">${c.careers ? `<a class="btn" href="${esc(c.careers)}" target="_blank" rel="noopener">Page carrières</a>` : ''}</div>
+    ${!c.board ? `<p class="note">${c.probed ? 'Le radar n\'a trouvé son tableau d\'offres ni sur Greenhouse, ni sur Lever, ni sur Ashby : ses postes ne se lisent que sur sa page carrières. Il réessaie dans un mois.' : 'Le radar n\'a pas encore cherché son tableau d\'offres (il en cherche 25 par cycle de 15 minutes) : en attendant, sa page carrières.'}</p>`
+      : c.jobs.length ? `<ul class="rjobs">${jobs}</ul>` : `<p class="note">Aucun poste de ton champ ouvert en ce moment${c.kind === 'full' ? ' : le radar relit son tableau toutes les 6 h' : ''}.</p>`}
+    ${c.outsideEurope ? `<p class="note">${plural(c.outsideEurope, 'poste réservé', 'postes réservés')} à une zone hors d'Europe, écarté${c.outsideEurope > 1 ? 's' : ''}.</p>` : ''}
+    ${c.others ? `<p class="note">${plural(c.others, 'autre poste', 'autres postes')} hors de ton champ (ingénierie, data…)${c.careers ? ` : <a href="${esc(c.careers)}" target="_blank" rel="noopener">page carrières</a>` : ''}.</p>` : ''}</div>`, bindCompany);
+}
+function bindCompany() {
+  document.querySelectorAll('#detail [data-open]').forEach((b) => b.onclick = () => { const slug = b.dataset.open; setView('offres'); selected = null; select(slug); });
+  document.querySelectorAll('#detail [data-add]').forEach((b) => b.onclick = async () => {
+    const id = b.dataset.add; remoteMsg[id] = '…'; renderDetail();
+    const r = await api('/api/remote-companies/add', { key: selectedCo, id }).catch(() => ({ ok: false, note: 'cockpit injoignable' }));
+    remoteMsg[id] = r.ok ? r.note : '!' + (r.note || r.error || 'refusé');
+    await refresh(); await loadRemote(true);
+  });
+}
+
+function select(slug, byKeyboard = false) {
+  if (!slug || slug === selected) return;
+  selected = slug; cache = {}; detailLast = '';
+  const o0 = offerOf(slug) || {};
+  tab = S.live.some((l) => l.slug === slug) ? 'suivi' : ['TAILORED', 'APPLIED', 'APPLY_UNPROVEN', 'APPLY_FAILED'].includes(o0.status) ? 'contacts' : 'annonce';
+  if (window.innerWidth <= 900 && !byKeyboard) setTimeout(() => $('#detail').scrollIntoView({ block: 'start', behavior: 'smooth' }), 0);
+  renderList(); renderDetail(); loadFiles();
+  history.replaceState(null, '', '#' + encodeURIComponent(slug));
+  const el = document.querySelector(`.offer[data-slug="${CSS.escape(slug)}"]`); if (el) el.scrollIntoView({ block: 'nearest' });
+}
+
+// Sur le PC, les liens externes partent dans Chrome (la fenêtre du cockpit est en mode application) ; à distance, ou si le cockpit refuse, le lien s'ouvre normalement.
+const ON_PC = ['127.0.0.1', 'localhost'].includes(location.hostname);
+document.addEventListener('click', async (e) => {
+  const a = e.target.closest('a[target="_blank"]');
+  if (!ON_PC || !a || !/^https?:/i.test(a.href) || new URL(a.href).origin === location.origin || e.ctrlKey || e.shiftKey || e.metaKey) return;
+  e.preventDefault();
+  const r = await api('/api/open', { url: a.href }).catch(() => null);
+  if (!r || !r.ok) window.open(a.href, '_blank', 'noopener');
+});
+$('#attention').addEventListener('click', async (e) => {
+  const seen = e.target.closest('[data-seen]');
+  if (seen) { e.stopPropagation(); await api('/api/attention/seen', { key: seen.dataset.seen }); await refresh(); return; }
+  const it = e.target.closest('[data-slug]'); if (!it) return;
+  e.preventDefault(); selected = null; select(it.dataset.slug);
+});
+$('#offers').addEventListener('click', (e) => {
+  const cb = e.target.closest('input[data-check]');
+  if (cb) { cb.checked ? checked.add(cb.dataset.check) : checked.delete(cb.dataset.check); renderList(); return; }
+  const co = e.target.closest('li.offer[data-co]'); if (co) { selectCompany(co.dataset.co); return; }
+  const sg = e.target.closest('li.offer[data-sig]'); if (sg) { selectSignal(sg.dataset.sig); return; }
+  const li = e.target.closest('li.offer'); if (li) select(li.dataset.slug);
+});
+$('#q').addEventListener('input', () => { query = $('#q').value; renderList(); });
+const markSeg = (id, attr, value) => document.querySelectorAll(`#${id} button`).forEach((x) => x.classList.toggle('on', x.dataset[attr] === String(value)));
+markSeg('segSort', 's', sortBy); markSeg('segPeriod', 'p', period);
+document.querySelectorAll('#segSort button').forEach((b) => b.onclick = () => { sortBy = b.dataset.s; markSeg('segSort', 's', sortBy); try { localStorage.setItem('cockpit.sort', sortBy); } catch {} renderList(); });
+document.querySelectorAll('#segPeriod button').forEach((b) => b.onclick = () => { period = Number(b.dataset.p); markSeg('segPeriod', 'p', period); try { localStorage.setItem('cockpit.period', String(period)); } catch {} renderList(); });
+document.querySelectorAll('#segOffres button').forEach((b) => b.onclick = () => { filter = b.dataset.f; document.querySelectorAll('#segOffres button').forEach((x) => x.classList.toggle('on', x === b)); renderList(); });
+document.querySelectorAll('#segSel button').forEach((b) => b.onclick = () => { selFilter = b.dataset.sf; document.querySelectorAll('#segSel button').forEach((x) => x.classList.toggle('on', x === b)); renderList(); });
+document.querySelectorAll('#segRemote button').forEach((b) => b.onclick = () => { remoteFilter = b.dataset.rf; document.querySelectorAll('#segRemote button').forEach((x) => x.classList.toggle('on', x === b)); renderList(); });
+document.querySelectorAll('#segSig button').forEach((b) => b.onclick = () => { sigFilter = b.dataset.gf; document.querySelectorAll('#segSig button').forEach((x) => x.classList.toggle('on', x === b)); renderList(); });
+document.querySelectorAll('#views button').forEach((b) => b.onclick = () => setView(b.dataset.v));
+$('#hideDiscarded').onchange = (e) => { hideDiscarded = e.target.checked; renderList(); };
+document.addEventListener('keydown', (e) => {
+  if (e.target.matches('input, textarea, select') || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
+  const step = e.key === 'ArrowDown' ? 1 : -1;
+  if (view === 'signals') {
+    const rows = sigRows(); if (!rows.length) return;
+    const i = rows.findIndex((c) => c.norm === selectedSig);
+    selectSignal(rows[Math.max(0, Math.min(rows.length - 1, i + step))].norm, true); e.preventDefault(); return;
+  }
+  if (view === 'remote') {
+    const rows = remoteRows(); if (!rows.length) return;
+    const i = rows.findIndex((r) => r.c.key === selectedCo);
+    selectCompany(rows[Math.max(0, Math.min(rows.length - 1, i + step))].c.key, true); e.preventDefault(); return;
+  }
+  const rows = view === 'selection' ? selRows().map((r) => r.p) : visible(); if (!rows.length) return;
+  const i = rows.findIndex((o) => o.slug === selected);
+  select(rows[Math.max(0, Math.min(rows.length - 1, i + step))].slug, true); e.preventDefault();
+});
+$('#pull').addEventListener('click', async () => {
+  $('#pull').disabled = true; put($('#pullState'), `<span class="dot live"></span>lecture du tableau de la VM…`);
+  const r = await api('/api/pull', {});
+  if (r.ok === false) alert('Rafraîchissement depuis la VM refusé :\n' + (r.output || ''));
+  await refresh();
+});
+$('#radar').addEventListener('click', async () => {
+  $('#radar').disabled = true; put($('#radarPanel'), `<span class="dot live"></span>Relève en cours… démarrage`);
+  const r = await api('/api/radar', {});
+  if (r.error) alert('Relève des sources : ' + r.error);
+  await refresh();
+});
+$('#launch').addEventListener('click', async () => {
+  const r = await api('/api/run', { slugs: [...checked] });
+  checked.clear();
+  if (r.refused && r.refused.length) alert('Non lancées : ' + r.refused.map((x) => x.slug + ' (' + x.reason + ')').join(' ; '));
+  await refresh();
+});
+
+/** La page employeur trouvée par le dernier passage (pour le navigateur du robot), sinon ''. */
+function robotUrl(slug) { const o = offerOf(slug); return (o && o.harness && o.harness.apply_url) || ''; }
+
+/** L'annonce d'un slug : la première qui n'est pas cachée par le tri, sinon la première. */
+function offerOf(slug) { return S.offers.find((o) => o.slug === slug && !hidden(o)) || S.offers.find((o) => o.slug === slug); }
+
+function renderDetail() {
+  const root = $('#detail');
+  if (view === 'remote') { renderCompany(root); return; }
+  if (view === 'signals') { renderSignalCompany(root); return; }
+  if (!selected || !offerOf(selected)) {
+    put(root, `<div class="fiche"><h2 style="font-size:17px;margin:0 0 8px">Choisis une offre</h2>
+      <p class="para muted">Le cockpit lance <code>career-apply</code> sur ce PC, une offre à la fois, en mode confirm : le CV, la lettre et le formulaire sont préparés, puis le run s'arrête et attend ton go ici. Rien n'est envoyé sans ce clic.</p>
+      <p class="para muted">Pour chaque offre : les décideurs à qui écrire (noms trouvés sur les pages publiques, recherche LinkedIn, e-mail par Hunter, note LinkedIn et e-mail prêts à copier), l'annonce, tes remarques (lues au prochain run, comme <code>/remarque</code> du bot), puis le CV et la lettre (aussi en PDF, tels qu'ils seront joints), l'envoi et le dossier. Ce qui attend ton geste est en tête de la liste. Flèches ↑ ↓ pour passer d'une offre à l'autre.</p>
+      <p class="foot" style="padding:0">tableau : ${esc(S.config.careerDir || '')}<br>harness : ${esc(S.config.harness || '')} · mode ${esc(S.config.mode || '')}</p></div>`);
+    return;
+  }
+  const o = offerOf(selected), run = own(S.runs, selected), inQueue = S.queue.includes(selected), live = S.live.some((l) => l.slug === selected);
+  // Ordre donné, run pas encore visible (lancement en cours) : on ne repropose pas « Postuler ».
+  const order = own(S.orders || {}, selected), launching = !!order && !inQueue && !live && (!run || (run.startedAt && run.startedAt < order.at));
+  const g = visible().find((x) => x.slug === selected) || groups().find((x) => x.slug === selected) || { rows: [o] }, gt = groupTriage(g);
+  let h = `<div class="fiche"><div class="hd"><h2>${esc(o.company)}</h2><div class="ti">${esc(o.title)}</div>
+    <div class="chips">${touched(o) ? `<span>${statusHtml(o.status)}</span>` : ''}${o.location ? `<span>${esc(o.location)}</span>` : ''}${o.source ? `<span>${esc(srcName(o.source))}</span>` : ''}${o.date ? `<span title="${esc(day(o.date))}">${esc(ageLabel(o))}</span>` : ''}${gt ? `<span>${triageHtml(gt)}</span>` : ''}${gt && gt.fit ? `<span title="${esc(fitTitle(gt.fit))}">adéquation <b>${esc(FIT[gt.fit.level])}</b></span>` : ''}</div>
+    ${g.rows.length > 1 ? `<ul class="variants">${g.rows.map((r) => `<li>${isUrl(r.link) ? `<a href="${esc(r.link)}" target="_blank" rel="noopener">${esc(r.title)}</a>` : esc(r.title)} · ${esc([r.location, day(r.date)].filter(Boolean).join(' · '))}${r.triage ? ' ' + triageHtml(r.triage) : ''}</li>`).join('')}</ul><p class="note">${g.rows.length} annonces portent ce nom dans le tableau (même poste publié par pays, ou postes voisins) ; la préparation part sur la première, la plus récente.</p>` : ''}</div>
+    <div class="actions">${o.link ? `<a class="btn" href="${esc(o.link)}" target="_blank" rel="noopener">Ouvrir l'annonce ↗</a>` : ''}
+      ${o.link && ON_PC && !live ? `<button class="btn quiet" id="robotOpen" title="Crée ou ouvre ici ton compte candidat (Workday, SuccessFactors…) : le robot s'en servira. Ferme la fenêtre avant de relancer.">Ouvrir dans le navigateur du robot</button>` : ''}
+      ${inQueue ? `<button class="btn" id="dequeue">Retirer de la file</button>` : ''}${ON_PC && (live || liveRun(selected) || o.status === 'APPLYING') ? `<button class="btn danger" id="stopRun" title="Arrête le run de cette offre (CV, formulaire, décideurs) : plus aucun appel de modèle, rien n'est envoyé.">Arrêter la candidature</button>` : ''}<span id="pdfLinks"></span></div>${journeyHtml(o, run, inQueue, live, launching)}<div id="runband"></div>`;
+  if (!inQueue && !live && !launching && o.launch.ok) h += `<div class="order"><label for="consigne">Consigne pour cette candidature (facultatif) : ce que le CV et la lettre doivent mettre en avant</label>
+      <textarea id="consigne" placeholder="Ex. : insiste sur le tracking GTM et l'automatisation ; le poste est en anglais."></textarea>
+      <div class="actions"><button class="btn primary" id="launchOne">${run || o.harness ? 'Postuler à nouveau' : 'Postuler à cette offre'}</button></div>
+      <p class="note">Le CV, la lettre et le formulaire sont préparés, puis tout s'arrête pour ton go. Rien n'est envoyé sans lui.</p></div>`;
+  if (!inQueue && !live && !o.launch.ok) h += `<p class="note">Pas lançable d'ici : ${esc(o.launch.reason)}.</p>`;
+  if (inQueue) h += `<p class="note">En file : partira quand la candidature en vol sera terminée.</p>`;
+  if (gt) {
+    const t = gt, [label, cls] = TRIAGE[t.decision] || [t.decision, ''];
+    const why = (t.fit ? `<li>${esc(fitTitle(t.fit))}</li>` : '') + (t.reasons || []).map((r) => `<li>${esc(r)}</li>`).join('')
+      + (t.notes || []).filter((n) => !/^(Publiée le |Cœur du poste : )/.test(n)).map((n) => `<li class="muted">${esc(n)}</li>`).join('');
+    const how = t.blockStatus === 'verified' ? 'lecture de l’annonce vérifiée par le code et relue par un juge en contexte vierge' : t.blockStatus === 'rejected' ? 'le juge n’a pas approuvé la lecture : à relire à la main' : t.blockStatus === 'unconverged' ? 'lecture non vérifiée après trois essais : à relire à la main' : t.blockStatus === 'zone' ? 'règle de zone du radar (localisation hors Europe), sans modèle' : t.blockStatus === 'regle' ? 'règle de criteres.json appliquée par le code, sans modèle' : t.blockStatus === 'rules' ? 'tri par les règles du code, sans modèle : zone d’embauche et cœur du poste non lus' : t.blockStatus === 'local' ? 'tri par le modèle local de la VM (questions fermées, réponses contrôlées par le code), sans Claude : cœur du poste non évalué' : t.blockStatus === 'pre_screened' ? 'écartée par le code avant le tri, sans modèle' : 'tri sans verdict';
+    h += `<div class="banner ${cls}"><h3>Tri : ${esc(label)}${t.stale ? ' · à refaire (critères changés ou tri non vérifié)' : ''}</h3>${how}${when(t.at) ? ` · ${when(t.at)}` : ''}${why ? `<ul>${why}</ul>` : ''}${t.decision === 'ecartee' ? '<p class="note">Rien n’est retiré du tableau : l’offre reste lançable d’ici si tu n’es pas d’accord.</p>' : ''}</div>`;
+  }
+  // Le tri par Claude (crédits) ne part que sur ce bouton ; le tri automatique n'appelle aucun modèle.
+  const triLive = S.triage && S.triage.live && S.triage.live.slug === selected;
+  if (S.triage && S.triage.enabled) h += `<div class="actions">${triLive ? '<span class="note">Tri en cours…</span>' : `<button class="btn quiet" id="triageLlm" title="Lecture de l’annonce par Claude, vérifiée par le code et relue par un juge : 2 à 3 appels, sur tes crédits Claude">${gt && gt.blockStatus === 'verified' ? 'Refaire le tri avec Claude' : 'Trier avec Claude'} (crédits)</button>`}</div>`;
+  if (!run && o.harness && !['APPLIED', 'APPLY_UNPROVEN', 'APPLY_FAILED', 'TAILORED'].includes(o.status)) h += `<p class="note"><b>Dernier passage</b> (${esc(o.harness.stage)}, ${when(o.harness.at)}) : ${esc(o.harness.summary)}</p>`;
+  if (run) {
+    h += `<p class="note">Run <code>${esc(run.id.slice(0, 8))}</code> · ${esc(run.statusLabel)} · démarré ${when(run.startedAt)} · ${run.progress.done}/${run.progress.total} étapes</p>`;
+    if (run.waitingLabel) h += `<div class="banner"><h3>${esc(run.waitingLabel)}</h3>Le formulaire est prérempli et contrôlé. Rien ne part sans le bouton vert.
+      <div class="jumps">Relis d'abord : <a class="btn quiet" href="/api/pdf/${encodeURIComponent(selected)}/cv" target="_blank" rel="noopener">le CV en PDF ↗</a><button class="btn quiet" data-jump="lettre">la lettre</button><button class="btn quiet" data-jump="envoi">l'envoi</button></div>
+      <textarea id="reason" placeholder="Raison du refus (facultatif, notée sur l'offre)" style="margin-top:10px"></textarea>
+      <div class="actions"><button class="btn go" id="approve">Go : envoyer la candidature</button><button class="btn danger" id="reject">Refuser, rien n'est envoyé</button></div></div>`;
+    if (run.progress.failed.length) h += `<div class="banner bad"><h3>Étape en échec</h3>${run.progress.failed.map(esc).join(', ')} — le journal dit pourquoi.</div>`;
+  }
+  const tabs = ['contacts', 'annonce', 'remarques', ...(run ? ['suivi'] : []), 'CV', 'lettre', 'candidat', 'envoi', 'dossier', ...(run ? ['journal'] : [])];
+  if (!tabs.includes(tab)) tab = 'annonce';
+  h += `<div class="tabs">${tabs.map((t) => `<button data-tab="${t}" class="${tab === t ? 'on' : ''}">${t}</button>`).join('')}</div><div id="tabBody"></div></div>`;
+  if (h !== detailLast) {
+    detailLast = h; root.innerHTML = h;
+    const ro = $('#robotOpen'); if (ro) ro.onclick = async () => { const r = await api('/api/open-robot', { url: robotUrl(selected) || o.link }).catch(() => null); if (!r || !r.ok) alert((r && r.error) || 'ouverture impossible'); };
+    const b = $('#launchOne'); if (b) b.onclick = async () => {
+      b.disabled = true; b.textContent = 'Ordre envoyé…';
+      const r = await api('/api/run', { slugs: [selected], consigne: ($('#consigne') || {}).value || '' }).catch((e) => ({ refused: [{ reason: String(e) }] }));
+      if (r.refused && r.refused.length) alert('Ordre refusé : ' + r.refused[0].reason);
+      await refresh(); setTimeout(refresh, 2500);
+    };
+    const st = $('#stopRun'); if (st) st.onclick = async () => {
+      if (!confirm('Arrêter cette candidature ? Le run s\'arrête tout de suite, rien n\'est envoyé.')) return;
+      st.disabled = true; st.textContent = 'Arrêt…';
+      const r = await api('/api/stop', { slug: selected }).catch((e) => ({ note: String(e) }));
+      alert(r.note || r.error || 'arrêtée');
+      await refresh();
+    };
+    const d = $('#dequeue'); if (d) d.onclick = async () => { await api('/api/dequeue', { slug: selected }); await refresh(); };
+    const tl = $('#triageLlm'); if (tl) tl.onclick = async () => {
+      if (!confirm('Trier cette offre avec Claude ? 2 à 3 appels sur tes crédits Claude.')) return;
+      tl.disabled = true; tl.textContent = 'Tri Claude lancé…';
+      const r = await api('/api/triage-llm', { slug: selected }).catch((e) => ({ error: String(e) }));
+      if (r.error) alert(r.error);
+      await refresh();
+    };
+    const ap = $('#approve'); if (ap) ap.onclick = () => respond('approve');
+    const rj = $('#reject'); if (rj) rj.onclick = () => respond('reject');
+    document.querySelectorAll('[data-jump]').forEach((bt) => bt.onclick = () => { tab = bt.dataset.jump; renderDetail(); const t = $('.tabs'); if (t) t.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
+    document.querySelectorAll('[data-tab]').forEach((bt) => bt.onclick = () => { tab = bt.dataset.tab; renderDetail(); });
+  }
+  renderRunBand(); renderPdfLinks();
+  renderTab();
+}
+
+/**
+ * Le parcours d'une candidature, de l'ordre à l'issue : ordre reçu → CV, lettre, formulaire → ton go → envoi → envoyée.
+ * Lu dans ce que le cockpit sait déjà : la file, le run vivant (étape en cours, attente du go) et le statut que `record`
+ * écrit au tableau (APPLIED, APPLY_UNPROVEN, APPLY_FAILED, TAILORED = pièces prêtes, à envoyer toi-même).
+ */
+function journeyHtml(o, run, inQueue, live, launching) {
+  const order = own(S.orders || {}, o.slug);
+  const ended = !live && !inQueue;
+  const st = o.status;
+  const steps = ['Ordre reçu', 'CV, lettre, formulaire', 'Ton go', 'Envoi', 'Envoyée'];
+  if (ended && st === 'APPLY_UNPROVEN') steps[4] = 'Reçu non prouvé';
+  if (ended && st === 'TAILORED') steps[4] = 'À envoyer toi-même';
+  let cls = null, outcome = '';
+  const stepIds = (run && run.steps || []);
+  const runningIds = stepIds.filter((x) => x.kind === 'live' || x.state === 'running').map((x) => x.id);
+  const goDone = stepIds.some((x) => /^submit__go$/.test(x.id) && x.kind === 'ok');
+  if (inQueue || launching) cls = ['done', 'now', '', '', ''];
+  else if (live && run && run.waitingLabel) cls = ['done', 'done', 'now', '', ''];
+  else if (live && goDone && runningIds.some((id) => id.startsWith('submit__'))) cls = ['done', 'done', 'done', 'now', ''];
+  else if (live) cls = ['done', 'now', '', '', ''];
+  else if (ended && st === 'APPLIED') { cls = ['done', 'done', 'done', 'done', 'done']; outcome = `<div class="banner ok"><h3>Candidature envoyée</h3>Le reçu de la plateforme est prouvé${o.harness && o.harness.at ? ` (${when(o.harness.at)})` : ''}.</div>`; }
+  else if (ended && st === 'APPLY_UNPROVEN') { cls = ['done', 'done', 'done', 'done', 'warn']; outcome = `<div class="banner warn"><h3>Envoi fait, reçu non prouvé</h3>Le formulaire a été soumis mais la confirmation n'a pas été vue. Vérifie ta boîte mail ou la page de la plateforme.${o.harness && o.harness.summary ? `<p class="note">${esc(o.harness.summary)}</p>` : ''}</div>`; }
+  else if (ended && st === 'APPLY_FAILED' && (run || o.harness)) { cls = ['done', 'bad', '', '', '']; if (o.harness && o.harness.stage === 'submit') cls = ['done', 'done', 'done', 'bad', '']; outcome = `<div class="banner bad"><h3>La candidature n'est pas partie</h3>${esc((o.harness && o.harness.summary) || 'une étape a échoué : le journal dit pourquoi')}<p class="note">Tu peux corriger avec une consigne et postuler à nouveau.</p></div>`; }
+  else if (ended && st === 'TAILORED' && (run || o.harness)) {
+    cls = ['done', 'done', 'skip', 'skip', 'warn'];
+    const url = (o.harness && o.harness.apply_url) || o.link || '';
+    outcome = `<div class="banner warn"><h3>À envoyer toi-même</h3>Le CV et la lettre sont prêts, mais le robot ne peut pas envoyer seul sur cette page${o.harness && o.harness.summary ? ` : ${esc(o.harness.summary)}` : '.'}
+      <div class="jumps">${isUrl(url) ? `<a class="btn" href="${esc(url)}" target="_blank" rel="noopener">Ouvrir la page de candidature ↗</a>` : ''}<button class="btn quiet" data-jump="contacts">Message aux décideurs</button></div><p class="note">Le CV et la lettre à joindre : boutons « en PDF » en haut de la fiche.</p></div>`;
+  }
+  else if (order) cls = ['done', 'now', '', '', ''];
+  if (!cls) return '';
+  const received = order ? `<p class="received">Ordre reçu ${when(order.at)}${order.consigne ? ` · consigne : « ${esc(order.consigne)} »` : ''}</p>` : '';
+  return `<ol class="journey">${steps.map((label, i) => `<li class="${cls[i]}">${label}</li>`).join('')}</ol>${received}${outcome}`;
+}
+
+/** Le run de l'offre pendant qu'il travaille : l'étape en cours, la barre, depuis quand (à part de la fiche : elle n'est pas redessinée à chaque minute). */
+function renderRunBand() {
+  const el = $('#runband'); if (!el) return;
+  const run = own(S.runs, selected), cr = own((S.contacts || {}).runs, selected);
+  const band = (r, what, after) => { const pct = r.progress.total ? Math.round(100 * r.progress.done / r.progress.total) : 0; return `<div class="runband"><span class="dot live"></span><b>${esc(what)} : ${esc(r.runningLabel || 'démarrage')}</b><div class="bar"><i style="width:${pct}%"></i></div><div class="sub">${r.progress.done}/${r.progress.total} étapes · en cours ${since(r.startedAt)} · ${after}</div></div>`; };
+  put(el, (run && LIVE.includes(run.status) && !run.waitingLabel ? band(run, 'Candidature en préparation', 'rien ne part sans ton go') : '') + (cr && LIVE.includes(cr.status) ? band(cr, 'Recherche des décideurs', 'rien n’est envoyé') : ''));
+}
+
+/** Les PDF tels qu'ils seront joints (rendus par `render`) : celui du run d'abord, sinon celui du dossier. */
+function renderPdfLinks() {
+  const el = $('#pdfLinks'); if (!el) return;
+  const art = (cache.art && cache.art.files || []).map((f) => f.path), app = (cache.app && cache.app.files || []).map((f) => f.path);
+  const ok = (re) => app.some((f) => re.test(f) && !/\.rejected\.pdf$/i.test(f));
+  const has = (kind) => kind === 'cv' ? art.includes('application/CV.pdf') || ok(/^CV_.+\.pdf$/i) : art.includes('application/letter.pdf') || ok(/^Lettre_.+\.pdf$/i);
+  const link = (kind, label) => has(kind) ? `<a class="btn" href="/api/pdf/${encodeURIComponent(selected)}/${kind}" target="_blank" rel="noopener">${label} ↗</a>` : '';
+  put(el, link('cv', 'CV en PDF') + link('lettre', 'Lettre en PDF'));
+}
+
+async function respond(decision) {
+  const run = own(S.runs, selected); if (!run) return;
+  const text = ($('#reason') || {}).value || '';
+  if (decision === 'approve' && !confirm('Envoyer la candidature ' + selected + ' maintenant ? C\'est le geste que personne ne peut annuler.')) return;
+  const r = await api('/api/respond', { runId: run.id, decision, text });
+  if (!r.ok) alert('Archon a répondu :\n' + r.output);
+  await refresh();
+}
+
+async function loadFiles() {
+  if (!selected) return;
+  const slug = selected, run = own(S.runs, slug);
+  const [app, art, rem, contacts] = await Promise.all([api('/api/application/' + encodeURIComponent(slug)), run ? api('/api/run/' + encodeURIComponent(run.id) + '/files') : Promise.resolve(null), api('/api/remarks/' + encodeURIComponent(slug)), api('/api/contacts/' + encodeURIComponent(slug))]);
+  if (slug !== selected) return;
+  cache = { ...cache, app, art, rem, contacts };
+  renderPdfLinks(); renderTab();
+}
+async function loadPosting(reload) {
+  const slug = selected;
+  cache.posting = { loading: true }; renderTab();
+  const p = await api('/api/offer/' + encodeURIComponent(slug) + '/posting' + (reload ? '?reload=1' : ''));
+  if (slug !== selected) return;
+  cache.posting = p; renderTab();
+}
+async function saveRemark() {
+  const ta = $('#remark'); if (!ta || !ta.value.trim()) return;
+  const r = await api('/api/remarks', { slug: selected, text: ta.value });
+  if (r.error) { alert(r.error); return; }
+  cache.rem = r; ta.value = ''; renderTab();
+}
+
+/** Markdown minimal et sûr (le texte est échappé d'abord) : titres, listes, gras, italique, code, liens http(s). */
+function md(text) {
+  const inline = (s) => esc(s)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, '$1<em>$2</em>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  const out = []; let list = null, para = [];
+  const flush = () => { if (para.length) { out.push(`<p>${inline(para.join(' '))}</p>`); para = []; } if (list) { out.push(`</${list}>`); list = null; } };
+  for (const raw of text.replace(/\r\n?/g, '\n').split('\n')) {
+    const line = raw.trimEnd();
+    let m;
+    if ((m = /^(#{1,3})\s+(.*)$/.exec(line))) { flush(); out.push(`<h${m[1].length + 2}>${inline(m[2])}</h${m[1].length + 2}>`); }
+    else if (/^(-{3,}|\*{3,})$/.test(line)) { flush(); out.push('<hr>'); }
+    else if ((m = /^\s*[-*•]\s+(.*)$/.exec(line))) { if (para.length) { out.push(`<p>${inline(para.join(' '))}</p>`); para = []; } if (list !== 'ul') { if (list) out.push(`</${list}>`); out.push('<ul>'); list = 'ul'; } out.push(`<li>${inline(m[1])}</li>`); }
+    else if ((m = /^\s*\d+[.)]\s+(.*)$/.exec(line))) { if (para.length) { out.push(`<p>${inline(para.join(' '))}</p>`); para = []; } if (list !== 'ol') { if (list) out.push(`</${list}>`); out.push('<ol>'); list = 'ol'; } out.push(`<li>${inline(m[1])}</li>`); }
+    else if (line.trim() === '') flush();
+    else { if (list) { out.push(`</${list}>`); list = null; } para.push(line.trim()); }
+  }
+  flush();
+  return out.join('\n');
+}
+
+function find(files, re) { return (files || []).find((f) => re.test(f.path)); }
+const LABELS = { name: 'Nom', email: 'E-mail', phone: 'Téléphone', linkedin: 'LinkedIn', portfolio: 'Portfolio', location: 'Localisation', availability: 'Disponibilité', answers: 'Réponses préparées', role: 'Rôle', company: 'Entreprise', source: 'Source', confidence: 'Confiance', reason: 'Raison', url: 'Page', platform: 'Plateforme', status: 'Statut', summary: 'Résumé', ok: 'Vérifié', submitted: 'Envoyé', at: 'Quand', problems: 'Problèmes', evidence: 'Preuves', notes: 'Notes' };
+const label = (k) => LABELS[k] || String(k).replace(/_/g, ' ');
+const isUrl = (v) => typeof v === 'string' && /^https?:\/\//.test(v);
+/** Un objet JSON lisible : clés traduites, valeurs à plat, objets et listes emboîtés. */
+function kv(v, depth = 0) {
+  if (v === null || v === undefined || v === '') return '<span class="muted">—</span>';
+  if (typeof v === 'boolean') return v ? 'oui' : 'non';
+  if (isUrl(v)) return `<a href="${esc(v)}" target="_blank" rel="noopener">${esc(v)}</a>`;
+  if (Array.isArray(v)) return v.length ? (v.every((x) => typeof x !== 'object' || x === null) ? esc(v.join(', ')) : `<ul style="margin:0;padding-left:18px">${v.map((x) => `<li>${kv(x, depth + 1)}</li>`).join('')}</ul>`) : '<span class="muted">aucun</span>';
+  if (typeof v === 'object') { const ks = Object.keys(v); return ks.length ? `<dl class="kv">${ks.map((k) => `<dt>${esc(label(k))}</dt><dd>${kv(v[k], depth + 1)}</dd>`).join('')}</dl>` : '<span class="muted">—</span>'; }
+  return esc(String(v));
+}
+function showJson(f, fallback, intro) {
+  if (!f) return `<p class="note">${fallback}</p>`;
+  let data = null; try { data = JSON.parse(f.text); } catch { return show(f); }
+  if (!data || typeof data !== 'object') return show(f);
+  return `${intro ? `<p class="note">${intro}</p>` : ''}<p class="src">${esc(f.path)}</p>${kv(data)}<details class="raw"><summary>JSON brut</summary><pre>${esc(JSON.stringify(data, null, 2))}</pre></details>`;
+}
+/** prefill.json (apply-submit) en clair : plateforme, champs remplis et leur source, questions sans réponse, pièces jointes, bouton d'envoi. */
+function prefillView(f) {
+  let p = null; try { p = JSON.parse(f.text); } catch { return show(f); }
+  if (!p || typeof p !== 'object') return show(f);
+  const fields = Array.isArray(p.fields) ? p.fields : [];
+  const un = Array.isArray(p.unanswered) ? p.unanswered : [];
+  const att = Array.isArray(p.attachments) ? p.attachments : [];
+  const sc = p.submit_control || {};
+  const url = p.final_url || p.apply_url || '';
+  const head = `<dl class="kv">${p.platform ? `<dt>Plateforme</dt><dd>${esc(p.platform)}</dd>` : ''}${url ? `<dt>Formulaire</dt><dd>${kv(url)}</dd>` : ''}
+    ${sc.label ? `<dt>Bouton d'envoi</dt><dd>« ${esc(sc.label)} » · ${sc.visible ? 'visible' : 'non visible'}, ${sc.enabled ? 'actif' : 'inactif'}</dd>` : ''}
+    <dt>État</dt><dd>${p.submitted ? '<span class="dot warn"></span>le formulaire dit avoir envoyé (à vérifier sur la plateforme)' : p.blocked ? `<span class="dot bad"></span>bloqué : ${esc(p.blocker || '')}` : '<span class="dot ok"></span>prérempli, rien d\'envoyé'}</dd></dl>`;
+  const rows = fields.map((x) => `<tr class="${x.status === 'skipped' ? 'off' : ''}"><td>${esc(x.label)}</td><td class="v">${x.value == null || x.value === '' ? '<span class="muted">laissé vide</span>' : esc(Array.isArray(x.value) ? x.value.join(', ') : String(x.value))}</td><td class="src">${esc(x.source || '')}</td></tr>`).join('');
+  const table = fields.length ? `<table class="form"><thead><tr><th>Champ</th><th>Valeur</th><th>Source</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="note">Aucun champ rempli.</p>';
+  const unans = un.length ? `<div class="banner"><h3>${un.length} question${un.length > 1 ? 's' : ''} sans réponse</h3>Elles restent vides : la réponse vient de <code>reponses_formulaires.md</code> (tes réponses validées) ou du profil, jamais inventée.<ul>${un.map((u) => `<li>${esc(u.label)}${u.required ? ' <b>(obligatoire)</b>' : ''}${u.reason ? ` · ${esc(u.reason)}` : ''}</li>`).join('')}</ul></div>` : '';
+  const files = att.length ? `<p class="note"><b>Pièces jointes :</b> ${att.map((a) => `${esc(a.file)} (${a.status === 'attached' ? 'jointe' : 'échec'})`).join(', ')}</p>` : '';
+  return `<p class="src">${esc(f.path)}</p>${head}${unans}${table}${files}<details class="raw"><summary>JSON brut</summary><pre>${esc(JSON.stringify(p, null, 2))}</pre></details>`;
+}
+function show(f, fallback) {
+  if (!f) return `<p class="note">${fallback}</p>`;
+  if (f.text === null) return `<p class="note">${esc(f.path)} (${f.bytes} octets, pas un fichier texte)</p>`;
+  if (/\.md$/i.test(f.path)) return `<p class="src">${esc(f.path)}</p><div class="doc">${md(f.text)}</div>`;
+  let text = f.text;
+  if (/\.json$/i.test(f.path)) { try { text = JSON.stringify(JSON.parse(text), null, 2); } catch {} }
+  return `<p class="src">${esc(f.path)}</p><pre>${esc(text)}</pre>`;
+}
+
+/** Sous le CV et la lettre : le PDF tel qu'il sera joint, quand il existe. */
+function pdfNote(kind) {
+  const l = $('#pdfLinks'), has = l && l.innerHTML.includes(`/${kind}"`);
+  return has ? `<p class="note"><a href="/api/pdf/${encodeURIComponent(selected)}/${kind}" target="_blank" rel="noopener">Ouvrir ${kind === 'cv' ? 'le CV' : 'la lettre'} en PDF ↗</a>, tel qu'il sera joint à la candidature.</p>` : '';
+}
+
+/**
+ * L'onglet contacts (bloc decision-makers) : les personnes à qui écrire, dans l'ordre d'approche, chacune avec sa
+ * recherche LinkedIn (tu l'ouvres, connecté : le robot ne lit jamais LinkedIn) et Hunter sur le domaine pour
+ * l'e-mail ; puis la note LinkedIn et l'e-mail prêts à copier. Rien n'est envoyé d'ici.
+ */
+function contactsHtml(art, app) {
+  const c = cache.contacts, cr = own((S.contacts || {}).runs, selected), running = cr && LIVE.includes(cr.status);
+  if (!c) return '<p class="note"><span class="dot live"></span>lecture…</p>';
+  const v = c.view, verdict = c.verdict || null;
+  let h = '';
+  if (running) h += `<p class="note"><span class="dot live"></span>Recherche des décideurs en cours : ${esc(cr.runningLabel || 'démarrage')} · ${since(cr.startedAt)}.</p>`;
+  else if (cr && cr.status === 'failed') h += `<div class="banner bad"><h3>La dernière recherche a échoué</h3>${esc(cr.progress.failed.join(', '))} : relance-la, le journal du run dit pourquoi.</div>`;
+  if (c.error) h += `<p class="note err">${esc(c.error)}</p>`;
+  if (!v) h += `<p class="note">${running ? '' : 'Pas encore de décideurs pour cette offre. '}Le robot les cherche sur les pages publiques de l'entreprise (site, presse), jamais sur LinkedIn, puis écrit la note LinkedIn et l'e-mail. Rien n'est envoyé : tu copies, tu envoies.${S.contacts && S.contacts.auto ? ' Il le fait tout seul dès que le CV d’une offre récente est prêt.' : ''}</p>`;
+  else {
+    if (verdict && verdict.status === 'verified') h += `<p class="note"><span class="dot ok"></span>Vérifié : chaque nom vient d'une page publique, rouverte par un juge en contexte vierge.</p>`;
+    else if (verdict && verdict.status) h += `<div class="banner warn"><h3>À relire avant d'écrire</h3>${verdict.status === 'rejected' ? 'Le juge n’a pas approuvé cette recherche' : 'Les contrôles n’étaient pas tous verts'}${verdict.summary ? ` : ${esc(verdict.summary)}` : ''}${(verdict.findings || []).length ? `<ul>${verdict.findings.map((f) => `<li>${esc(f.text)}</li>`).join('')}</ul>` : ''}</div>`;
+    h += v.people.length ? v.people.map((p, i) => `<div class="person"><h4>${i + 1}. ${esc(p.name)}</h4><div class="role">${esc(p.role)}</div>${p.why ? `<p class="why">${esc(p.why)}</p>` : ''}
+      <div class="jumps"><a class="btn" href="${esc(p.linkedin)}" target="_blank" rel="noopener">Chercher sur LinkedIn ↗</a>${v.hunter ? `<a class="btn" href="${esc(v.hunter)}" target="_blank" rel="noopener" title="Hunter (gratuit, 25 recherches par mois) : cherche ${esc(p.name)} parmi les adresses de ${esc(v.domain)}">Trouver l'e-mail (Hunter) ↗</a>` : ''}<button class="btn quiet" data-copy="${esc(p.name)}">copier le nom</button>${p.source ? `<a class="btn quiet" href="${esc(p.source)}" target="_blank" rel="noopener">source ↗</a>` : ''}</div></div>`).join('')
+      : '<p class="note">Aucun nom trouvé sur les pages publiques.</p>';
+    if (v.searches.length) h += `<p class="note" style="margin-top:12px"><b>À chercher toi-même sur LinkedIn :</b> ${v.searches.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.text)}</a>`).join(' · ')}</p>`;
+    if (v.note.text) h += `<div class="msg" style="margin-top:18px"><h3>Note LinkedIn${v.note.to ? ` · pour ${esc(v.note.to)}` : ''}</h3><pre id="msgNote">${esc(v.note.text)}</pre><span class="count">${v.note.text.length}/300 caractères</span> <button class="btn quiet" data-copy-el="msgNote">copier</button></div>`;
+    if (v.email.body) {
+      const mailto = `mailto:?subject=${encodeURIComponent(v.email.subject)}&body=${encodeURIComponent(v.email.body)}`;
+      h += `<div class="msg"><h3>E-mail${v.email.to ? ` · pour ${esc(v.email.to)}` : ''}</h3><p class="note"><b>Objet :</b> ${esc(v.email.subject)} <button class="btn quiet" data-copy="${esc(v.email.subject)}">copier</button></p><pre id="msgMail">${esc(v.email.body)}</pre>
+        <div class="actions" style="margin:0"><button class="btn quiet" data-copy-el="msgMail">copier le texte</button><a class="btn" href="${esc(mailto)}">Ouvrir dans ta messagerie</a><span class="note">mets l'adresse trouvée sur Hunter</span></div></div>`;
+    }
+    if (v.notes.length) h += `<ul class="note">${v.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>`;
+    if (v.sources.length) h += `<details class="raw"><summary>${plural(v.sources.length, 'source', 'sources')}</summary><ul>${v.sources.map((u) => `<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a></li>`).join('')}</ul></details>`;
+  }
+  h += `<div class="actions"><button class="btn${v ? '' : ' primary'}" id="findContacts"${running ? ' disabled' : ''}>${v ? 'Relancer la recherche' : 'Trouver les décideurs'}</button></div>`;
+  const legacy = find(art, /interlocuteur_cible\.json$/) || find(app, /interlocuteur_cible\.json$/);
+  if (legacy) h += `<details class="raw"><summary>rôle visé (interlocuteur_cible.json)</summary><pre>${esc(legacy.text || '')}</pre></details>`;
+  return h;
+}
+function bindContacts() {
+  document.querySelectorAll('#tabBody [data-copy], #tabBody [data-copy-el]').forEach((b) => b.onclick = async () => {
+    const t = b.dataset.copy !== undefined ? b.dataset.copy : ($('#' + b.dataset.copyEl) || {}).textContent || '';
+    const ok = await copyText(t), was = b.textContent; b.textContent = ok ? 'copié' : 'copie impossible'; setTimeout(() => { b.textContent = was; }, 1200);
+  });
+  const f = $('#findContacts'); if (f) f.onclick = async () => { f.disabled = true; const r = await api('/api/contacts', { slug: selected }); if (r.error) alert(r.error); await refresh(); await loadFiles(); };
+}
+
+async function renderTab() {
+  const el = $('#tabBody'); if (!el) return;
+  const run = own(S.runs, selected);
+  const art = cache.art && cache.art.files ? cache.art.files : [];
+  const app = cache.app && cache.app.files ? cache.app.files : [];
+  if (tab === 'annonce') {
+    const o = offerOf(selected) || {};
+    // Rôle visé, salaire estimé, compétences, angle, jury et score du radar ne sont plus montrés : devinés par le radar, souvent faux. L'annonce et le tri font foi.
+    const facts = [['Siège', o.hq]]
+      .filter(([, v]) => v).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
+    const offerJson = find(art, /^offer\.json$/);
+    let full = '';
+    if (offerJson && offerJson.text) { try { full = JSON.parse(offerJson.text).description_full || ''; } catch {} }
+    const p = cache.posting;
+    if (!p) loadPosting(false);
+    let runGuard = null;
+    if (offerJson && offerJson.text) { try { runGuard = JSON.parse(offerJson.text).posting_guard || null; } catch {} }
+    const g = (p && p.guard) || runGuard;
+    const guard = !g || g.verdict === 'ok' ? (g ? '<p class="note"><span class="dot ok"></span>Annonce lisible, rien d\'anormal (garde d\'annonce).</p>' : '')
+      : `<div class="banner ${g.verdict === 'expirée' ? 'bad' : ''}"><h3>Annonce ${esc(g.verdict)}</h3>${g.verdict === 'expirée' ? 'Un run s\'arrêterait à la lecture : rien ne serait adapté ni envoyé.' : 'Le run continue, mais vérifie l\'employeur avant tout go.'}<ul>${(g.reasons || []).map((r) => `<li>${esc(r)}</li>`).join('')}</ul></div>`;
+    const preview = !p || p.loading ? `<p class="note"><span class="dot live"></span>lecture de la page…</p>`
+      : `${guard}${p.error ? `<p class="note err">${esc(p.error)}</p>` : ''}${p.title ? `<p class="note"><b>${esc(p.title)}</b> · lue ${ago(p.fetchedAt)}</p>` : ''}${p.text ? `<pre>${esc(p.text)}</pre>` : ''}`;
+    put(el, `${facts ? `<dl class="facts">${facts}</dl>` : ''}
+      <p class="src">${esc(o.link || 'pas de lien dans le tableau')} <button class="btn quiet" id="reloadPosting" style="height:24px;padding:0 6px;font-size:12px">relire</button></p>
+      ${preview}
+      ${full ? `<p class="src">texte lu par le run (offer.json)</p><pre>${esc(full)}</pre>` : ''}`,
+      () => { const b = $('#reloadPosting'); if (b) b.onclick = () => loadPosting(true); });
+  } else if (tab === 'remarques') {
+    const rem = cache.rem && cache.rem.remarks ? cache.rem.remarks : [];
+    put(el, `<p class="note">Lues au prochain run sur cette offre, comme <code>/remarque</code> du bot (même fichier). Elles orientent le CV et la lettre, jamais l'envoi.</p>
+      ${rem.length ? rem.map((r) => `<div class="remark"><span class="at">${esc(when(r.at) || r.at)}</span>${esc(r.text)}</div>`).join('') : '<p class="note">Aucune remarque pour l\'instant.</p>'}
+      <textarea id="remark" placeholder="Ex. : insiste sur le tracking GTM, pas sur la QA ; le poste est à Paris, dis que je suis mobile."></textarea>
+      <div class="actions"><button class="btn primary" id="saveRemark">Enregistrer la remarque</button></div>`,
+      () => { $('#saveRemark').onclick = saveRemark; });
+  } else if (tab === 'suivi' && run) {
+    const cls = (s) => s.kind || '';
+    const pct = run.progress.total ? Math.round(100 * run.progress.done / run.progress.total) : 0;
+    put(el, `<p class="note">${run.progress.done} étape${run.progress.done > 1 ? 's' : ''} sur ${run.progress.total}${run.waitingLabel ? ` · en pause : ${esc(run.waitingLabel).toLowerCase()}` : run.progress.running.length ? ` · en cours : ${run.progress.running.map((i) => esc((run.steps.find((x) => x.id === i) || {}).label || i)).join(', ')}` : ''}</p>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <ul class="steps">${run.steps.map((s) => `<li class="${cls(s) === 'live' || cls(s) === 'warn' ? 'live' : ''}"><span class="dot ${cls(s)}"></span><span>${esc(s.label)}</span><span class="state">${esc(s.stateLabel || s.state)}</span></li>`).join('')}</ul>
+      ${cache.art && cache.art.error ? `<p class="note">${esc(cache.art.error)}</p>` : ''}
+      <p class="src" style="margin-top:12px">artefacts : ${esc(run.artifactsDir || '—')}</p>`);
+  } else if (tab === 'CV') put(el, pdfNote('cv') + show(find(art, /^application\/CV\.md$/) || find(app, /CV_.*\.md$|^CV\.md$/), 'Pas encore de CV : la rédaction est en cours ou n\'a pas abouti.'));
+  else if (tab === 'lettre') put(el, pdfNote('lettre') + show(find(art, /^application\/letter\.md$/) || find(app, /^Lettre_.*\.md$/), 'Pas encore de lettre : elle est écrite après le CV, vérifiée, puis jointe à l\'envoi quand le formulaire en prend une.'));
+  else if (tab === 'candidat') put(el, showJson(find(art, /^application\/candidate\.json$/) || find(app, /candidate\.json$/), 'Pas encore de fiche candidat (ce que le formulaire recevra).', 'Ce que le formulaire recevra : chaque fait vient du profil maître, jamais inventé.'));
+  else if (tab === 'contacts') put(el, contactsHtml(art, app), bindContacts);
+  else if (tab === 'envoi') {
+    const pre = find(art, /^submission\/prefill\.json$/);
+    const rest = [find(art, /^submission\/receipt\.json$/), find(art, /^submission\/verdict\.json$/), find(app, /submission_receipt\.json$/)].filter(Boolean);
+    put(el, (pre ? prefillView(pre) : '') + rest.map((f) => showJson(f, '', '')).join('') || '<p class="note">Pas encore de préremplissage ni de reçu : ils apparaissent quand le run atteint le formulaire.</p>');
+  }
+  else if (tab === 'dossier') put(el, app.length ? `<p class="src">${esc(cache.app.dir)}</p>` + app.map((f) => show(f)).join('') : `<p class="note">Le dossier final (applications/${esc(selected)}/) n'existe pas encore : il est copié quand le run se termine.</p>`);
+  else if (tab === 'journal' && run) {
+    const r = await api('/api/run/' + encodeURIComponent(run.id) + '/logs');
+    put(el, `<pre>${esc((r.lines || []).join('\n'))}</pre>`);
+  } else put(el, '');
+}
+
+/** `#<slug>` dans l'adresse ouvre l'offre directement (lien depuis Telegram, favori). */
+refresh().then(() => { const h = decodeURIComponent(location.hash.slice(1)); if (h && offerOf(h)) { if (view === 'remote' || view === 'signals') view = 'offres'; select(h); } loadRemote(true); loadSignals(true); });
+setInterval(async () => { await refresh(); if (view === 'remote') loadRemote(); else if (view === 'signals') loadSignals(); else if (selected && tab !== 'journal' && !(document.activeElement && document.activeElement.matches('#detail textarea'))) loadFiles(); }, 5000);
+</script>
+</body>
+</html>

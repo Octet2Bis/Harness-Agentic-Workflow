@@ -1,0 +1,22 @@
+# Issue « unconverged » : au deuxième tour (le plafond), une citation n'est toujours pas dans l'annonce ;
+# le juge est sauté, aucune décision.
+# attendu: ok=false status=unconverged decision=
+work:
+  summary: "stub: italien exigé"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+check:
+  ok: false
+  problems: ["languages[1] (it): the quote \"Italian native\" is not in the posting verbatim"]
+  summary: "stub: italien exigé"
+  decision: ""
+  reasons: []
+  notes: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 2
+fixture:
+  expect: completed
+  reached: [produce, verdict]
+  inputs:
+    offer: '{"company":"Smartness","title":"Sales Operations & Enablement Specialist","link":"https://pt.linkedin.com/jobs/view/4475957729","slug":"smartness"}'
+    criteria: '{"langues":["fr","en"],"salaire_min_annuel":35000}'
+exec-code: true

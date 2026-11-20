@@ -1,0 +1,76 @@
+# Issue « submit-unconverged » : le dossier est vérifié et rendu, la page de candidature est
+# confirmée, mais au deuxième et dernier tour permis le formulaire ne passe toujours pas ses
+# contrôles (un CAPTCHA arrête l'agent). La boucle `prepare` d'apply-submit rend la main au
+# plafond (compteur `tries`) et rien ne part : `submit__gate` est sauté, `submit__decide`
+# (réel) dit `unconverged`, `submit__verdict` (réel) rend ok: false, status: unconverged,
+# submitted: false.
+# Preuve de sûreté : plateforme non vérifiée en mode verified-only (le cran demanderait un
+# go), et aucun stub pour `submit__go` (approbation), `submit__submit` ni `submit__judge`
+# (agents) : atteindre `submit__go` mettrait le run en pause, atteindre un agent ferait
+# échouer le dry-run (« Missing reachable stub ») ; la fixture, qui attend `completed`,
+# prouve que personne n'est sollicité et que rien n'est cliqué (`submit__check_receipt` ne
+# tourne qu'après `submit__submit`).
+# `record` s'exécute pour de vrai (le dossier carrière /stub/career n'existe pas : il n'écrit
+# rien) et clôt l'offre en TAILORED, stage submit : dossier prêt, envoi non fait, jamais
+# APPLIED ni APPLY_UNPROVEN sans `submitted: true`.
+# Le dry-run ne joue qu'un tour de boucle : le stub `check_prefill` porte l'état du dernier tour.
+# attendu(submit__decide): proceed=false path=unconverged
+# attendu(submit__verdict): ok=false status=unconverged submitted=false findings=[]
+# attendu: ok=false stage=submit status=TAILORED status_written=false copied=[]
+load:
+  ok: true
+  summary: "stub: offer Acme — Growth Ops Manager loaded"
+  slug: acme
+  profile: "/stub/career/master_profile.md"
+  proofs: "/stub/career/skill_proof_graph.json"
+  remarks: ""
+  keywords: "n8n, GTM, HubSpot"
+  offer_json: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\",\"link\":\"https://jobs.lever.co/acme/123\",\"slug\":\"acme\"}"
+  link: "https://jobs.lever.co/acme/123"
+  board: "/stub/career/pending_gold_jobs.json"
+  claim_run: "listener-run-1"
+  self_claimed: false
+  answers: ""
+work:
+  summary: "stub: produced"
+  language: fr
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  coverage: { covered: [n8n, GTM, HubSpot], missing: [], ratio: 1 }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+  tries: 1
+tailor__judge: { approved: true, grade: "A", reason: "stub: honest and dense", findings: [] }
+write_letter:
+  summary: "stub: lettre, deux preuves du profil"
+  language: fr
+  evidence:
+    - { letter: "campagnes outbound", profile: "campagnes outbound" }
+    - { letter: "qualification des leads", profile: "qualification des leads" }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/letter.md" }
+check_letter: { ok: true, problems: [], summary: "stub: lettre, deux preuves du profil", language: fr, words: 274, lines: 38, traced: 2, evidence: [], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/letter.md" }, tries: 1 }
+letter__judge: { approved: true, grade: "A", reason: "stub: honnête et précise", findings: [] }
+render: { ok: true, pdf: "/stub/artifacts/application/CV.pdf", engine: msedge, pages: 1, problems: [], summary: "stub: CV.pdf rendered and checked", letter: "", letter_pages: 0 }
+prefill: { summary: "stub: stopped by a CAPTCHA before the form", blocked: true, blocker: "CAPTCHA on the apply page" }
+check_prefill:
+  ok: false
+  problems:
+    - "blocked before the form could be filled: CAPTCHA on the apply page"
+    - "no field was filled"
+  summary: "stub: stopped by a CAPTCHA before the form"
+  filled: 0
+  attached: false
+  submitted_early: false
+  tries: 2
+fixture:
+  expect: completed
+  reached: [load, tailor__verdict, letter__verdict, render, route, confirm_route, submit__prepare, submit__decide, submit__verdict, record]
+  inputs:
+    slug: acme
+    career_dir: "/stub/career"
+    mode: verified-only
+    verified_platforms: ""
+    claim_run: listener-run-1
+exec-code: true

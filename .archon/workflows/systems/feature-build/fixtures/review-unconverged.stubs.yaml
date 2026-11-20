@@ -1,0 +1,46 @@
+# Issue « review unconverged » : implémentation verte, lint réel vert (`lint_cmd: "true"`,
+# exec-code), mais au 3e et dernier tour permis de `review`, `review.json` ne passe toujours
+# pas ses contrôles. La boucle rend la main à son plafond (compteur `tries`), le juge est
+# sauté (pas de stub `review__judge` : l'atteindre ferait échouer le dry-run) et
+# `review__verdict` (réel) rend ok: false, status: unconverged, code_verdict: unknown ;
+# l'humain n'est pas sollicité (pas de stub `approve` ni `ship`) ; `done` (réel) clôt
+# ok: false, stage: review.
+# Le dry-run ne joue qu'un tour de boucle : le stub `check` porte l'état du dernier tour. Il
+# sert aux deux boucles (ids de corps de boucle non préfixés) : `implement__verdict` est donc
+# stubbé vert, sans quoi le vrai verdict d'`implement` lirait ce `check` rouge.
+# attendu: ok=false stage=review pr_url=null
+# attendu(lint): ok=true exit_code=0
+# attendu(review__verdict): ok=false status=unconverged code_verdict=unknown findings=[]
+plan:
+  summary: "stub: three tasks"
+  tasks: 3
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "plan.md" }
+work:
+  summary: "stub: one blocking defect in the empty-list path"
+  task_done: "stub task"
+  remaining: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "review.json" }
+check:
+  ok: false
+  problems: ["finding 1: src/b.ts is not in the diff (src/a.ts)"]
+  summary: "stub: one blocking defect in the empty-list path"
+  tests_passed: true
+  remaining: 0
+  code_verdict: fail
+  blocking: 1
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "review.json" }
+  tries: 3
+implement__verdict:
+  ok: true
+  status: verified
+  summary: "stub: all tasks done, suite green"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+fixture:
+  expect: completed
+  reached: [plan, lint, review__verdict, done]
+  inputs:
+    request: "stub request"
+    lint_cmd: "true"
+exec-code: true

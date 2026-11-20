@@ -1,0 +1,89 @@
+name: research-report
+description: |
+  Système « research-report » (porté du workflow v0 d'Antoine) : une question → bloc
+  `research` (sourcé, jugé) → bloc `report` (court, actionnable, jugé) → validation humaine.
+  Deux blocs dans un seul run (`include:`) ; le rapport ne part que si la recherche a rendu
+  `ok: true` ; un refus humain annule le run ; une approbation le clôt avec une issue typée.
+  L'humain n'intervient qu'à la fin.
+
+  Use when: a question deserves a short, sourced answer a reader can act on — "fais le
+  point et résume-moi", "note de synthèse sur", "qu'est-ce qu'on sait de".
+  NOT for: a decision between options (pipeline adds the design block) or code.
+
+inputs:
+  task:
+    required: true
+    description: The question, in the requester's words.
+  context:
+    default: ""
+    description: Optional material both blocks can rely on.
+
+returns: { node: done, outcome: ok }
+
+# Pas de verrou de dossier : aucun nœud n'écrit dans le checkout. Les livrables vont dans les
+# artefacts du run (`$ARTIFACTS_DIR` : research.md, report.md), l'état dans Archon ;
+# les agents `work` ont pour consigne de n'écrire nulle part ailleurs, les juges sont en
+# lecture seule, les scripts ne font que lire et rendre du JSON. Avec le verrou, ce run serait
+# annulé (« This worktree is in use ») dès qu'un autre run plus ancien est actif ou en pause
+# dans le dossier (un autre système en pause à sa revue humaine…).
+mutates_checkout: false
+
+nodes:
+  - id: research
+    include: research
+    with:
+      task: "$INPUTS.task"
+      context: "$INPUTS.context"
+      out: research.md
+
+  - id: report
+    include: report
+    depends_on: [research]
+    when: "$research.output.ok == true"
+    with:
+      task: "Report, for the requester, on this question and what the research established: $INPUTS.task"
+      context: "Research ($ARTIFACTS_DIR/research.md): $research.output.summary\nRequester material: $INPUTS.context"
+      out: report.md
+
+  - id: review
+    depends_on: [report]
+    when: "$report.output.ok == true"
+    wait:
+      attention: "Research-report finished for: $INPUTS.task\n\nResearch: $research.output.summary\n\nReport: $report.output.summary\n\nRead report.md in this run's artifacts directory (context.artifactsDir of this attention item), then approve to close or reject with what to change."
+      form: approval
+      labels:
+        system: research-report
+
+  - id: drop
+    depends_on: [review]
+    when: "$review.output.decision == 'reject'"
+    cancel: "Rejected at final review: $review.output.text"
+
+  # ── Issue typée, sauf refus humain (annulé) ou script `verdict` en échec ──
+  # Un verdict sauté (nœud du bloc en échec) se lit `null` ; un verdict en échec ferait
+  # échouer `done` : une liaison ne lit jamais un nœud en échec, même avec `if_skipped`.
+  # L'humain n'est jamais l'étape de `done` : deux blocs `ok` suivis d'autre chose qu'un
+  # « go » n'ont pas de chemin, et `done` échoue (« done: unexpected state ») plutôt que
+  # d'inventer une issue si ce YAML change.
+  - id: done
+    script: done
+    runtime: bun
+    depends_on: [research, report, review, drop]
+    trigger_rule: all_done
+    with:
+      research: { from: "$research.output", if_skipped: null }
+      report: { from: "$report.output", if_skipped: null }
+      review: { from: "$review.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        stage: { type: string, enum: [research, report, done] }
+        summary: { type: string }
+        deliverables:
+          type: object
+          properties:
+            research: { type: [string, 'null'] }
+            report: { type: [string, 'null'] }
+          required: [research, report]
+      required: [ok, stage, summary, deliverables]

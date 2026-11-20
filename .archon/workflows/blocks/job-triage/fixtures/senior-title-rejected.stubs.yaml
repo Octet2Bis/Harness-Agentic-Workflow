@@ -1,0 +1,31 @@
+# Issue « verified », intitulé senior : l'offre s'appelle « Senior Product Marketing Manager »,
+# `experience_max_annees` est donné (labels par défaut), le code trouve « senior » dans
+# l'intitulé et la règle écarte l'offre même sans années chiffrées dans l'annonce ; le juge
+# confirme ; le verdict (script réel) rend la décision et sa raison.
+# attendu: ok=true status=verified decision=ecartee
+work:
+  summary: "stub: Senior PMM, aucune durée chiffrée, anglais courant, 55-65 k€, 100 % télétravail"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: Senior PMM, aucune durée chiffrée, anglais courant, 55-65 k€, 100 % télétravail"
+  decision: ecartee
+  reasons:
+    - "Intitulé de poste senior (« senior », max 3 ans d'expérience) : « Senior Product Marketing Manager »"
+  notes:
+    - "Salaire : 55 000 € à 65 000 € brut par an"
+    - "Télétravail complet : « Fully remote, anywhere in France »"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: l'intitulé dit bien un poste senior"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Acme","title":"Senior Product Marketing Manager","link":"https://example.org/jobs/acme-senior-pmm","slug":"acme-senior-pmm"}'
+    criteria: '{"langues":["fr","en"],"salaire_min_annuel":35000,"experience_max_annees":3}'
+exec-code: true

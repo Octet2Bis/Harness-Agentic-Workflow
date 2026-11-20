@@ -1,0 +1,20 @@
+{
+  "_doc": "Écrit à la main d'après la documentation de la SmartRecruiters Posting API (GET api.smartrecruiters.com/v1/companies/{company}/postings/{id}), forme à confirmer sur une vraie réponse. Aucune entreprise réelle.",
+  "id": "744000045001001",
+  "uuid": "c9d8e7f6-0000-4000-8000-000000000001",
+  "name": "Demand Generation Lead",
+  "applyUrl": "https://jobs.smartrecruiters.com/Meridian/744000045001001-demand-generation-lead",
+  "postingUrl": "https://jobs.smartrecruiters.com/Meridian/744000045001001-demand-generation-lead",
+  "releasedDate": "2026-10-22T09:00:00.000Z",
+  "location": { "city": "Paris", "region": "Île-de-France", "country": "fr", "remote": true },
+  "department": { "id": "12", "label": "Marketing" },
+  "typeOfEmployment": { "id": "permanent", "label": "Full-time" },
+  "jobAd": {
+    "sections": {
+      "companyDescription": { "title": "Company Description", "text": "<p>Meridian builds analytics for logistics teams.</p>" },
+      "jobDescription": { "title": "Job Description", "text": "<p>Own inbound &amp; outbound demand generation for EMEA.</p>" },
+      "qualifications": { "title": "Qualifications", "text": "<ul><li>5+ years in B2B demand generation</li><li>HubSpot, Google Ads</li></ul>" },
+      "additionalInformation": { "title": "Additional Information", "text": "<p>Remote across France.</p>" }
+    }
+  }
+}

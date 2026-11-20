@@ -1,0 +1,53 @@
+# Issue « ship failed » : tout est vert, l'humain approuve, puis `ship` échoue (en vrai, une
+# erreur du modèle ; ici, faute de stub `ship`, le dry-run le fait échouer). `done` ne lie pas
+# `ship` mais son relais `ship_result`, sauté parce que son amont a échoué : `done` (réel)
+# reçoit `null` par `if_skipped`, tourne quand même (`all_done`) et rend ok: false,
+# stage: ship. Le run, lui, finit `failed` (un nœud a échoué ; à la reprise, Archon rejoue
+# `ship` et son relais, puis `done` si le relais a réussi). Archon asserte l'état (fail-node :
+# `ship` seul, pas `done`) et les nœuds atteints ; scripts/gates/fixture-outcomes.ts compare
+# la sortie réelle de `done` :
+# attendu(done): ok=false stage=ship pr_url=null
+plan:
+  summary: "stub: three tasks, model then endpoint then UI"
+  tasks: 3
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "plan.md" }
+work:
+  summary: "stub: produced"
+  task_done: "stub task"
+  remaining: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  tests_passed: true
+  remaining: 0
+  code_verdict: pass
+  blocking: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x" }
+  tries: 1
+implement__verdict:
+  ok: true
+  status: verified
+  summary: "stub: all tasks done, suite green"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+review__judge: { approved: true, reason: "stub: nothing missed", findings: [] }
+review__verdict:
+  ok: true
+  status: verified
+  code_verdict: pass
+  summary: "stub: the diff matches the plan"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "review.json" }
+approve: { decision: approve, text: "" }
+fixture:
+  expect: failed
+  fail-node: ship
+  reached: [plan, plan_result, implement__verdict, lint, review__verdict, approve, done]
+  inputs:
+    request: "stub request"
+    lint_cmd: "true"
+exec-code: true

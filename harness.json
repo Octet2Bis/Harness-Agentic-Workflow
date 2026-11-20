@@ -1,0 +1,559 @@
+{
+  "description": "Contrat machine du harness. Généré par scripts/gates/build-harness.ts — ne pas éditer.",
+  "runtime": [
+    "bun >= 1.2.21",
+    "archon (CLI)"
+  ],
+  "entrypoints": {
+    "humain": "AGENTS.md",
+    "regles": "RULES.md",
+    "procedures": "MECHANICS.md",
+    "posture": "POSTURE.md",
+    "cas_d_usage": "use-cases/README.md",
+    "registre": ".archon/workflows/blocks/REGISTRY.md"
+  },
+  "gates": [
+    "bun scripts/gates/test-gates-can-fail.ts",
+    "bun scripts/gates/validate.ts",
+    "bun scripts/gates/build-harness.ts --check",
+    "bun test scripts",
+    "scripts/verify-block.sh --all"
+  ],
+  "blocks": [
+    {
+      "id": "aeo-asset",
+      "purpose": "Bloc « aeo-asset » : écrit un actif de contenu du pôle 02 Acquisition & AEO de Master Plan — un article ou une page qui répond à une intention de recherche et que les moteurs de réponse (Perplexity, ChatGPT, Claude) peuvent citer : réponse directe en tête, sections H2 nettes, FAQ, et son bloc JSON-LD Schema.org (type principal + FAQPage). Un agent rédige ; un script applique ce que `schema_validator.py` et la règle du pôle exigeaient (JSON-LD valide, @context schema.org, champs obligatoires par @type, FAQPage ≥ 3 Q/R, hiérarchie des titres, intention restituée, pas de phrase creuse) ; un juge en contexte vierge vérifie que la page répond à l'intention, sans affirmation hors positionnement.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run aeo-asset"
+    },
+    {
+      "id": "apply-submit",
+      "purpose": "Bloc « apply-submit » : dépose une candidature préparée (CV PDF, message, fiche candidat) sur la page de candidature de l'employeur, avec un navigateur. Deux agents séparés par un cran de sécurité : `prefill` remplit tout et s'arrête AVANT le bouton d'envoi, un script vérifie le formulaire rempli (champs, pièce jointe, capture) ; selon le mode, un humain donne son « go » ; `submit` clique une fois et relève la confirmation ; un script vérifie le reçu ; un juge en contexte vierge confirme, sur les captures, que la candidature est bien partie avec les bonnes données. Rend un verdict typé (`ok`, `status` : verified | rejected | unproven | unconverged | refused | superseded) et dit si l'envoi a eu lieu même quand il n'est pas prouvé (`submitted`) ; un refus au go est une issue (`refused`), pas une annulation. Juste avant le clic, une garde relit le tableau de l'appelant : une offre qui n'est plus tenue par sa prise n'est pas envoyée (`superseded`). Un script dit d'abord où s'ouvre le formulaire (iframe Greenhouse, `/apply` Lever, Workday rendu à l'humain) et sur quels hôtes saisir et cliquer ; une page ailleurs, un sosie ou hors https rougit le contrôle. Les réponses libres ne viennent que du profil maître, des faits de la fiche candidat ou des réponses validées par Antoine (`reponses_formulaires.md`) ; une question sans réponse reste vide, « à remplir par Antoine » au go. Une lettre de motivation (`letter`), si elle est donnée, est jointe ou collée là où le formulaire l'attend.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": true,
+      "fixtures": [
+        "approved-submitted",
+        "auto-submitted",
+        "early-submitted",
+        "letter-attached",
+        "no-session",
+        "refused",
+        "resumed-after-click",
+        "superseded",
+        "superseded-after-click",
+        "unconverged",
+        "unproven"
+      ],
+      "run": "archon workflow run apply-submit"
+    },
+    {
+      "id": "company-dossier",
+      "purpose": "Bloc « company-dossier » : pour une entreprise validée full remote, un dossier de deux pages qui prépare la prospection (Activité, Concurrents, Signaux récents, Recrutement, Besoins probables, Contact, Sources). Un agent cherche sur le web ; un script vérifie que chaque affirmation cite une source web listée (≥ 4), ≥ 3 concurrents nommés, des signaux datés de moins de 12 mois, le pays (code ISO) et un canal compatible : pas d'e-mail froid en DE / AT, jamais d'adresse devinée. Un juge en contexte vierge rouvre les sources et refuse toute affirmation qu'elles ne portent pas. Rend un verdict typé (`ok`) ; rien n'est envoyé.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run company-dossier"
+    },
+    {
+      "id": "content-base",
+      "purpose": "Bloc « content-base » : la base de contenu d'un projet du Studio, `content.json` : la voix, puis chaque texte de l'interface ou des pages par clé (`home.hero.title`) et par langue, avec sa longueur maximale. Le code vérifie les clés (pointées, uniques), que chaque langue a chaque texte, les longueurs, l'absence de brouillon, de texte non traduit et de chiffre absent du matériau source (aucun chiffre inventé) ; un juge en contexte vierge vérifie la voix, le naturel de chaque langue et que rien ne promet plus que la source. Rend un verdict typé.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run content-base"
+    },
+    {
+      "id": "cover-letter",
+      "purpose": "Bloc « cover-letter » : à partir d'une offre validée, du profil maître et, s'il existe, du CV sur mesure, écrit la lettre de motivation (letter.md) et son rendu imprimable d'une page A4 (letter.html, mis en page par du code) dans les artefacts du run. Un agent rédige ; un script vérifie ce que le code peut établir — langue de l'annonce (français par défaut), 250 à 300 mots, une page, l'entreprise et le poste nommés, au moins deux preuves citées mot pour mot du profil, aucun chiffre, nombre ou durée sans source, pas de formule creuse ni de tirets d'incise en série, aucun marqueur à compléter, l'e-mail du profil, la signature au nom du candidat — et renvoie l'agent au travail tant que ça ne passe pas ; puis un juge en contexte vierge (Reviewer, recruteur exigeant) note la lettre et n'approuve qu'à partir de A-. Rend un verdict typé (`ok`) ; si les contrôles sont encore rouges au troisième tour, le Reviewer est sauté et le verdict dit `unconverged`. Le PDF se rend après le bloc.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run cover-letter"
+    },
+    {
+      "id": "cv-tailor",
+      "purpose": "Bloc « cv-tailor » : à partir d'une offre validée et du profil maître, produit un dossier de candidature sur mesure (CV d'une page, message d'accroche, fiche candidat) dans les artefacts du run. Un agent rédige (Drafter) ; un script vérifie ce que le code peut établir — mots-clés de l'offre couverts, aucun chiffre ni aucune portée (B2B/B2C, P&L, budget, management, clients nommés) que le profil ne porte pas, pas de phrase creuse ni de tirets longs à la chaîne, une page, contact du profil, message qui nomme l'entreprise et finit par une demande — et renvoie l'agent au travail tant que ça ne passe pas ; puis un juge en contexte vierge (Reviewer, recruteur exigeant) note le dossier et n'approuve qu'à partir de A-. Rend un verdict typé (`ok`) ; si les contrôles sont encore rouges au troisième tour, le Reviewer est sauté et le verdict dit `unconverged`.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run cv-tailor"
+    },
+    {
+      "id": "decision-makers",
+      "purpose": "Bloc « decision-makers » : pour une candidature (l'offre et son annonce, le profil maître, le CV et le pitch s'ils existent déjà), trouve sur des pages publiques une à quatre personnes à qui écrire (le manager de l'équipe, le responsable de la fonction, la personne du recrutement, un fondateur en dernier recours dans une petite structure), dit pourquoi chacune, et rédige la note de connexion LinkedIn (300 caractères au plus) et un court e-mail, dans la langue de l'annonce, signés du candidat, dans les artefacts du run (`decideurs.json`). Un agent cherche sur le web public (site de l'entreprise, communiqués, presse, pages de conférences, fiches d'entreprise publiques), jamais sur LinkedIn ni chez un courtier de données personnelles ; un script vérifie ce que le code peut établir — forme du fichier, entreprise de l'offre, chaque personne avec sa source https listée et une citation de la page qui porte son nom, aucune adresse e-mail ni téléphone nulle part, note et e-mail à leur longueur, saluant la personne, nommant l'entreprise, sans spam ni phrase creuse, dans la langue de l'annonce, nombres tirés du profil ou de l'annonce — et renvoie l'agent au travail tant que ça ne passe pas ; puis un juge en contexte vierge rouvre chaque source, vérifie que la personne et son rôle y figurent, juge la pertinence pour ce poste, l'honnêteté des messages et le ton, et n'approuve qu'à partir de A-. Rend un verdict typé (`ok`), aussi écrit dans `decideurs.verdict.json` ; si les contrôles sont encore rouges au troisième tour, le juge est sauté et le verdict dit `unconverged`. Rien n'est envoyé : le cockpit montre la fiche, Antoine cherche l'adresse et envoie lui-même.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "no-one-found",
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run decision-makers"
+    },
+    {
+      "id": "design",
+      "purpose": "Bloc « design » : transforme un brief (et une recherche, si on lui en donne une) en design décidé (Objectif, Options, Décision, Plan, Risques) écrit dans les artefacts du run. Un agent conçoit, un script vérifie qu'il y a au moins deux options et un plan d'au moins trois étapes et le renvoie au travail tant que ça ne passe pas, puis un juge en contexte vierge vérifie que la décision tient et que le plan est exécutable. Rend un verdict typé (`ok`).",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run design"
+    },
+    {
+      "id": "design-system",
+      "purpose": "Bloc « design-system » : le design system d'un projet du Studio, en deux fichiers : `tokens.json` (couleurs claires et sombres par rôle, polices, échelle typographique, espacements, rayons, composants avec leurs jetons et leurs états) et `design-system.md` (Intention, Couleurs, Typographie, Espacements, Composants, Règles d'usage). Le code mesure les contrastes WCAG AA dans les deux thèmes, la régularité des échelles, la grille, que chaque composant n'utilise que des jetons définis et garde un état focus, et que la doc décrit chaque composant sans couleur brute ; un juge en contexte vierge vérifie que la direction sert le brief. Rend un verdict typé.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run design-system"
+    },
+    {
+      "id": "implement",
+      "purpose": "Bloc « implement » : réalise un plan dans le dépôt, une tâche par tour, jusqu'à ce que la suite de tests du projet passe et que le journal ne liste plus rien à faire. L'agent code ; un script lance la commande de tests du projet (elle seule fait foi) et lit le journal `## Fait` / `## Reste` ; tant que les tests échouent ou qu'il reste une tâche, l'agent repart en contexte vierge du journal et des problèmes. Pas de juge ici : les tests sont déterministes, et le bloc `review` relit le diff juste après. Seul bloc qui modifie le dépôt : à lancer dans un worktree (le défaut d'`archon workflow run`).",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": false,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run implement"
+    },
+    {
+      "id": "interview-prep",
+      "purpose": "Bloc « interview-prep » : à partir d'une candidature (l'offre et son annonce, le profil maître, le CV et le pitch envoyés quand ils existent, des notes de recherche facultatives) et d'une étape d'entretien (rh, manager, technique ou final), écrit la préparation de cet entretien, en français, dans les artefacts du run (`interview-prep.md`) : questions probables pour l'étape, histoires STAR tirées du profil seul (chacune cite la ligne ou la section du profil d'où elle vient), note de cohérence avec ce que le CV et le pitch affirment déjà, questions à poser, script de simulation (questions seulement), points à clarifier. Un agent rédige, sans réseau ; un script vérifie ce que le code peut établir — sections, nombre d'histoires et leurs quatre parties, citations qui existent vraiment dans le profil, extraits du CV et du pitch cités mot pour mot, aucun chiffre sans source, pas de phrase creuse, mots-clés de l'offre — et renvoie l'agent au travail tant que ça ne passe pas ; puis un juge en contexte vierge note la pertinence pour l'annonce et l'étape, l'honnêteté et l'utilité, et n'approuve qu'à partir de A-. Rend un verdict typé (`ok`) ; si les contrôles sont encore rouges au troisième tour, le juge est sauté et le verdict dit `unconverged`. Rien ne sort du dépôt : le document reste dans les artefacts du run.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run interview-prep"
+    },
+    {
+      "id": "job-triage",
+      "purpose": "Bloc « job-triage » : trie une offre captée par le radar contre les critères du candidat (`criteres.json` : langues parlées, salaire annuel minimum, salaire inconnu, mode de travail, expérience maximale exigible et intitulés senior exclus, critères libres) et, quand il est donné, contre le profil du candidat (`master_profile.md`). Un agent moyen (Sonnet, palier `medium`) lit l'annonce complète et en extrait, avec une citation mot pour mot pour chaque fait, les langues demandées (exigées ou souhaitées), le salaire (montant, devise, période), le mode de travail (télétravail complet, hybride, sur site, non précisé), l'expérience exigée (années, label de séniorité), les critères libres et les trois exigences centrales du poste, chacune étayée, en partie ou pas du tout par le profil (citation du profil) ; un script vérifie chaque citation contre le texte de l'annonce ou du profil, balaie le texte pour rattraper une langue, un montant, une mention « hybrid » / « sur site » / des mois au bureau pendant l'intégration ou un « N ans d'expérience » oubliés, puis décide seul (`decideTriage`) : écartée (annonce rédigée ou langue exigée hors des langues parlées, salaire annuel maximal sous le seuil, poste hybride ou sur site quand `remote` vaut `full`, le défaut, années d'expérience exigées au-delà d'`experience_max_annees`, intitulé senior, offre publiée il y a plus de `offre_age_max_jours` jours, 7 par défaut, date du tableau, deux exigences centrales ou plus absentes du profil), à vérifier (salaire absent, mode de travail non précisé sauf offre d'une plateforme 100 % télétravail sans marqueur hybride ou sur site, « profil senior » dans le corps, annonce lue en partie, critère libre non rempli) ou retenue. Un juge en contexte vierge (Sonnet, palier `medium`) relit l'annonce, le profil et l'extraction : une exigence manquée, une langue « souhaitée » lue comme exigée, un salaire mensuel lu comme annuel, un poste de bureau lu comme télétravail, sept ans d'expérience lus comme deux, une exigence secondaire prise pour le cœur du poste, un appui du profil inventé ou ignoré le font refuser ; il ne décide pas l'issue. Rend un verdict typé (`ok`) avec la décision et ses raisons ; contrôles encore rouges au deuxième tour : `unconverged`, le juge est sauté. Coût : 2 appels de modèle (un tour + juge), 3 au plus.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "core-fit-retained",
+        "core-misfit-rejected",
+        "experience-rejected",
+        "experience-within-retained",
+        "hybrid-rejected",
+        "outcome-contract",
+        "rejected",
+        "remote-board-retained",
+        "remote-retained",
+        "senior-title-rejected",
+        "too-old-rejected",
+        "unconverged",
+        "verified",
+        "work-mode-unstated"
+      ],
+      "run": "archon workflow run job-triage"
+    },
+    {
+      "id": "landing-page",
+      "purpose": "Bloc « landing-page » : produit la page de conversion du pôle 03 Expérimentation & CRO de Master Plan — un seul fichier HTML autonome, une promesse = l'intention, un CTA primaire, le DataLayer et l'événement `click_cta` posés avant la mise en ligne, les tokens CSS et la règle anti-slop visuel respectés. Un agent écrit la page ; un script vérifie ce que la règle du pôle et `tracking_validator.py` exigeaient (DataLayer, `click_cta`, CTA unique, méta, H1, tokens, pas de flou décoratif, pas de script externe hors GTM, taille) ; un juge en contexte vierge applique la grille CRO (clarté, friction, anxiété, motivation) et la checklist visuelle. Rend un verdict typé.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run landing-page"
+    },
+    {
+      "id": "offer-angle",
+      "purpose": "Bloc « offer-angle » : à partir d'un dossier d'entreprise vérifié (company-dossier) et du profil du candidat, une proposition : 1 ou 2 axes d'intervention, chacun reliant un besoin cité mot pour mot du dossier à une preuve citée mot pour mot du profil et à une formule que le candidat accepte (CDI, freelance, portage) ; un mini-diagnostic d'une page (150 à 350 mots) ; une accroche (≥ 15 mots, ≤ 280 caractères, note LinkedIn comprise) qui finit sur une seule question. Un script vérifie les citations et la forme ; un juge en contexte vierge vérifie que l'angle répond au besoin et que rien n'est promis que le profil ne prouve. Rend un verdict typé (`ok`).",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run offer-angle"
+    },
+    {
+      "id": "outbound-sequence",
+      "purpose": "Bloc « outbound-sequence » : écrit une séquence de cold e-mails B2B (pôle 04 Outbound & CRM de Master Plan) — 3 ou 4 touches courtes, pair-à-pair, chacune avec un angle neuf, une seule demande, un break-up courtois à la fin — pour un ICP et un signal donnés. Un agent rédige ; un script applique les règles que `email_linter.py` et `ai_slop_linter.py` portaient (mots déclencheurs de spam, ≤ 120 mots, variables non résolues, ponctuation agressive, un CTA, angles distincts, phrases creuses) et renvoie l'agent au travail tant que ça ne passe pas ; un juge en contexte vierge vérifie la valeur et la cohérence avec l'ICP. Le bloc n'envoie rien : la séquence vérifiée part vers Lemlist/Brevo après la vérification humaine du système appelant.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run outbound-sequence"
+    },
+    {
+      "id": "report",
+      "purpose": "Bloc « report » : transforme les résultats d'autres blocs en un rapport lisible en cinq minutes (Synthèse, Résultats, Recommandations, Prochaines étapes) écrit dans les artefacts du run. Un agent rédige, un script vérifie la structure et le renvoie au travail tant que ça ne passe pas, puis un juge en contexte vierge vérifie que le rapport est fidèle au matériau. Rend un verdict typé (`ok`).",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run report"
+    },
+    {
+      "id": "research",
+      "purpose": "Bloc « research » : répond à une question de recherche par un rapport sourcé (Résumé, Constats, Sources, Limites) écrit dans les artefacts du run. Un agent cherche, un script vérifie la structure et le nombre de sources et le renvoie au travail tant que ça ne passe pas, puis un juge en contexte vierge vérifie que les preuves portent les conclusions. Rend un verdict typé (`ok`).",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run research"
+    },
+    {
+      "id": "review",
+      "purpose": "Bloc « review » : relit un diff contre son plan et rend un verdict lisible par du code (`review.json` : pass | fail + constats), sans rien corriger. L'agent relit et écrit le diff et son verdict dans les artefacts ; un script vérifie la forme du verdict et sa cohérence (un « fail » a un constat bloquant, chaque constat pointe un fichier du diff) ; un juge en contexte vierge, lecture seule, vérifie que les constats bloquants sont réels et qu'aucun défaut évident n'est omis. Le verdict du bloc dit si la relecture est fiable ; `code_verdict` dit ce qu'elle a conclu du code.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run review"
+    },
+    {
+      "id": "studio-brief",
+      "purpose": "Bloc « studio-brief » : la porte 0 d'un projet du Studio. Écrit `BRIEF.md` (Problème, Cible, Contexte d'usage, Hors-champ, Appétit, Plateforme, Critères de réussite) à partir de la demande et du cadrage. Le code vérifie les sections, la longueur (lu en deux minutes), au moins trois choses que le projet ne fera pas, au moins deux critères vérifiables, et une plateforme compatible avec le type calibré ; un juge en contexte vierge vérifie que le problème est celui du demandeur et que rien n'est inventé. Rend un verdict typé.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run studio-brief"
+    },
+    {
+      "id": "studio-calibrate",
+      "purpose": "Bloc « studio-calibrate » : la porte d'entrée du Studio (UC-14). Lit une demande de projet de design ou de dev et la calibre : projet purement graphique, site, ou app. Écrit `calibrage.json` (type, citations de la demande qui le décident, livrables, plateformes, fichiers déjà faits, route). Le code vérifie que le type est l'un des trois, que chaque citation est mot pour mot dans la demande, que les plateformes vont avec le type, que les fichiers cités existent et que la route est celle que le type impose ; un juge en contexte vierge vérifie que le type est le bon. Rend un verdict typé.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run studio-calibrate"
+    },
+    {
+      "id": "veille-fiche",
+      "purpose": "Bloc « veille-fiche » : transforme une ressource (reel Instagram, lien, note, PDF) en une fiche de veille datée et sourcée au format du pôle 03 Recherche & veille de Master Plan (De quoi s'agit-il, Problème, Impact, Recommandation immédiate, Sources, Limites). Il remplace le gabarit automatique du bot Telegram « research » (qui n'avait lu que le titre de la ressource) : l'agent lit le contenu réel (transcription, page), un script vérifie la forme (date valide, source conservée, catégorie connue, sources avec URL et date, recommandation qui nomme un pilier, aucune phrase de gabarit), un juge en contexte vierge vérifie que la fiche repose sur le contenu et pas sur le titre. Rend un verdict typé.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "outcome-contract",
+        "rejected",
+        "unconverged",
+        "verified"
+      ],
+      "run": "archon workflow run veille-fiche"
+    }
+  ],
+  "systems": [
+    {
+      "id": "board-listener",
+      "purpose": "Système « tableau de tâches » : le listener du reel. Chaque run prend la plus ancienne tâche NEW du tableau (documents d'état `board/<id>`, voir scripts/board.ts), la marque PICKED UP par une écriture conditionnelle (deux runs ne prennent jamais la même), lance le système demandé par la carte (pipeline, research-report, feature-build ou design-variants) comme sous-run gouverné (son propre run, ses artefacts, sa pause humaine), puis marque la tâche DONE ou FAILED avec l'issue — FAILED aussi quand le sous-run échoue ou est annulé (refus humain). Rien à prendre : le run finit « idle ». Démarré par un déclencheur planifié (voir triggers/) ou à la main.",
+      "status": "VERIFIED",
+      "check_scripts": 6,
+      "judge": true,
+      "human_gate": true,
+      "fixtures": [
+        "design-variants-none",
+        "done",
+        "feature-build",
+        "idle",
+        "released",
+        "research-report",
+        "subrun-failed",
+        "unknown-workflow",
+        "waiting"
+      ],
+      "run": "archon workflow run board-listener"
+    },
+    {
+      "id": "career-apply",
+      "purpose": "Système « career-apply » : une offre validée par le candidat (statut VALIDATED dans pending_gold_jobs.json) devient une candidature déposée sur la bonne plateforme, sans autre intervention humaine que le « go » avant le premier envoi sur une plateforme non encore vérifiée. Enchaîne : lecture de l'offre et de l'annonce → bloc cv-tailor (CV, pitch, fiche candidat, vérifiés) → bloc cover-letter (lettre, jamais bloquante) → PDF → résolution de la page de candidature → bloc apply-submit (formulaire, go, clic, reçu, juge) → écriture du résultat dans Master Plan (applications/<slug>/, statut, journal). Chaque étape ne démarre que si la précédente a rendu ok. `load` prend d'abord l'offre : lancé par career-listener, il vérifie qu'elle est encore à sa prise ; lancé à la main, il la passe APPLYING pour ce run (refus si un autre run la tient, si elle est déjà envoyée, ou si une autre candidature est en vol). Un dossier que le Reviewer refuse (contrôles verts) a droit à une ronde de révision : ses constats deviennent les remarques d'un second passage du bloc (`tailor2`), avec un Reviewer neuf ; un second refus arrête le run comme avant. La lettre a la même ronde (`revise_letter_brief` → `letter2` → `letter_pick`) ; encore refusée, elle n'arrête rien : le CV part seul. Juste avant le clic, apply-submit relit le tableau et n'envoie que si l'offre est encore à cette prise. `record` écrit une issue typée quand chaque étape qu'il lit a terminé : un bloc pas convergé, refusé au go ou sans verdict (erreur dans le bloc) y arrive comme tel. Si une étape hors bloc échoue (erreur de modèle ou de script : `resolve`, qui fait échouer `confirm_route`, ou `load`, `render`), `record` ne tourne pas, le run finit `failed`, et le filet clôt l'offre : `settle` d'ici pour un run lancé à la main, career-listener (son `settle`) sinon ; APPLY_UNPROVEN si `submission/` montre un clic possible, APPLY_FAILED sinon.",
+      "status": "VERIFIED",
+      "check_scripts": 3,
+      "judge": true,
+      "human_gate": true,
+      "fixtures": [
+        "aggregator-resolved",
+        "applied",
+        "cv-rejected",
+        "cv-rejected-twice",
+        "cv-unconverged",
+        "letter-rejected-twice",
+        "letter-revised",
+        "manual-run-failed",
+        "posting-expired",
+        "submit-crashed-after-go",
+        "submit-no-verdict",
+        "submit-refused",
+        "submit-superseded",
+        "submit-unconverged"
+      ],
+      "run": "archon workflow run career-apply"
+    },
+    {
+      "id": "career-listener",
+      "purpose": "Système « career-listener » : l'écouteur du cas d'usage carrière. À chaque réveil (timer ou appel), clôt les prises APPLYING périmées (APPLY_FAILED, ou APPLY_UNPROVEN si leur submission/ montre un clic possible ; jamais remises en file), puis, si aucune autre candidature n'est en vol, prend l'offre VALIDATED la moins tentée puis la plus ancienne de pending_gold_jobs.json, la passe APPLYING et lance un sous-run career-apply dessus ; la clôture relaie le statut écrit par career-apply (ou l'écrit à sa place s'il n'a pas pu, tant que l'offre est APPLYING par ce run), et un dernier nœud clôt l'offre si le sous-run a échoué ou a été annulé sans rien écrire (le statut sauvé par la clôture, sinon APPLY_UNPROVEN s'il y a trace d'un clic, sinon APPLY_FAILED). Toute écriture du tableau passe par son verrou. Une offre par tour : le timer suivant prend la suivante. Rien à faire : `idle`, sans écriture.",
+      "status": "VERIFIED",
+      "check_scripts": 3,
+      "judge": true,
+      "human_gate": true,
+      "fixtures": [
+        "applied",
+        "apply-failed",
+        "idle",
+        "run-failed",
+        "submit-unconverged"
+      ],
+      "run": "archon workflow run career-listener"
+    },
+    {
+      "id": "career-radar",
+      "purpose": "Système « career-radar » : le radar d'offres côté PC, sans modèle. Interroge les sources d'offres du candidat (`job_sources.json` de son dossier carrière, sinon le fichier par défaut du système), crible les offres brutes de façon déterministe (doublons, offres déjà au tableau, jury de Master Plan : langue, télétravail, séniorité, score ≥ 75) et ajoute les nouvelles au tableau `pending_gold_jobs.json` en PENDING_VALIDATION, sous le verrou du tableau, sans toucher aux lignes existantes. Le cockpit affiche `last_radar_report.json` et les offres ; `career-triage` les trie ensuite. Le radar de la VM continue en parallèle : ses offres arrivent par la fusion PC ⇄ VM existante.",
+      "status": "VERIFIED",
+      "check_scripts": 0,
+      "judge": false,
+      "human_gate": false,
+      "fixtures": [
+        "added",
+        "all-rejected",
+        "collect-failed",
+        "idle"
+      ],
+      "run": "archon workflow run career-radar"
+    },
+    {
+      "id": "career-triage",
+      "purpose": "Système « career-triage » : trie une offre captée par le radar (pending_gold_jobs.json, PENDING_VALIDATION ou VALIDATED) contre les critères du candidat (`criteres.json` de son dossier carrière) et écrit la décision dans `triage/<clé>.json`, que le cockpit affiche. Enchaîne : choix de l'offre (celle demandée, sinon la plus récente qui attend son tri) et lecture de l'annonce (la page, sinon la description complète que la source a donnée au radar ; rien de lisible : « Annonce illisible », bloc sauté ; offre plus vieille que `offre_age_max_jours` : écartée par le code, ni page lue ni modèle appelé) et du profil du candidat (`master_profile.md`) → bloc job-triage (Haiku extrait langues, salaire, mode de travail, expérience et les trois exigences centrales du poste avec leur appui dans le profil, citations à l'appui, le code vérifie et décide, un juge Sonnet en contexte vierge relit) → issue (seul un bloc vérifié, ou le pré-tri du code, écarte ou retient ; sinon « à vérifier », raison à l'appui) → écriture. Aucun appel Opus. Ne modifie jamais le tableau (partagé avec la VM).",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": false,
+      "fixtures": [
+        "idle",
+        "judge-refused",
+        "rejected-offer",
+        "rules-engine",
+        "too-old-offer",
+        "unconverged",
+        "unreadable"
+      ],
+      "run": "archon workflow run career-triage"
+    },
+    {
+      "id": "company-outreach",
+      "purpose": "Système « company-outreach » : une entreprise validée full remote → bloc `company-dossier` (recherche sourcée : activité, concurrents, signaux, besoins, contact, canal) → bloc `offer-angle` (axes d'intervention adossés au profil, CDI / freelance / portage, mini-diagnostic, accroche qui sert aussi de note LinkedIn) → bloc `outbound-sequence` (3 e-mails, mentions de prospection vérifiées : source de l'adresse, « stop ») → validation humaine. Rien n'est envoyé : après le go, l'e-mail part de la boîte du candidat et LinkedIn à la main. Un bloc qui ne rend pas `ok` arrête la chaîne ; un refus humain annule le run.",
+      "status": "VERIFIED",
+      "check_scripts": 3,
+      "judge": true,
+      "human_gate": true,
+      "fixtures": [
+        "angle-rejected",
+        "approved",
+        "dossier-no-verdict",
+        "dossier-unconverged",
+        "rejected-by-human",
+        "sequence-rejected"
+      ],
+      "run": "archon workflow run company-outreach"
+    },
+    {
+      "id": "design-variants",
+      "purpose": "Système « design-variants » (porté du workflow v0 d'Antoine) : un brief → trois variantes de page en parallèle (bloc `landing-page`, trois angles) → choix humain. Chaque variante passe seule ses contrôles et son juge ; l'humain compare celles qui ont survécu et choisit la retenue parmi elles (`select`), ou aucune. Sans survivante, pas de pause : issue `ok: false`. v0 lançait une variante par modèle ; Archon fixe le modèle par nœud, pas par entrée : ici les variantes diffèrent par l'angle. `--model medium=<fournisseur/modèle>` sur `archon workflow run` ne change que les agents qui écrivent (le juge de landing-page reste `large`), et trois runs donnent trois choix séparés, pas la comparaison côte à côte du v0.",
+      "status": "VERIFIED",
+      "check_scripts": 1,
+      "judge": true,
+      "human_gate": true,
+      "fixtures": [
+        "all-unconverged",
+        "chosen",
+        "no-survivor",
+        "none-kept",
+        "one-variant-rejected",
+        "variant-without-verdict"
+      ],
+      "run": "archon workflow run design-variants"
+    },
+    {
+      "id": "feature-build",
+      "purpose": "Système « feature-build » (porté du workflow v0 d'Antoine) : une demande → plan (agent) → bloc `implement` (une tâche par tour jusqu'aux tests verts et au journal vidé) → lint → bloc `review` (verdict lu par du code, jugé en contexte vierge) → validation humaine du diff et de la relecture → PR en brouillon. Le seul système qui modifie un dépôt : à lancer dans un worktree (le défaut d'`archon workflow run`). Rien ne sort du dépôt avant le « go » : `ship` ne tourne qu'après l'approbation, et ouvre un brouillon, jamais une fusion.",
+      "status": "VERIFIED",
+      "check_scripts": 2,
+      "judge": true,
+      "human_gate": true,
+      "fixtures": [
+        "lint-failed",
+        "plan-failed",
+        "rejected-by-human",
+        "review-refused",
+        "review-unconverged",
+        "ship-failed",
+        "shipped",
+        "tests-never-green"
+      ],
+      "run": "archon workflow run feature-build"
+    },
+    {
+      "id": "pipeline",
+      "purpose": "Système « pipeline » : enchaîne les blocs research → design → report sur une tâche, dans un seul run (composition par `include:`), puis s'arrête pour la vérification finale par un humain. Chaque bloc ne démarre que si le précédent a rendu `ok: true` ; un refus humain annule le run ; une approbation le clôt avec une issue typée. L'humain n'intervient qu'à la fin.",
+      "status": "VERIFIED",
+      "check_scripts": 3,
+      "judge": true,
+      "human_gate": true,
+      "fixtures": [
+        "approved",
+        "design-rejected",
+        "rejected-by-human",
+        "report-rejected",
+        "research-no-verdict",
+        "research-rejected",
+        "research-unconverged"
+      ],
+      "run": "archon workflow run pipeline"
+    },
+    {
+      "id": "research-report",
+      "purpose": "Système « research-report » (porté du workflow v0 d'Antoine) : une question → bloc `research` (sourcé, jugé) → bloc `report` (court, actionnable, jugé) → validation humaine. Deux blocs dans un seul run (`include:`) ; le rapport ne part que si la recherche a rendu `ok: true` ; un refus humain annule le run ; une approbation le clôt avec une issue typée. L'humain n'intervient qu'à la fin.",
+      "status": "VERIFIED",
+      "check_scripts": 2,
+      "judge": true,
+      "human_gate": true,
+      "fixtures": [
+        "approved",
+        "rejected-by-human",
+        "report-rejected",
+        "research-no-verdict",
+        "research-rejected",
+        "research-unconverged"
+      ],
+      "run": "archon workflow run research-report"
+    },
+    {
+      "id": "studio",
+      "purpose": "Système « studio » (UC-14) : la porte d'entrée de tout projet de design ou de dev. Calibre la demande (graphique, site ou app), puis enchaîne le tronc commun dans un seul run : brief, design system, base de contenu. Chaque bloc ne démarre que si le précédent a rendu `ok: true` ; l'humain ne voit le projet qu'à la fin, avec la route de la ligne qui suit (direction artistique, arborescence et pages, ou PRD et écrans). Un refus annule le run ; une approbation le clôt avec une issue typée.",
+      "status": "VERIFIED",
+      "check_scripts": 4,
+      "judge": true,
+      "human_gate": true,
+      "fixtures": [
+        "approved",
+        "brief-rejected",
+        "calibrate-no-verdict",
+        "calibrate-unconverged",
+        "content-rejected",
+        "design-rejected",
+        "rejected-by-human"
+      ],
+      "run": "archon workflow run studio"
+    }
+  ],
+  "use_cases": 15
+}

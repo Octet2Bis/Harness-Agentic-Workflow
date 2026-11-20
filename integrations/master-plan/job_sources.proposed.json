@@ -1,0 +1,259 @@
+{
+  "_doc": "Proposition de job_sources.json pour le radar de Master Plan (career_ops/, VM). Proposé, pas branché : le fichier de production est Workspace/career/job_sources.json, version 2.0.0. Même forme (name, type, speed, endpoint ou url_template, enabled) plus des champs de lecture (query, filter, terms, verified, note) que le radar ignore aujourd'hui. Chaque entrée dit comment elle a été vérifiée le 22 octobre 2026 ; une entrée 'verified: documented only' n'a pas été appelée. Les entrées enabled:false attendent soit une décision d'Antoine, soit un essai depuis la VM. Section 7 (23 octobre) : les agrégateurs à clé sont des entrées 'api_key' désactivées, la clé est un nom de variable lue dans .secrets/ de la VM, jamais une valeur.",
+  "version": "2.2.0-proposed",
+  "relevé": "2026-10-22",
+  "sources": [
+    {
+      "name": "LinkedIn Jobs (Live 24h)",
+      "type": "api_guest",
+      "speed": "H+0",
+      "url_template": "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={keyword}&location=Europe&f_WT=2&f_TPR=r86400&sortBy=DD&start=0",
+      "enabled": true,
+      "note": "Inchangé. Question ouverte : la copie PC de fetchers/index.js le dit désactivé depuis le 29/09 sauf CAREER_LINKEDIN=on, alors que le tableau du 21-22 octobre en vient."
+    },
+    {
+      "name": "Jobgether (full remote, Europe)",
+      "type": "api_json",
+      "speed": "H+1",
+      "url_template": "https://jobgether.com/astroapi/ai/jobs.json?keyword={keyword}&locations=europe&remoteType=full-remote&sort=date&limit=25&page=1",
+      "enabled": true,
+      "query": "par intitulé, comme LinkedIn : limit ≤ 25, page ≤ 10, donc plusieurs mots-clés (growth marketing, revenue operations, marketing operations, demand generation, gtm, crm)",
+      "filter": "garder location ∈ Europe / EMEA / France / Anywhere ; dédoublonner par id ; le lien renvoie vers Jobgether, pas l'employeur (route devra résoudre)",
+      "terms": "robots.txt : ce chemin est explicitement autorisé avec ses paramètres, Crawl-delay 2 s, ai-train=no ; docs /astroapi/ai/jobs/docs ; pas de clé",
+      "verified": "verified by fetch 2026-10-22 (requête growth marketing × Europe × full-remote : offres du jour)"
+    },
+    {
+      "name": "Growth.Talent (growth marketing, marché France)",
+      "type": "api_json",
+      "speed": "H+1",
+      "endpoint": "https://www.growthtalent.org/api/v1/jobs?market=france&remote=true&limit=100",
+      "enabled": true,
+      "query": "aussi market=usa&remote=true en gardant remote ∈ {REMOTE, REMOTE_EU} ; paramètres q, category, seniority, contractType, salaryMin ; OpenAPI /api/v1/openapi.json ; Atom de secours /jobs/feed.xml",
+      "filter": "spécialisé growth / CRM-lifecycle / marketing ops / SEO / PMM : peu de bruit, filtre par intitulé quand même",
+      "terms": "robots.txt autorise /api/v1/ ; ai-train=no, ai-input=yes ; réponse mise en cache 30 min côté serveur ; paliers avec clé 120/min, aucune limite annoncée sans clé",
+      "verified": "verified by fetch 2026-10-22 (market=france&remote=true : 29 offres, la plus récente du 20 octobre)"
+    },
+    {
+      "name": "Jobicy (remote, Europe, marketing)",
+      "type": "api_json",
+      "speed": "H+1",
+      "endpoint": "https://jobicy.com/api/v2/remote-jobs?count=50&geo=europe&industry=marketing",
+      "enabled": true,
+      "query": "aussi geo=emea et geo=france ; industry ∈ marketing, seo, business, management ; tag= mot-clé (3-50 caractères) ; fenêtre de 7 jours, délai de publication 3 h ; RSS https://jobicy.com/jobs/feed?industry=marketing&geo=europe",
+      "filter": "les filtres geo/industry sont larges : revérifier jobGeo et jobIndustry côté radar",
+      "terms": "au plus un appel par heure, mettre en cache, créditer Jobicy et garder l'URL canonique",
+      "verified": "verified by fetch 2026-10-22 (JSON et RSS)"
+    },
+    {
+      "name": "EU Remote Jobs",
+      "type": "rss_feed",
+      "speed": "H+3",
+      "endpoint": "https://euremotejobs.com/sitemap.rss",
+      "enabled": true,
+      "query": "aucun filtre côté flux (48 dernières offres, titre + lien + date) ; la page de l'offre donne catégorie et région ; sitemap job_listing-sitemap.xml avec lastmod",
+      "filter": "par intitulé (matchesAnyTargetQuery) puis région Europe / EMEA / France sur la page",
+      "terms": "robots.txt interdit les URLs ?search_* ; pas d'API, pas de JSON-LD",
+      "verified": "verified by fetch 2026-10-22 (flux du jour)"
+    },
+    {
+      "name": "Himalayas Remote",
+      "type": "api_json",
+      "speed": "H+1",
+      "endpoint": "https://himalayas.app/jobs/api?limit=100",
+      "enabled": true,
+      "query": "paginer avec cursor=<nextCursor> (offset déprécié) ; pas de recherche texte",
+      "filter": "locationRestrictions / timezoneRestrictions / categories côté radar",
+      "verified": "verified by fetch 2026-10-22",
+      "note": "Déjà en production avec limit=40 : passer à 100 + curseur"
+    },
+    {
+      "name": "Remotive",
+      "type": "api_json",
+      "speed": "H+4",
+      "url_template": "https://remotive.com/api/remote-jobs?search={keyword}&limit=100",
+      "enabled": true,
+      "query": "le paramètre search= remplace category=marketing seul",
+      "filter": "candidate_required_location",
+      "terms": "au plus 4 lectures par jour, plus de 2 par minute bloqué, lien de retour demandé",
+      "verified": "documented only (lecture automatisée refusée par robots depuis le conteneur)",
+      "note": "Déjà en production (category=marketing)"
+    },
+    {
+      "name": "Working Nomads",
+      "type": "api_json",
+      "speed": "H+2",
+      "endpoint": "https://www.workingnomads.com/api/exposed_jobs/",
+      "enabled": true,
+      "filter": "location contient « Time zone: CET » ou « Global » : filtrer par expression régulière",
+      "note": "Inchangé"
+    },
+    {
+      "name": "RemoteOK",
+      "type": "api_json",
+      "speed": "H+2",
+      "endpoint": "https://remoteok.com/api?tag=marketing",
+      "enabled": true,
+      "terms": "lien de retour suivi (followed) exigé par la notice légale",
+      "note": "Inchangé ; location presque toujours vide"
+    },
+    {
+      "name": "Arbeitnow Remote",
+      "type": "api_json",
+      "speed": "H+4",
+      "endpoint": "https://www.arbeitnow.com/api/job-board-api",
+      "enabled": true,
+      "filter": "le booléen remote est peu fiable (titre « Full Remote », remote:false) : lire aussi le titre",
+      "note": "Inchangé"
+    },
+    {
+      "name": "WeWorkRemotely Sales & Marketing",
+      "type": "rss_feed",
+      "speed": "H+3",
+      "endpoint": "https://weworkremotely.com/categories/remote-sales-and-marketing-jobs.rss",
+      "enabled": true,
+      "terms": "attribution demandée",
+      "verified": "verified by fetch 2026-10-22",
+      "note": "Remplace la catégorie marketing seule ; pas de flux par région, filtrer <region>"
+    },
+    {
+      "name": "Jobspresso Remote",
+      "type": "rss_feed",
+      "speed": "H+3",
+      "endpoint": "https://jobspresso.co/feed/",
+      "enabled": true,
+      "note": "Inchangé ; le flux par catégorie marketing est valide mais vide"
+    },
+    {
+      "name": "Dynamite Jobs (marketing)",
+      "type": "sitemap",
+      "speed": "H+6",
+      "endpoint": "https://dynamitejobs.com/sitemap/jobs-of-category.xml?category=marketing",
+      "enabled": false,
+      "query": "diff sur lastmod (~65 URLs /remote-job/, la plus récente du jour) puis lecture de la page",
+      "terms": "robots.txt interdit /api/ ; type sitemap à ajouter au radar (nouveau lecteur)",
+      "verified": "verified by fetch 2026-10-22",
+      "note": "Beaucoup d'offres US-only : filtrer la région sur la page"
+    },
+    {
+      "name": "Exit Five (marketing B2B)",
+      "type": "sitemap",
+      "speed": "H+6",
+      "endpoint": "https://jobs.exitfive.com/sitemap-jobs.xml",
+      "enabled": false,
+      "query": "16 offres, lastmod du jour ; la liste HTML est rendue en JS",
+      "terms": "robots : Crawl-delay 1, /api/ interdit",
+      "verified": "verified by fetch 2026-10-22",
+      "note": "Surtout US ; faible volume"
+    },
+    {
+      "name": "Welcome to the Jungle (télétravail total)",
+      "type": "html_page",
+      "speed": "H+6",
+      "endpoint": "https://www.welcometothejungle.com/fr/pages/emploi-teletravail",
+      "enabled": false,
+      "query": "page rendue côté serveur, 20 offres, préfiltrée 100 % télétravail France, sans mot-clé ; ?page=2… tombe sous Disallow /*? du robots.txt",
+      "terms": "CGU du 27 avril 2026 (§10) : pas de scripts, robots ni extraction, usage personnel ; la recherche Algolia qu'appelle le site est publique mais hors CGU : NON proposée. Voie officielle : API Welcome Kit (developers.welcomekit.co), par organisation, clé sur demande (formulaire « expliquez votre cas d'usage »)",
+      "verified": "page verified by fetch 2026-10-22 ; CGU et robots.txt lus",
+      "note": "Décision d'Antoine : demander l'accès Welcome Kit, ou se contenter de la page 1 (signal faible), ou renoncer"
+    },
+    {
+      "name": "NoDesk (Europe)",
+      "type": "html_page",
+      "speed": "H+6",
+      "endpoint": "https://nodesk.co/remote-jobs/europe/",
+      "enabled": false,
+      "query": "page HTML (Algolia derrière, pas de clé publique trouvée) ; sitemap-jobs.xml ~1 000 URLs sans lastmod",
+      "verified": "verified by fetch 2026-10-22",
+      "note": "Conditions d'utilisation à lire avant de brancher"
+    },
+    {
+      "name": "Remote.com Jobs (Europe only)",
+      "type": "html_page",
+      "speed": "H+6",
+      "endpoint": "https://remote.com/jobs/all",
+      "enabled": false,
+      "query": "HTML, 20 offres par page, libellés « remote - Europe only » ; pas de flux ni d'API",
+      "verified": "verified by fetch 2026-10-22",
+      "note": "Conditions d'utilisation à lire avant de brancher"
+    },
+    {
+      "name": "MKT1 Job Board (marketing B2B startups)",
+      "type": "html_page",
+      "speed": "H+12",
+      "endpoint": "https://jobs.mkt1.co",
+      "enabled": false,
+      "query": "liste HTML lisible, étiquettes « Europe – Remote », ~25 nouvelles par semaine, sans dates ; pas de flux",
+      "verified": "verified by fetch 2026-10-22"
+    },
+    {
+      "name": "Firecrawl Search (Cloud)",
+      "type": "api_cloud",
+      "speed": "H+1",
+      "endpoint": "https://api.firecrawl.dev/v1/search",
+      "enabled": false,
+      "note": "Inchangé"
+    },
+    {
+      "name": "Jobdatalake (pages carrières, full remote Europe)",
+      "type": "api_key",
+      "speed": "H+1",
+      "url_template": "https://api.jobdatalake.com/v1/jobs?q={keyword}&countries=FR,DE,NL,ES,IT,PT,GB&remote_type=fully_remote&per_page=100&posted_after={since}",
+      "key": "JOBDATALAKE_API_KEY",
+      "enabled": false,
+      "query": "1 crédit par requête (100 offres), 1 000 offerts sans expiration, puis 50 $ une fois pour 100 000 ; forme exacte des paramètres à relire dans la doc avant branchement",
+      "terms": "CGU : pas de revente ni d'aspiration complète",
+      "verified": "documented only (jobdatalake.com/docs, 2026-10-23)"
+    },
+    {
+      "name": "JSearch (Google for Jobs)",
+      "type": "api_key",
+      "speed": "H+8",
+      "url_template": "https://api.openwebninja.com/jsearch/search?query={keyword}&country=fr&work_from_home=true&date_posted=3days&num_pages=1",
+      "key": "JSEARCH_API_KEY",
+      "enabled": false,
+      "query": "200 requêtes par mois gratuites : 2 ou 3 relevés par jour pour 2 ou 3 pays, pas à l'heure ; 25 $/mois pour 10 000",
+      "filter": "apply_options[].is_direct dit si le lien est celui de l'employeur ; dédoublonner par (entreprise, intitulé)",
+      "terms": "CGU non lues ; clé directe OpenWeb Ninja ou RapidAPI",
+      "verified": "documented only (openwebninja.com/api/jsearch, 2026-10-23)"
+    },
+    {
+      "name": "Adzuna (par pays)",
+      "type": "api_key",
+      "speed": "H+2",
+      "url_template": "https://api.adzuna.com/v1/api/jobs/fr/search/1?what={keyword}%20remote&max_days_old=1&results_per_page=50&app_id={ADZUNA_APP_ID}&app_key={ADZUNA_APP_KEY}",
+      "key": "ADZUNA_APP_ID, ADZUNA_APP_KEY",
+      "enabled": false,
+      "query": "aussi gb, de, nl, es, it ; pas de filtre remote, le mot est dans la requête ; ~250 appels par jour",
+      "filter": "redirect_url passe par Adzuna : route doit suivre la redirection",
+      "terms": "CGU : recherche d'emploi personnelle explicitement autorisée",
+      "verified": "documented only (developer.adzuna.com, 2026-10-23)"
+    },
+    {
+      "name": "Apify ats-jobs-api (11 ATS)",
+      "type": "api_key",
+      "speed": "H+24",
+      "endpoint": "https://api.apify.com/v2/acts/greentools~ats-jobs-api/run-sync-get-dataset-items",
+      "key": "APIFY_TOKEN",
+      "enabled": false,
+      "query": "POST avec les mots-clés, lieux Europe, remote, publié depuis 1 jour, mode nouvelles offres seulement ; 4 $ les 1 000 offres, 5 $ offerts par mois",
+      "terms": "CGU Apify : à nous d'être autorisés à lire les flux (ATS publics)",
+      "verified": "documented only (apify.com/greentools/ats-jobs-api, 2026-10-23)"
+    }
+  ],
+  "écartées": [
+    "RevPath (DealHub) : flux RSS interdit par robots.txt ; HTML et sitemaps seulement",
+    "GTMfund / GTMnow, Lenny's Jobs, Demand Curve : rendus en JS, API partenaire ou payante",
+    "Product Marketing Alliance, GrowthHackers, Swipe Files (Niceboard) : lecture refusée depuis le conteneur, à essayer depuis la VM via /sitemap-jobs.xml",
+    "Remote Rocketship : API payante (29 $/mois) ; Remote Work Europe : accès membre 15 €/mois ; FlexJobs : payant",
+    "Wellfound : HTML seulement, CGU interdisent l'extraction ; Remote.co, JustRemote, Remote.io, Remotely.de : US ou Allemagne, sans flux",
+    "France Travail Offres v2 : API réelle mais nouvelles clés suspendues depuis octobre 2026, pas de filtre télétravail, France seule",
+    "APEC, HelloWork : anti-bot (DataDome) et recherche / RSS interdits par robots.txt",
+    "Indeed (API publique fermée), Glassdoor (API coupée août 2025), StepStone (API en écriture seule), Xing, Cadremploi : aucune voie lisible",
+    "Monster (API partenaire), InfoJobs (compte développeur ES), Adzuna et Jooble (clé gratuite, pas spécifiques remote) : possibles plus tard",
+    "The Muse API (Flexible / Remote, surtout US), Workew RSS (surtout US) : faible rendement pour l'Europe",
+    "Free-Hire : voir radar_freehire.proposal.md",
+    "TheirStack, JobsPipe, Fantastic.jobs, Coresignal : 45 à 50 $/mois, crédits gratuits comptés par offre : rattrapage ponctuel au plus",
+    "Loopcv (docs vides, LinkedIn aspiré par eux), Jooble (liens Jooble, zone grise)",
+    "Connecteurs ZipRecruiter et Dice (US), Crustdata (entreprise), JobGPT (candidature automatique), linkedin-jobs-mcp et go-job (aspirent LinkedIn)"
+  ]
+}

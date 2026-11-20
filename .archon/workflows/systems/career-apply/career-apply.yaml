@@ -1,0 +1,519 @@
+name: career-apply
+description: |
+  Système « career-apply » : une offre validée par le candidat (statut VALIDATED dans
+  pending_gold_jobs.json) devient une candidature déposée sur la bonne plateforme, sans
+  autre intervention humaine que le « go » avant le premier envoi sur une plateforme non
+  encore vérifiée. Enchaîne : lecture de l'offre et de l'annonce → bloc cv-tailor (CV,
+  pitch, fiche candidat, vérifiés) → bloc cover-letter (lettre, jamais bloquante) → PDF → résolution de la page de candidature → bloc
+  apply-submit (formulaire, go, clic, reçu, juge) → écriture du résultat dans Master Plan
+  (applications/<slug>/, statut, journal). Chaque étape ne démarre que si la précédente a
+  rendu ok. `load` prend d'abord l'offre : lancé par career-listener, il vérifie qu'elle est
+  encore à sa prise ; lancé à la main, il la passe APPLYING pour ce run (refus si un autre run
+  la tient, si elle est déjà envoyée, ou si une autre candidature est en vol). Un dossier que
+  le Reviewer refuse (contrôles verts) a droit à une ronde de révision : ses constats deviennent
+  les remarques d'un second passage du bloc (`tailor2`), avec un Reviewer neuf ; un second refus
+  arrête le run comme avant. La lettre a la même ronde (`revise_letter_brief` → `letter2` →
+  `letter_pick`) ; encore refusée, elle n'arrête rien : le CV part seul. Juste avant le
+  clic, apply-submit relit le tableau et n'envoie que si l'offre est encore à cette prise.
+  `record` écrit une issue typée quand chaque étape qu'il lit a terminé : un bloc pas
+  convergé, refusé au go ou sans verdict (erreur dans le bloc) y arrive comme tel. Si une
+  étape hors bloc échoue (erreur de modèle ou de script : `resolve`, qui fait échouer
+  `confirm_route`, ou `load`, `render`), `record` ne tourne pas, le run finit `failed`, et
+  le filet clôt l'offre : `settle` d'ici pour un run lancé à la main, career-listener (son
+  `settle`) sinon ; APPLY_UNPROVEN si `submission/` montre un clic possible, APPLY_FAILED sinon.
+
+  Use when: an offer in pending_gold_jobs.json has been validated and must be applied to —
+  "postule à", "candidate pour", "l'offre est validée".
+  NOT for: qualifying or scoring offers (the jury upstream) or spontaneous applications.
+
+# Pas de verrou de dossier : aucun nœud n'écrit dans le checkout. Les sorties vont dans les
+# artefacts du run (application/, submission/, offer.json, record.json), l'état dans
+# pending_gold_jobs.json, applications/ et applications_log.csv du dossier carrière (hors du
+# dépôt) ; le seul fichier touché sous le dossier du dépôt est le profil du navigateur
+# (.local/browser-profile/, ignoré par git), qui ne doit servir qu'à un run à la fois : c'est le
+# tableau qui l'assure (une candidature en vol à la fois : `claim` du listener et `load` d'ici
+# refusent tant qu'une autre offre est APPLYING), pas ce verrou. Avec le verrou, un sous-run
+# lancé par career-listener serait annulé (« This worktree is in use ») dès qu'un autre run plus
+# ancien est actif dans le dossier (board-listener en pause au go…), et le listener passerait
+# l'offre APPLY_FAILED.
+mutates_checkout: false
+
+inputs:
+  slug:
+    required: true
+    description: The offer's slug in pending_gold_jobs.json.
+  career_dir:
+    required: true
+    description: Absolute path of Master Plan's Workspace/career (master_profile.md, pending_gold_jobs.json, applications/, skill_proof_graph.json).
+  mode:
+    default: verified-only
+    description: Submission policy — confirm | auto | verified-only (ask for a go until the platform is verified) | cv-only (the verified CV and its PDF only — no letter, no route, nothing sent; the offer ends TAILORED; asked from the Telegram radar's « CV sur mesure » button).
+  verified_platforms:
+    default: ""
+    description: Comma-separated platform ids that already had a supervised, confirmed submission.
+  pdf_cmd:
+    default: ""
+    description: Optional command printing the CV to PDF, with {html} and {pdf} placeholders; empty means Edge/Chrome headless found on the machine.
+  claim_run:
+    default: ""
+    description: The career-listener run that claimed the offer (applying.run), passed by the listener. Empty when run by hand - load then claims the offer for this run (APPLYING, applying.run = this run) or refuses it.
+
+returns: { node: record, outcome: ok }
+
+nodes:
+  # ── 1. La prise, puis l'offre, l'annonce, les remarques ──────────────────
+  # `claim_run` (sortie) est la prise que ce run tient : celle du listener, ou ce run lui-même
+  # lancé à la main ; vide quand `load` refuse (rien d'autre ne tourne, `record` n'écrit rien).
+  # `posting` : le verdict de la garde d'annonce (systems/.shared/posting-guard.ts) sur la page
+  # lue. `expirée` : `ok: false` après la prise ; rien d'autre ne tourne et `record` (qui lit
+  # toute la sortie de `load`) clôt l'offre APPLY_FAILED au stage `load` (`outcome`,
+  # .shared/career.ts), jamais remise en file. `suspecte` : un signal pour l'humain, pas un
+  # arrêt (résumé de `load`, `posting_reasons`, `posting_guard` dans offer.json). `non lue` :
+  # pas de réponse, ou une réponse hors 2xx qui ne prouve rien. Les deux champs ne sont pas
+  # dans `required` : `load` les émet toujours, les stubs d'avant la garde ne les portent pas.
+  - id: load
+    script: load
+    runtime: bun
+    with:
+      slug: "$INPUTS.slug"
+      career_dir: "$INPUTS.career_dir"
+      claim_run: "$INPUTS.claim_run"
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        summary: { type: string }
+        slug: { type: string }
+        profile: { type: string }
+        proofs: { type: string }
+        remarks: { type: string }
+        keywords: { type: string }
+        offer_json: { type: string }
+        link: { type: string }
+        # Page employeur lue sur la page publique LinkedIn (« Postuler » hors LinkedIn) ; vide sinon.
+        direct_apply: { type: string }
+        board: { type: string }
+        claim_run: { type: string }
+        self_claimed: { type: boolean }
+        posting: { type: string, enum: [ok, expirée, suspecte, non lue] }
+        posting_reasons: { type: array, items: { type: string } }
+        # `reponses_formulaires.md` du dossier carrière (réponses validées par Antoine, lues par
+        # apply-submit) ; vide quand le fichier n'existe pas. Pas dans `required` (stubs d'avant).
+        answers: { type: string }
+      required: [ok, summary, slug, profile, proofs, remarks, keywords, offer_json, link, board, claim_run, self_claimed]
+
+  # ── 2. Le dossier de candidature, vérifié (bloc) ─────────────────────────
+  - id: tailor
+    include: cv-tailor
+    depends_on: [load]
+    when: "$load.output.ok == true"
+    with:
+      offer: "$load.output.offer_json"
+      profile: "$load.output.profile"
+      proofs: "$load.output.proofs"
+      remarks: "$load.output.remarks"
+      keywords: "$load.output.keywords"
+      out_dir: application
+
+  # ── 2 bis. Une ronde de révision, bornée, quand le Reviewer refuse ───────
+  # Le bloc rend `rejected` quand ses contrôles passent mais que le Reviewer (contexte vierge)
+  # refuse, avec des constats précis. Plutôt que d'abandonner un dossier corrigeable (premier
+  # run réel, 2026-10-22 : refus B, un constat bloquant, le run finissait cv-rejected),
+  # `revise_brief` (script pur, systems/.shared/career.ts) transforme ces constats en remarques
+  # pour le Drafter (les remarques du candidat d'abord, puis les constats numérotés avec leur
+  # gravité) et `tailor2` rejoue le bloc cv-tailor tel quel, dans le même dossier `application`
+  # (le Drafter réécrit les trois fichiers ; la première version est copiée dans
+  # `application-v1/`), avec un Reviewer neuf (`tailor2__judge`, contexte vierge). Une seule
+  # ronde : un second refus est `cv-rejected`, une seconde ronde pas convergée `cv-unconverged`.
+  # Ni l'un ni l'autre ne tourne après `unconverged` (les tours sont épuisés) ni `verified`.
+  - id: revise_brief
+    script: revise-brief
+    runtime: bun
+    depends_on: [tailor]
+    when: "$tailor.output.status == 'rejected'"
+    with:
+      block: cv-tailor
+      remarks: "$load.output.remarks"
+      verdict: { from: "$tailor.output" }
+      out_dir: application
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        remarks: { type: string }
+        summary: { type: string }
+      required: [ok, remarks, summary]
+
+  - id: tailor2
+    include: cv-tailor
+    depends_on: [revise_brief]
+    when: "$revise_brief.output.ok == true"
+    with:
+      offer: "$load.output.offer_json"
+      profile: "$load.output.profile"
+      proofs: "$load.output.proofs"
+      remarks: "$revise_brief.output.remarks"
+      keywords: "$load.output.keywords"
+      out_dir: application
+
+  # Le verdict de CV qui compte pour la suite : celui de `tailor2` s'il a tourné, sinon celui
+  # de `tailor` (`pickVerdict`, pur, testé ; script `pick`, partagé avec `letter_pick`), même
+  # forme que le verdict du bloc, plus `revised`.
+  # `all_done` : il tourne aussi quand un bloc n'a rendu aucun verdict (null) ; `status: none`
+  # alors, que `record` lit comme un bloc sans verdict. Sauté avec tout le reste quand `load`
+  # a refusé l'offre.
+  - id: cv
+    script: pick
+    runtime: bun
+    depends_on: [load, tailor, tailor2]
+    trigger_rule: all_done
+    when: "$load.output.ok == true"
+    with:
+      block: cv-tailor
+      first: { from: "$tailor.output", if_skipped: null }
+      revise: { from: "$revise_brief.output", if_skipped: null }
+      second: { from: "$tailor2.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        status: { type: string, enum: [verified, rejected, unconverged, none] }
+        summary: { type: string }
+        problems: { type: array, items: { type: string } }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string }
+              text: { type: string }
+            required: [severity, text]
+        deliverable:
+          type: object
+          properties:
+            type: { type: string, enum: [archon_artifact] }
+            run_id: { type: string }
+            path: { type: string, pattern: '\S' }
+          required: [type, run_id, path]
+        revised: { type: boolean }
+      required: [ok, status, summary, problems, findings, revised]
+
+  # ── 2 ter. La lettre de motivation, vérifiée (bloc) ──────────────────────
+  # Après le CV, avec le même profil et la même annonce. Refusée ou pas convergée, elle
+  # n'arrête pas la candidature : `render` l'ignore (liaison `letter`, le verdict choisi par
+  # `letter_pick`) et l'envoi part sans lettre ; `record` note son issue dans le résumé. Seule
+  # une erreur de modèle dans le premier passage du bloc (verdict sauté : `letter_pick` dit
+  # `status: none`) arrête le run avant `render`, comme toute erreur hors bloc : rien n'est
+  # envoyé, l'offre finit TAILORED et se relance.
+  # `cv-only` : pas de lettre (le bouton « CV sur mesure » du radar Telegram ne demande que le CV).
+  - id: letter
+    include: cover-letter
+    depends_on: [cv]
+    when: "$INPUTS.mode != 'cv-only' && $cv.output.ok == true"
+    with:
+      offer: "$load.output.offer_json"
+      profile: "$load.output.profile"
+      cv: "$ARTIFACTS_DIR/application/CV.md"
+      pitch: "$ARTIFACTS_DIR/application/pitch.md"
+      remarks: "$load.output.remarks"
+      out_dir: application
+
+  # ── 2 quater. Une ronde de révision de la lettre, comme celle du CV ─────
+  # Même mécanique que `revise_brief` → `tailor2` → `cv` (premier run réel, 2026-10-23 : lettre
+  # refusée B deux fois, constats précis que rien ne renvoyait au rédacteur). Quand le Reviewer
+  # de la lettre refuse (contrôles verts), `revise_letter_brief` (script `revise-brief`,
+  # `block: cover-letter`) fait des constats les remarques d'un second passage ; letter.md et
+  # letter.html de la première version sont copiés dans `application-v1/`. `letter2` rejoue
+  # cover-letter tel quel dans `application/` (render y lit letter.html), avec un Reviewer neuf
+  # (`letter2__judge`). Une seule ronde ; une lettre encore refusée n'arrête rien : `render`
+  # imprime le CV seul et l'envoi part sans lettre.
+  - id: revise_letter_brief
+    script: revise-brief
+    runtime: bun
+    depends_on: [letter]
+    when: "$letter.output.status == 'rejected'"
+    with:
+      block: cover-letter
+      remarks: "$load.output.remarks"
+      verdict: { from: "$letter.output" }
+      out_dir: application
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        remarks: { type: string }
+        summary: { type: string }
+      required: [ok, remarks, summary]
+
+  - id: letter2
+    include: cover-letter
+    depends_on: [revise_letter_brief]
+    when: "$revise_letter_brief.output.ok == true"
+    with:
+      offer: "$load.output.offer_json"
+      profile: "$load.output.profile"
+      cv: "$ARTIFACTS_DIR/application/CV.md"
+      pitch: "$ARTIFACTS_DIR/application/pitch.md"
+      remarks: "$revise_letter_brief.output.remarks"
+      out_dir: application
+
+  # La lettre qui compte : `letter2` s'il a rendu un verdict, sinon `letter` (`pickVerdict`).
+  # `all_done` : tourne aussi quand un passage n'a rendu aucun verdict ; `status: none` si
+  # aucun, et `render` ne tourne pas (comme avant la ronde). Sauté quand le CV n'est pas ok.
+  - id: letter_pick
+    script: pick
+    runtime: bun
+    depends_on: [load, cv, letter, letter2]
+    trigger_rule: all_done
+    # `load` d'abord : sans offre, `cv` est sauté, et lire sa sortie ferait échouer ce nœud
+    # (le `&&` d'Archon s'arrête au premier faux).
+    when: "$load.output.ok == true && $cv.output.ok == true"
+    with:
+      block: cover-letter
+      first: { from: "$letter.output", if_skipped: null }
+      revise: { from: "$revise_letter_brief.output", if_skipped: null }
+      second: { from: "$letter2.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        status: { type: string, enum: [verified, rejected, unconverged, none] }
+        summary: { type: string }
+        problems: { type: array, items: { type: string } }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string }
+              text: { type: string }
+            required: [severity, text]
+        deliverable:
+          type: object
+          properties:
+            type: { type: string, enum: [archon_artifact] }
+            run_id: { type: string }
+            path: { type: string, pattern: '\S' }
+          required: [type, run_id, path]
+        revised: { type: boolean }
+      required: [ok, status, summary, problems, findings, revised]
+
+  # ── 3. Le PDF, vérifié par du code ───────────────────────────────────────
+  # CV.md → CV.pdf (et letter.html → letter.pdf quand la lettre choisie, `letter_pick`, dit ok), puis `verifyPdf`
+  # (systems/.shared/pdf-checks.ts) : structure, pages (CV ≤ cv_max_pages, lettre = 1), texte
+  # extractible, e-mail et téléphone du profil, aucun reste de gabarit, chiffres lisibles, polices
+  # embarquées. Un contrôle rouge rend ok: false (problèmes en français) : ni route ni envoi, et
+  # `record` écrit TAILORED avec ces problèmes.
+  - id: render
+    script: render
+    runtime: bun
+    depends_on: [cv, letter_pick]
+    when: "$INPUTS.mode != 'cv-only' && $cv.output.ok == true && $letter_pick.output.status != 'none'"
+    with:
+      out_dir: application
+      pdf_cmd: "$INPUTS.pdf_cmd"
+      profile: "$load.output.profile"
+      cv_max_pages: "2"
+      letter: { from: "$letter_pick.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        pdf: { type: string }
+        engine: { type: string }
+        pages: { type: integer, minimum: 0 }
+        problems: { type: array, items: { type: string } }
+        summary: { type: string }
+        letter: { type: string }
+        letter_pages: { type: integer, minimum: 0 }
+      required: [ok, pdf, engine, pages, problems, summary, letter, letter_pages]
+
+  # `cv-only` : le CV seul en PDF, mêmes contrôles (`verifyPdf`), sans lettre. Ni route ni envoi
+  # derrière (`route` dépend de `render`, sauté) ; `record` lit ce rendu à la place de `render`
+  # et clôt l'offre TAILORED (`outcome`, `cvOnly`).
+  - id: render_cv
+    script: render
+    runtime: bun
+    depends_on: [cv]
+    when: "$INPUTS.mode == 'cv-only' && $cv.output.ok == true"
+    with:
+      out_dir: application
+      pdf_cmd: "$INPUTS.pdf_cmd"
+      profile: "$load.output.profile"
+      cv_max_pages: "2"
+      letter: ""
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        pdf: { type: string }
+        engine: { type: string }
+        pages: { type: integer, minimum: 0 }
+        problems: { type: array, items: { type: string } }
+        summary: { type: string }
+        letter: { type: string }
+        letter_pages: { type: integer, minimum: 0 }
+      required: [ok, pdf, engine, pages, problems, summary, letter, letter_pages]
+
+  # ── 4. La bonne plateforme ───────────────────────────────────────────────
+  - id: route
+    script: route
+    runtime: bun
+    depends_on: [render]
+    when: "$render.output.ok == true"
+    with:
+      link: "$load.output.link"
+      direct_apply: "$load.output.direct_apply"
+    output_format:
+      type: object
+      properties:
+        platform: { type: string }
+        method: { type: string }
+        aggregator: { type: boolean }
+        needs_account: { type: boolean }
+        needs_resolve: { type: boolean }
+        apply_url: { type: string }
+        summary: { type: string }
+      required: [platform, method, aggregator, needs_account, needs_resolve, apply_url, summary]
+
+  - id: resolve
+    command: resolve
+    mcp: .archon/mcp/browser.json
+    allowed_tools: [Read, WebFetch]
+    model: small
+    depends_on: [route]
+    when: "$route.output.needs_resolve == true"
+    with:
+      offer: "$load.output.offer_json"
+      link: "$load.output.link"
+      platform: "$route.output.platform"
+    output_format:
+      type: object
+      properties:
+        apply_url: { type: string }
+        easy_apply: { type: boolean }
+        how: { type: string, pattern: '\S' }
+      required: [apply_url, easy_apply, how]
+
+  - id: confirm_route
+    script: confirm-route
+    runtime: bun
+    depends_on: [route, resolve]
+    trigger_rule: all_done   # tourne même si route a été sauté : il déclare alors ok: false
+    with:
+      route: { from: "$route.output", if_skipped: null }
+      resolved: { from: "$resolve.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        apply_url: { type: string }
+        platform: { type: string }
+        method: { type: string }
+        problems: { type: array, items: { type: string } }
+        summary: { type: string }
+      required: [ok, apply_url, platform, method, problems, summary]
+
+  # ── 5. L'envoi, vérifié (bloc) ───────────────────────────────────────────
+  - id: submit
+    include: apply-submit
+    depends_on: [confirm_route]
+    when: "$confirm_route.output.ok == true"
+    with:
+      apply_url: "$confirm_route.output.apply_url"
+      platform: "$confirm_route.output.platform"
+      method: "$confirm_route.output.method"
+      candidate: "$ARTIFACTS_DIR/application/candidate.json"
+      cv: "$render.output.pdf"
+      pitch: "$ARTIFACTS_DIR/application/pitch.md"
+      offer: "$load.output.offer_json"
+      # La lettre vérifiée (vide : formulaire rempli comme sans lettre) ; le profil et les
+      # réponses validées, seules sources d'une réponse libre.
+      letter: "$render.output.letter"
+      profile: "$load.output.profile"
+      answers_file: "$load.output.answers"
+      mode: "$INPUTS.mode"
+      verified_platforms: "$INPUTS.verified_platforms"
+      out_dir: submission
+      # La garde `own`, juste avant le clic : l'offre doit être encore tenue par cette prise.
+      claim_board: "$load.output.board"
+      claim_slug: "$load.output.slug"
+      claim_run: "$load.output.claim_run"
+
+  # ── 6. Le résultat écrit dans Master Plan ────────────────────────────────
+  # Un bloc dont les contrôles sont encore rouges au plafond de sa boucle rend un verdict
+  # `unconverged` (le run reste `completed`) : cv-tailor → APPLY_FAILED, apply-submit →
+  # TAILORED (rien n'est envoyé). Un refus au go rend `refused` → TAILORED. Un bloc sans
+  # verdict (un de ses nœuds a échoué) arrive ici en null (`cv` : `status: none`) ; pour apply-submit, `record` lit
+  # alors submission/ (decision.json, armed.json, click.json, receipt.*) et écrit
+  # APPLY_UNPROVEN s'il y a trace d'un clic possible. Jamais
+  # APPLIED sans `submitted: true` (`outcome()`, systems/.shared/career.ts).
+  # `record` sauve son issue dans record.json, puis écrit le statut sous le verrou du tableau
+  # AVANT de recopier le dossier (un PDF verrouillé ne laisse pas l'offre APPLYING), et
+  # seulement si l'offre est encore celle de cette prise (`claim_run` de `load`, `mayRecord`) :
+  # jamais un envoi rétrogradé, jamais une validation plus récente écrasée par un « pas
+  # envoyé ». S'il ne peut pas écrire, le filet l'écrit à sa place (`close` puis `settle` du
+  # listener, ou `settle` d'ici depuis record.json).
+  # Limite : `record` lie load, render et confirm_route ; si l'un d'eux a ÉCHOUÉ (pas sauté),
+  # `record` échoue avec lui (Archon ne lit jamais un nœud en échec) et n'écrit rien : le
+  # filet clôt alors l'offre (`settle` ci-dessous pour un run lancé à la main, celui du
+  # listener sinon).
+  - id: record
+    script: record
+    runtime: bun
+    depends_on: [load, cv, letter_pick, render, render_cv, confirm_route, submit]
+    trigger_rule: all_done
+    with:
+      mode: "$INPUTS.mode"
+      slug: "$INPUTS.slug"
+      career_dir: "$INPUTS.career_dir"
+      claim_run: "$load.output.claim_run"
+      load: { from: "$load.output", if_skipped: null }
+      # Le verdict de CV qui compte (`cv` : tailor2 s'il a tourné, sinon tailor), `revised` compris.
+      cv: { from: "$cv.output", if_skipped: null }
+      # La lettre qui compte (`letter_pick` : letter2 s'il a tourné, sinon letter), `revised` compris.
+      letter: { from: "$letter_pick.output", if_skipped: null }
+      render: { from: "$render.output", if_skipped: null }
+      render_cv: { from: "$render_cv.output", if_skipped: null }
+      route: { from: "$confirm_route.output", if_skipped: null }
+      submit: { from: "$submit.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        stage: { type: string, enum: [load, tailor, render, route, submit, done] }
+        # Le statut écrit sur le tableau : l'issue du harness, ou, pour un run lancé à la main
+        # sur une offre non validée, le statut d'avant la prise (PENDING_VALIDATION…) ; une
+        # énumération ici a fait tomber `record` au premier run réel (2026-10-22).
+        status: { type: string, pattern: '\S' }
+        status_written: { type: boolean }
+        app_dir: { type: string }
+        copied: { type: array, items: { type: string } }
+        summary: { type: string }
+      required: [ok, stage, status, status_written, app_dir, copied, summary]
+
+  # ── 7. Le filet d'un run lancé à la main ─────────────────────────────────
+  # Seulement quand `load` a pris l'offre pour ce run (`self_claimed`) : lancé par le listener,
+  # c'est son `settle` qui tient ce rôle. Tourne quoi qu'il soit arrivé (all_done) et ne lie que
+  # `load`. Si l'offre est encore APPLYING par ce run, rien n'a écrit son statut : le statut
+  # sauvé dans record.json, sinon APPLY_UNPROVEN si `submission/` montre un clic possible, sinon
+  # APPLY_FAILED (`settleClaim`, .shared/pending.ts). Un run annulé ne passe pas ici : la règle
+  # des prises périmées du listener le clôt au bout de deux heures.
+  - id: settle
+    script: settle
+    runtime: bun
+    depends_on: [load, record]
+    trigger_rule: all_done
+    when: "$load.output.self_claimed == true"
+    with:
+      slug: "$load.output.slug"
+      board: "$load.output.board"
+      claim_run: "$load.output.claim_run"
+    output_format:
+      type: object
+      properties:
+        settled: { type: boolean }
+        slug: { type: string }
+        status: { type: string }
+        summary: { type: string }
+      required: [settled, slug, status, summary]

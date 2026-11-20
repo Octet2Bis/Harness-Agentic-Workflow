@@ -1,0 +1,12 @@
+# Carte hors liste d'autorisation (écrite à la main par `archon state put`, `board.ts add` la
+# refuse) : aucun `run_*` ne tourne, `outcome` (réel) rend FAILED « nothing ran » au lieu de
+# laisser la tâche prise. `hold` / `close` / `settle` stubbés (état Archon).
+# attendu(outcome): ok=false path=failed workflow=veille-fiche result=null
+claim: { path: work, id: "20261016150000-unkn", run: "stub-run", workflow: veille-fiche, task: "stub: fiche sur Z", context: "", revision: 2, note: "" }
+hold: { held: true, status: picked_up, by: "stub-run" }
+close: { ok: false, path: failed, id: "20261016150000-unkn", workflow: veille-fiche, summary: "stub: closed" }
+settle: { settled: false, id: "20261016150000-unkn", summary: "stub: already failed" }
+fixture:
+  expect: completed
+  reached: [claim, hold, outcome, outcome_result, close, settle]
+exec-code: true

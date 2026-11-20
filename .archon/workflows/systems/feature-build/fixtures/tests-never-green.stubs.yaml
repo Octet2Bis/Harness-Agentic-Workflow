@@ -1,0 +1,43 @@
+# Issue « tests never green » : au 8e et dernier tour permis d'`implement`, les tests sont
+# encore rouges et des tâches restent. La boucle rend la main à son plafond (compteur `tries`,
+# pas d'épuisement de max_iterations) et `implement__verdict` (script réel, exec-code) rend
+# une issue typée : ok: false, status: unconverged. Le lint, la relecture, l'approbation et
+# ship sont sautés ; `done` (réel) clôt ok: false, stage: implement, sans PR.
+# Le dry-run ne joue qu'un tour de boucle : le stub `check` porte l'état du 8e tour.
+# Ce qui prouve que rien d'aval n'est atteint :
+# - `ship` et `review__judge` n'ont pas de stub : les atteindre ferait échouer le dry-run
+#   (« Missing reachable stub ») ; `approve` non plus : un nœud `wait:` atteint sans stub met
+#   le dry-run en pause (`paused` au lieu de `completed`) ;
+# - le stub `check` (ids de corps de boucle non préfixés : il servirait aussi à la boucle de
+#   `review`) n'a ni `code_verdict` ni `blocking`, que le `check` de `review` exige : atteindre
+#   cette boucle ferait échouer le stub contre son output_format ;
+# - `lint` s'exécuterait pour de vrai (exec-code) : son `lint_cmd` est un fil-piège qui tue le
+#   shell du nœud, et le run ne finirait pas `completed`.
+# attendu: ok=false stage=implement pr_url=null
+# attendu(implement__verdict): ok=false status=unconverged findings=[]
+plan:
+  summary: "stub: three tasks"
+  tasks: 3
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "plan.md" }
+work:
+  summary: "stub: T2 migration written; two tests still failing"
+  task_done: "T2 : migration"
+  remaining: 2
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+check:
+  ok: false
+  problems:
+    - "stub: tests failed (exit 1, `npm test`): 2 failed"
+    - "stub: 2 task(s) still under ## Reste: T3 | T4"
+  summary: "stub: T2 migration written; two tests still failing"
+  tests_passed: false
+  remaining: 2
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+  tries: 8
+fixture:
+  expect: completed
+  reached: [plan, implement__verdict, done]
+  inputs:
+    request: "stub request"
+    lint_cmd: "kill -KILL $$"   # fil-piège : n'est jamais lancé si `lint` est bien sauté
+exec-code: true

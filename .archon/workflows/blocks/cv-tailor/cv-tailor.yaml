@@ -1,0 +1,200 @@
+name: cv-tailor
+description: |
+  Bloc « cv-tailor » : à partir d'une offre validée et du profil maître, produit un dossier
+  de candidature sur mesure (CV d'une page, message d'accroche, fiche candidat) dans les
+  artefacts du run. Un agent rédige (Drafter) ; un script vérifie ce que le code peut
+  établir — mots-clés de l'offre couverts, aucun chiffre ni aucune portée (B2B/B2C, P&L,
+  budget, management, clients nommés) que le profil ne porte pas, pas de phrase creuse ni
+  de tirets longs à la chaîne, une page, contact du profil, message qui nomme l'entreprise
+  et finit par une demande — et renvoie l'agent au travail tant que ça ne passe pas ; puis
+  un juge en contexte vierge (Reviewer, recruteur exigeant) note le dossier et n'approuve
+  qu'à partir de A-. Rend un verdict typé (`ok`) ; si les contrôles sont encore rouges au
+  troisième tour, le Reviewer est sauté et le verdict dit `unconverged`.
+
+  Use when: an offer has been validated by the candidate and the application file must be
+  written before applying — "fais le CV pour", "prépare la candidature".
+  NOT for: qualifying an offer (that is the jury of inspectors upstream) or sending the
+  application (apply-submit).
+
+model: medium
+
+inputs:
+  offer:
+    required: true
+    description: |
+      The offer as JSON text: company, title, link, slug, skills_required, description,
+      and, when the caller fetched the posting, description_full and keywords
+      (comma-separated ATS keywords found in the posting). Everything the Drafter knows
+      about the job comes from here.
+  profile:
+    required: true
+    description: Absolute path of the candidate's master profile (Markdown). The only source of facts about the candidate.
+  proofs:
+    default: ""
+    description: Optional absolute path of the skill → proof graph (JSON) the CV can cite.
+  remarks:
+    default: ""
+    description: Optional remarks the candidate left on this application (free text); the Drafter must honour them.
+  keywords:
+    default: ""
+    description: Comma-separated ATS keywords the CV must cover (from the posting). Empty means skills_required of the offer.
+  min_coverage:
+    default: "0.7"
+    description: Share of keywords the CV must cover, between 0 and 1.
+  out_dir:
+    default: application
+    description: Folder inside the run's artifacts receiving CV.md, pitch.md and candidate.json.
+
+returns: { node: verdict, outcome: ok }
+
+nodes:
+  # ── 1. Rédiger, puis contrôler par du code, en boucle ────────────────────
+  # Le Drafter écrit ; le script `check` vérifie ; tant que le script dit non, le Drafter
+  # reçoit la liste des problèmes et recommence, 3 tours au plus. Au plafond, la boucle
+  # rend la main avec des contrôles encore rouges (le compteur `tries` du script, pas
+  # l'épuisement de max_iterations : une boucle épuisée finit `failed`, et Archon rejoue
+  # les nœuds en échec quand un run reprend après une pause humaine). Le Reviewer est alors
+  # sauté et le verdict dit `unconverged` : le dossier n'est pas « fait », mais le bloc le
+  # dit par une issue typée.
+  - id: produce
+    loop_group:
+      max_iterations: 3
+      fresh_context: true
+      until_bash: 'ok=$check.output.ok; t=$check.output.tries; [ "$ok" = true ] || [ "$t" -ge 3 ]'
+      nodes:
+        - id: work
+          command: work
+          model: large   # Opus conçoit le CV (partage des modèles du 2026-11-07, forfait Pro : Opus ne rédige que le CV, Sonnet juge)
+          allowed_tools: [Read, Glob, Grep, Write, WebFetch]   # lit le profil et l'offre, écrit dans les artefacts
+          with:
+            offer: "$INPUTS.offer"
+            profile: "$INPUTS.profile"
+            proofs: "$INPUTS.proofs"
+            remarks: "$INPUTS.remarks"
+            keywords: "$INPUTS.keywords"
+            out_dir: "$INPUTS.out_dir"
+            problems: "$LOOP_PREV.check.output.problems"
+          output_format:
+            type: object
+            properties:
+              summary: { type: string, pattern: '\S' }
+              language: { type: string, enum: [fr, en] }
+              deliverable:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, pattern: '\S' }
+                required: [type, run_id, path]
+            required: [summary, language, deliverable]
+
+        - id: check
+          script: check
+          runtime: bun
+          depends_on: [work]
+          with:
+            offer: "$INPUTS.offer"
+            profile: "$INPUTS.profile"
+            keywords: "$INPUTS.keywords"
+            min_coverage: "$INPUTS.min_coverage"
+            out_dir: "$INPUTS.out_dir"
+            summary: "$work.output.summary"
+            deliverable: { from: "$work.output.deliverable" }
+            tries: "$LOOP_PREV.check.output.tries"
+          output_format:
+            type: object
+            properties:
+              ok: { type: boolean }
+              problems: { type: array, items: { type: string } }
+              summary: { type: string }
+              coverage:
+                type: object
+                properties:
+                  covered: { type: array, items: { type: string } }
+                  missing: { type: array, items: { type: string } }
+                  ratio: { type: number }
+                required: [covered, missing, ratio]
+              deliverable:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, pattern: '\S' }
+                required: [type, run_id, path]
+              tries: { type: integer, minimum: 1 }
+            required: [ok, problems, summary, coverage, deliverable, tries]
+
+  # ── 2. Le Reviewer : juger ce que le code ne peut pas trancher ───────────
+  # Contexte vierge, lecture seule, Sonnet (partage des modèles du 2026-11-07, forfait Pro : Opus ne rédige que le CV, Sonnet juge). Il ne tourne que si les contrôles
+  # sont verts.
+  - id: judge
+    command: judge
+    context: fresh
+    mutates_checkout: false
+    allowed_tools: [Read, Glob, Grep]   # lecture seule : le juge ne voit que le dossier, l'offre et le profil
+    model: medium
+    depends_on: [produce]
+    when: "$produce.output.ok == true"
+    with:
+      offer: "$INPUTS.offer"
+      profile: "$INPUTS.profile"
+      remarks: "$INPUTS.remarks"
+      out_dir: "$INPUTS.out_dir"
+      produced: "$produce.output"
+    output_format:
+      type: object
+      properties:
+        approved: { type: boolean }
+        grade: { type: string, pattern: '^[A-F][+-]?$' }
+        reason: { type: string, pattern: '\S' }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string, pattern: '\S' }
+            required: [severity, text]
+      required: [approved, grade, reason, findings]
+
+  # ── 3. Verdict ───────────────────────────────────────────────────────────
+  # Un script dérive l'issue des deux faits certifiés : contrôles verts et Reviewer
+  # favorable. Il tourne aussi quand le Reviewer est sauté (contrôles rouges au plafond) :
+  # `unconverged`. Il ne tourne pas si le Reviewer a échoué (erreur du modèle) : une liaison
+  # ne lit jamais un nœud en échec, et le verdict sauté se lit `null` chez l'appelant
+  # (`if_skipped: null`).
+  - id: verdict
+    script: verdict
+    runtime: bun
+    depends_on: [produce, judge]
+    trigger_rule: none_failed_min_one_success
+    with:
+      produced: "$produce.output"
+      approved: { from: "$judge.output.approved", if_skipped: null }
+      grade: { from: "$judge.output.grade", if_skipped: null }
+      reason: { from: "$judge.output.reason", if_skipped: null }
+      findings: { from: "$judge.output.findings", if_skipped: null }
+    output_type: block-verdict
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        status: { type: string, enum: [verified, rejected, unconverged] }
+        summary: { type: string }
+        problems: { type: array, items: { type: string } }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string }
+            required: [severity, text]
+        deliverable:
+          type: object
+          properties:
+            type: { type: string, enum: [archon_artifact] }
+            run_id: { type: string }
+            path: { type: string, pattern: '\S' }
+          required: [type, run_id, path]
+      required: [ok, status, summary, problems, findings, deliverable]

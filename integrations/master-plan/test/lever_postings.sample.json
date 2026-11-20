@@ -1,0 +1,28 @@
+[
+  {
+    "id": "a1b2c3d4-0000-4000-8000-000000000001",
+    "text": "Revenue Operations Analyst",
+    "hostedUrl": "https://jobs.lever.co/kestrel/a1b2c3d4-0000-4000-8000-000000000001",
+    "applyUrl": "https://jobs.lever.co/kestrel/a1b2c3d4-0000-4000-8000-000000000001/apply",
+    "categories": { "location": "Dublin", "allLocations": ["Dublin", "Remote - Europe"], "team": "Revenue", "commitment": "Full-time" },
+    "workplaceType": "remote",
+    "descriptionPlain": "You will own the CRM data model and the pipeline reporting.",
+    "description": "<p>You will own the CRM data model and the pipeline reporting.</p>",
+    "createdAt": 1792569600000,
+    "salaryRange": { "min": 45000, "max": 55000, "currency": "EUR", "interval": "per-year-salary" }
+  },
+  {
+    "id": "a1b2c3d4-0000-4000-8000-000000000002",
+    "text": "Office Manager",
+    "hostedUrl": "https://jobs.lever.co/kestrel/a1b2c3d4-0000-4000-8000-000000000002",
+    "categories": { "location": "Dublin", "team": "People", "commitment": "Part-time" },
+    "workplaceType": "on-site",
+    "description": "<p>Front desk &amp; supplies.</p>",
+    "createdAt": 1792483200000
+  },
+  {
+    "id": "",
+    "text": "Ghost posting without id",
+    "hostedUrl": "https://jobs.lever.co/kestrel/ghost"
+  }
+]

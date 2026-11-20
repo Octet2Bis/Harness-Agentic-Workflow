@@ -1,0 +1,27 @@
+# Issue « verified », mode de travail non précisé : l'annonce ne dit rien du lieu de travail
+# (l'agent a écrit `not_stated`, aucun marqueur dans le texte), la règle laisse l'offre « à
+# vérifier », jamais retenue ; le juge confirme ; le verdict (script réel) rend la décision.
+# attendu: ok=true status=verified decision=a_verifier
+work:
+  summary: "stub: anglais courant, 40 k€, rien sur le lieu de travail"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: anglais courant, 40 k€, rien sur le lieu de travail"
+  decision: a_verifier
+  reasons: ["Mode de travail non précisé dans l'annonce"]
+  notes: ["Salaire : 40 000 € brut par an"]
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: l'annonce ne dit rien du lieu de travail, « à vérifier » est juste"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Acme","title":"Growth Marketing Manager","link":"https://example.org/jobs/acme-growth","slug":"acme-growth"}'
+    criteria: '{"langues":["fr","en"],"salaire_min_annuel":35000}'
+exec-code: true

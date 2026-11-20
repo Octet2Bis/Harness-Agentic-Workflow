@@ -1,0 +1,27 @@
+# Issue « rejected » : les contrôles passent mais le Reviewer note B+ (sous A-). Le run se
+# termine normalement avec une issue autorisée négative (ok: false).
+# attendu: ok=false status=rejected
+work:
+  summary: "stub: dossier complet"
+  language: en
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: dossier complet"
+  coverage: { covered: [n8n, GTM], missing: [HubSpot], ratio: 0.67 }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+  tries: 1
+judge:
+  approved: false
+  grade: "B+"
+  reason: "stub: experiences listed as tasks, not results"
+  findings:
+    - { severity: blocking, text: "stub: the first experience has no result nor figure although the profile has one" }
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Acme","title":"Growth Ops Manager","link":"https://jobs.lever.co/acme/123","slug":"acme","skills_required":"n8n, GTM, HubSpot"}'
+    profile: "/stub/master_profile.md"
+exec-code: true

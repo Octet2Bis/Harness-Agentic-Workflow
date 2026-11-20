@@ -1,0 +1,57 @@
+{
+  "_fixture": "jobs[0] et l'enveloppe : réels — GET https://jobs.workable.com/api/v1/jobs?query=growth marketing&location=Europe&workplace=remote&limit=2&day_range=7 du 2026-10-24 (textes tronqués) ; jobs[1] (hybride, sans TELECOMMUTE) et jobs[2] (non publié) construits sur la même forme",
+  "title": "Workable",
+  "totalSize": 84,
+  "nextPageToken": "eyJzZWFyY2hBdCI6IjIwMjYtMTAtMjRUMTI6NTk6NTkuOTk5WiJ9",
+  "jobs": [
+    {
+      "id": "86ffcaf6-d9f5-4c9e-bacf-691069d38296",
+      "title": "Head of Growth Marketing",
+      "state": "published",
+      "description": "<p>Carry1st Shop is a direct-to-consumer storefront for in-game currency and digital goods.</p>",
+      "socialSharingDescription": "Carry1st Shop is a direct-to-consumer storefront for in-game currency and digita...",
+      "employmentType": "Full-time",
+      "benefitsSection": "<p><strong>What will it be like to work at Carry1st?</strong></p>",
+      "requirementsSection": "<ul><li><strong>Experience:</strong> 6+ years in growth or performance marketing</li></ul>",
+      "url": "https://jobs.workable.com/view/hESNPcFX4DuDBXLgGeh8m3/remote-head-of-growth-marketing-in-serbia-at-carry1st",
+      "language": "en",
+      "locations": ["TELECOMMUTE", "Serbia"],
+      "location": { "city": "", "subregion": null, "countryName": "Serbia" },
+      "created": "2026-10-20T11:11:35.172Z",
+      "updated": "2026-10-20T11:11:35.172Z",
+      "company": {
+        "id": "024995a0-e83b-41d4-a37e-925c0818aae4",
+        "title": "Carry1st",
+        "website": "https://www.carry1st.com/",
+        "url": "https://jobs.workable.com/company/1hocSNaAHuMsLSNTYpxN2J/jobs-at-carry1st"
+      },
+      "isFeatured": false,
+      "workplace": "remote"
+    },
+    {
+      "id": "0b1e2c3d-0000-4000-8000-000000000002",
+      "title": "Marketing Automation Specialist – Lisboa",
+      "state": "published",
+      "description": "<p>Run our HubSpot workflows.</p>",
+      "employmentType": "Full-time",
+      "department": "Marketing",
+      "url": "https://jobs.workable.com/view/AbCdEf/marketing-automation-specialist-lisboa",
+      "locations": [],
+      "location": { "city": "Lisboa", "subregion": "Lisboa", "countryName": "Portugal" },
+      "created": "2026-10-23T08:00:00.000Z",
+      "company": { "title": "Exemplo Lda" },
+      "workplace": "hybrid"
+    },
+    {
+      "id": "0b1e2c3d-0000-4000-8000-000000000003",
+      "title": "Growth Lead",
+      "state": "closed",
+      "url": "https://jobs.workable.com/view/Closed/growth-lead",
+      "locations": ["TELECOMMUTE", "France"],
+      "created": "2026-10-10T08:00:00.000Z",
+      "company": { "title": "Fermée SAS" },
+      "workplace": "remote"
+    }
+  ],
+  "autoAppliedFilters": {}
+}

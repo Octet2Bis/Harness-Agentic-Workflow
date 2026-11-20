@@ -1,0 +1,26 @@
+# Moteur `rules` (défaut) : aucun modèle, le bloc job-triage est sauté ; `classify` s'exécute pour
+# de vrai ; `load`, `rules` (ils lisent le disque) et `record` sont stubbés.
+# attendu(classify): decision=a_verifier block_status=rules
+load:
+  ok: true
+  go: true
+  summary: "stub: offer Smartness to triage; posting read"
+  key: LI-1642423340
+  offer_json: '{"key":"LI-1642423340","id":"LI-1642423340","slug":"smartness","company":"Smartness","title":"Sales Operations & Enablement Specialist","link":"https://pt.linkedin.com/jobs/view/x-4475957729","location":"Portugal","source":"LinkedIn","status":"PENDING_VALIDATION"}'
+  criteria_json: '{"langues":["fr","en"],"salaire_min_annuel":35000}'
+  criteria_hash: abc123
+  posting_full: "true"
+  readable: true
+  unreadable_reason: ""
+  pre_screened: false
+  pre_screen_reason: ""
+  profile_file: ""
+  attempts: 0
+rules: { decision: a_verifier, reasons: ["Langue nommée : l'italien : exigée ou souhaitée, à lire"], notes: ["Tri par les règles du code, sans modèle"] }
+record: { ok: true, written: true, key: LI-1642423340, decision: a_verifier, path: "/stub/career/triage/LI-1642423340.json", summary: "stub: à vérifier" }
+fixture:
+  expect: completed
+  reached: [load, rules, classify, record]
+  inputs:
+    career_dir: "/stub/career"
+exec-code: true

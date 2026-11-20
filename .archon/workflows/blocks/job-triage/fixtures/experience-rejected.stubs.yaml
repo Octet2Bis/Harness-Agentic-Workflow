@@ -1,0 +1,32 @@
+# Issue « verified », expérience exigée au-delà du maximum : l'annonce dit « Minimum 7 ans
+# d'expérience en Product Marketing », le candidat en a 3 au plus (`experience_max_annees`),
+# l'agent cite la phrase, la règle écarte l'offre (borne basse 7 > 3), le juge confirme ; le
+# verdict (script réel) rend la décision et sa raison. Le « profil senior » du corps passe en note.
+# attendu: ok=true status=verified decision=ecartee
+work:
+  summary: "stub: PMM chez Inqom, 7 ans d'expérience minimum, profil senior, 60-68 k€, 100 % télétravail"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: PMM chez Inqom, 7 ans d'expérience minimum, profil senior, 60-68 k€, 100 % télétravail"
+  decision: ecartee
+  reasons:
+    - "Exige 7 ans d'expérience (max 3) : « Profil senior. Minimum 7 ans d'expérience en Product Marketing »"
+  notes:
+    - "Profil « senior » annoncé (max 3 ans d'expérience) : « Profil senior. Minimum 7 ans d'expérience en Product Marketing »"
+    - "Salaire : 60 000 € à 68 000 € brut par an"
+    - "Télétravail complet : « Poste en 100 % télétravail »"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: l'annonce exige bien sept ans d'expérience"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Inqom","title":"Product Marketing Manager - Outils du cabinet","link":"https://example.org/jobs/inqom-pmm","slug":"inqom-pmm"}'
+    criteria: '{"langues":["fr","en"],"salaire_min_annuel":35000,"experience_max_annees":3}'
+exec-code: true

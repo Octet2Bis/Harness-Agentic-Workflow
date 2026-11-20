@@ -1,0 +1,32 @@
+# Issue « research rejected » : le juge du bloc research refuse ; design, report et la
+# vérification humaine sont sautés ; `done` (réel, exec-code) clôt avec ok: false et
+# stage: research. Le run se termine normalement : le statut et l'issue sont deux faits.
+# attendu: ok=false stage=research
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+research__judge:
+  approved: false
+  reason: "stub: two findings have no source"
+  findings:
+    - { severity: blocking, text: "stub: finding 2 cites no source" }
+research__verdict:
+  ok: false
+  status: rejected
+  summary: "stub: research rejected by the judge"
+  problems: []
+  findings:
+    - { severity: blocking, text: "stub: finding 2 cites no source" }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "research.md" }
+fixture:
+  expect: completed
+  reached: [research__verdict, done]
+  inputs:
+    task: "stub task"
+exec-code: true

@@ -1,0 +1,12 @@
+# Issue « collect-failed » : la collecte échoue avant le réseau (career_taxonomy.json absent du
+# dossier carrière) : ok: false, rien à cribler, `screen` sauté. `record` s'exécute pour de vrai
+# (exec-code) : il relaie l'échec (ok: false, rien d'ajouté) et, le dossier carrière /stub/career
+# n'existant pas, n'écrit pas de rapport. Le run finit `completed` avec une issue typée.
+# attendu: ok=false added=0 skipped=0 report_path=""
+collect: { ok: false, go: false, summary: "stub: career_taxonomy.json not found in /stub/career", raw_count: 0, sources_ok: 0, sources_failed: 0, raw_path: { type: archon_artifact, run_id: "fixture-run", path: "radar/raw.json" } }
+fixture:
+  expect: completed
+  reached: [collect, record]
+  inputs:
+    career_dir: "/stub/career"
+exec-code: true

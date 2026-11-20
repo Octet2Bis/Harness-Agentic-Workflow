@@ -1,0 +1,158 @@
+name: review
+description: |
+  Bloc « review » : relit un diff contre son plan et rend un verdict lisible par du code
+  (`review.json` : pass | fail + constats), sans rien corriger. L'agent relit et écrit le
+  diff et son verdict dans les artefacts ; un script vérifie la forme du verdict et sa
+  cohérence (un « fail » a un constat bloquant, chaque constat pointe un fichier du diff) ;
+  un juge en contexte vierge, lecture seule, vérifie que les constats bloquants sont réels
+  et qu'aucun défaut évident n'est omis. Le verdict du bloc dit si la relecture est fiable ;
+  `code_verdict` dit ce qu'elle a conclu du code.
+
+  Use when: a diff must be judged before a human reads it — "relis le diff", "revue de
+  code", after the `implement` block.
+  NOT for: fixing what it finds (implement) or deciding to merge (the human, then ship).
+
+model: medium
+
+inputs:
+  plan:
+    default: ""
+    description: The plan the diff was supposed to realise (path or text); empty means "review on its own merits".
+  base:
+    default: main
+    description: The git ref the diff is taken against (from `git merge-base <base> HEAD`, working tree and untracked files included).
+  out:
+    default: review.json
+    description: File name of the verdict inside the run's artifacts; the diff goes to diff.patch beside it.
+
+returns: { node: verdict, outcome: ok }
+
+nodes:
+  # ── 1. Relire, puis contrôler `review.json` par du code, en boucle ────────
+  # 3 tours au plus. Au plafond, la boucle rend la main avec des contrôles encore rouges
+  # (compteur `tries` du contrôle, pas l'épuisement de max_iterations : une boucle épuisée
+  # finit `failed`, et Archon rejoue les nœuds en échec quand un run reprend après une pause
+  # humaine). Le juge est alors sauté et le verdict dit `unconverged`, `code_verdict: unknown`.
+  - id: produce
+    loop_group:
+      max_iterations: 3
+      fresh_context: true
+      until_bash: 'ok=$check.output.ok; t=$check.output.tries; [ "$ok" = true ] || [ "$t" -ge 3 ]'
+      nodes:
+        - id: work
+          command: work
+          mutates_checkout: false
+          allowed_tools: [Read, Glob, Grep, Bash]
+          with:
+            plan: "$INPUTS.plan"
+            base: "$INPUTS.base"
+            out: "$INPUTS.out"
+            problems: "$LOOP_PREV.check.output.problems"
+          output_format:
+            type: object
+            properties:
+              summary: { type: string, pattern: '\S' }
+              deliverable:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, pattern: '\S' }
+                required: [type, run_id, path]
+            required: [summary, deliverable]
+
+        - id: check
+          script: check
+          runtime: bun
+          depends_on: [work]
+          with:
+            out: "$INPUTS.out"
+            summary: "$work.output.summary"
+            deliverable: { from: "$work.output.deliverable" }
+            tries: "$LOOP_PREV.check.output.tries"
+          output_format:
+            type: object
+            properties:
+              ok: { type: boolean }
+              problems: { type: array, items: { type: string } }
+              summary: { type: string }
+              code_verdict: { type: string, enum: [pass, fail, unknown] }
+              blocking: { type: integer, minimum: 0 }
+              deliverable:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, pattern: '\S' }
+                required: [type, run_id, path]
+              tries: { type: integer, minimum: 1 }
+            required: [ok, problems, summary, code_verdict, blocking, deliverable, tries]
+
+  # ── 2. Juger la relecture (contexte vierge, lecture seule) ────────────────
+  # Il ne tourne que si les contrôles sont verts.
+  - id: judge
+    command: judge
+    context: fresh
+    mutates_checkout: false
+    allowed_tools: [Read, Glob, Grep]   # lecture seule : le diff et le verdict sont dans les artefacts
+    model: large
+    depends_on: [produce]
+    when: "$produce.output.ok == true"
+    with:
+      plan: "$INPUTS.plan"
+      produced: "$produce.output"
+      out: "$INPUTS.out"
+    output_format:
+      type: object
+      properties:
+        approved: { type: boolean }
+        reason: { type: string, pattern: '\S' }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string, pattern: '\S' }
+            required: [severity, text]
+      required: [approved, reason, findings]
+
+  # ── 3. Verdict ───────────────────────────────────────────────────────────
+  # Il tourne aussi quand le juge est sauté (contrôles rouges au plafond) : `unconverged`.
+  # Il ne tourne pas si le juge a échoué (erreur du modèle) : une liaison ne lit jamais un
+  # nœud en échec, et le verdict sauté se lit `null` chez l'appelant (`if_skipped: null`).
+  - id: verdict
+    script: verdict
+    runtime: bun
+    depends_on: [produce, judge]
+    trigger_rule: none_failed_min_one_success
+    with:
+      produced: "$produce.output"
+      approved: { from: "$judge.output.approved", if_skipped: null }
+      reason: { from: "$judge.output.reason", if_skipped: null }
+      findings: { from: "$judge.output.findings", if_skipped: null }
+    output_type: block-verdict
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        status: { type: string, enum: [verified, rejected, unconverged] }
+        code_verdict: { type: string, enum: [pass, fail, unknown] }
+        summary: { type: string }
+        problems: { type: array, items: { type: string } }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string }
+            required: [severity, text]
+        deliverable:
+          type: object
+          properties:
+            type: { type: string, enum: [archon_artifact] }
+            run_id: { type: string }
+            path: { type: string, pattern: '\S' }
+          required: [type, run_id, path]
+      required: [ok, status, code_verdict, summary, problems, findings, deliverable]

@@ -1,0 +1,24 @@
+# Issue « none kept » : les trois passent, l'humain choisit l'option `none` ; `drop` annule le run.
+# attendu(collect): survivors=3
+work:
+  summary: "stub: page built"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.html" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: page built"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.html" }
+  tries: 1
+a__judge: { approved: true, reason: "stub: clear", findings: [] }
+a__verdict: { ok: true, status: verified, summary: "stub: A", problems: [], findings: [], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "variant-a.html" } }
+b__judge: { approved: true, reason: "stub: clear", findings: [] }
+b__verdict: { ok: true, status: verified, summary: "stub: B", problems: [], findings: [], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "variant-b.html" } }
+c__judge: { approved: true, reason: "stub: clear", findings: [] }
+c__verdict: { ok: true, status: verified, summary: "stub: C", problems: [], findings: [], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "variant-c.html" } }
+choose: { decision: none, text: "stub: none honours the promise" }
+fixture:
+  expect: cancelled
+  reached: [collect, choose, drop]
+  inputs:
+    brief: "stub brief"
+exec-code: true

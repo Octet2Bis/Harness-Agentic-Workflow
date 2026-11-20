@@ -1,0 +1,46 @@
+# Issue « approved » : les trois blocs rendent ok, l'humain approuve à la fin, le script
+# `done` (réel, exec-code) clôt avec ok: true. Les nœuds de boucle `work`/`check` gardent
+# leur id nu dans un include : un seul stub sert aux trois blocs.
+# attendu: ok=true stage=done
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+research__judge: { approved: true, reason: "stub: sourced", findings: [] }
+research__verdict:
+  ok: true
+  status: verified
+  summary: "stub: research answered the question"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "research.md" }
+design__judge: { approved: true, reason: "stub: sound", findings: [] }
+design__verdict:
+  ok: true
+  status: verified
+  summary: "stub: option A chosen"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "design.md" }
+report__judge: { approved: true, reason: "stub: faithful", findings: [] }
+report__verdict:
+  ok: true
+  status: verified
+  summary: "stub: report written"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "report.md" }
+review: { decision: approve, text: "" }
+fixture:
+  expect: completed
+  reached: [research__verdict, design__verdict, report__verdict, review, done]
+  inputs:
+    task: "stub task"
+  resolved-text-contains:
+    review: "stub: report written"
+exec-code: true

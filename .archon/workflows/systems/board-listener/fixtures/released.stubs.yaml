@@ -1,0 +1,14 @@
+# Un écouteur repris (`archon workflow resume`) dont la carte n'est plus à lui : remise en file
+# après son échec, puis prise par un autre run. `hold` (rejouée à chaque reprise, stubbée :
+# état ; décision testée par holdDecision) rend held=false : aucun `run_*` ne part (sinon la
+# carte tournerait deux fois), `outcome` et `close` (réels) rendent `released` sans écrire,
+# `settle` ne touche pas la carte d'un autre run.
+# attendu: ok=true path=released id=20261016150000-back
+# attendu(outcome): ok=true path=released workflow=pipeline result=null
+claim: { path: work, id: "20261016150000-back", run: "stub-run", workflow: pipeline, task: "stub: faire le point sur X", context: "", revision: 2, note: "" }
+hold: { held: false, status: picked_up, by: "other-run" }
+settle: { settled: false, id: "20261016150000-back", summary: "stub: picked_up by another run" }
+fixture:
+  expect: completed
+  reached: [claim, hold, outcome, outcome_result, close, settle]
+exec-code: true

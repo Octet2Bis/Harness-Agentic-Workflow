@@ -1,0 +1,90 @@
+{
+  "data": [
+    {
+      "public_slug": "growth-ops-manager-acme-7k2p9qxa",
+      "source": "greenhouse",
+      "external_id": "4410021",
+      "url": "https://boards.greenhouse.io/acme/jobs/4410021?gh_src=freehire",
+      "title": "Growth Ops Manager &amp; GTM Engineer",
+      "company": "Acme",
+      "company_slug": "acme",
+      "location": "Paris, France",
+      "description": "Acme recrute un Growth Ops Manager.\r\n- Automatiser le GTM (n8n, HubSpot)\r\n- Piloter le tracking",
+      "skills": ["n8n", "hubspot", "sql"],
+      "work_mode": "hybrid",
+      "regions": ["eu"],
+      "countries": ["fr"],
+      "cities": ["Paris"],
+      "posted_at": "2026-10-20T00:00:00Z",
+      "created_at": "2026-10-20T08:12:00Z",
+      "enrichment": { "seniority": "middle", "category": "operations", "employment_type": "full_time", "salary_min": 48000, "salary_max": 55000, "salary_currency": "EUR", "salary_period": "year" }
+    },
+    {
+      "public_slug": "revops-analyst-borealis-3hq8m2zd",
+      "source": "lever",
+      "external_id": "b1c2",
+      "url": "https://jobs.lever.co/borealis/b1c2d3e4?lever-source=freehire",
+      "title": "RevOps Analyst",
+      "company": "Borealis Logistique",
+      "company_slug": "borealis-logistique",
+      "location": "",
+      "description": null,
+      "skills": [],
+      "regions": [],
+      "countries": ["fr"],
+      "cities": ["Lyon"],
+      "posted_at": null,
+      "enrichment": {}
+    },
+    {
+      "public_slug": "sales-ops-nordlys-9zz1c4ab",
+      "source": "ashby",
+      "url": "https://jobs.ashbyhq.com/nordlys/5f6a7b8c",
+      "title": "Sales Operations Lead",
+      "company": "Nordlys",
+      "company_slug": "nordlys",
+      "location": "Remote (EU)",
+      "description": "Sales ops.",
+      "skills": ["salesforce"],
+      "work_mode": "remote",
+      "regions": ["eu"],
+      "countries": [],
+      "cities": [],
+      "posted_at": "2026-10-19T00:00:00Z",
+      "enrichment": {}
+    },
+    {
+      "public_slug": "automation-engineer-kestrel-2mm7v1qe",
+      "source": "workable",
+      "url": "https://apply.workable.com/kestrel/j/AB12CD34EF/",
+      "title": "Automation Engineer (Make, n8n)",
+      "company": "Kestrel",
+      "company_slug": "kestrel",
+      "location": "Nantes, France",
+      "description": "Automatisations.",
+      "skills": ["n8n", "make"],
+      "work_mode": "onsite",
+      "regions": ["eu"],
+      "countries": ["fr"],
+      "cities": ["Nantes"],
+      "posted_at": "2026-10-21T00:00:00Z",
+      "enrichment": {}
+    },
+    {
+      "public_slug": "closed-role-acme-0aa0aa0a",
+      "source": "greenhouse",
+      "url": "https://boards.greenhouse.io/acme/jobs/4400000",
+      "title": "Ops Intern",
+      "company": "Acme",
+      "posted_at": "2026-09-01T00:00:00Z",
+      "closed_at": "2026-10-01T00:00:00Z",
+      "enrichment": {}
+    },
+    {
+      "public_slug": "no-url-1",
+      "title": "Broken row",
+      "company": "Nowhere"
+    }
+  ],
+  "meta": { "total": 6, "limit": 50, "offset": 0 }
+}

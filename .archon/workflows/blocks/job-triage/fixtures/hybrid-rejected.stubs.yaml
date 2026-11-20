@@ -1,0 +1,29 @@
+# Issue « verified », poste hybride : citations vérifiées, l'agent a déclaré « hybrid » avec sa
+# phrase, la règle écarte l'offre (criteres.json sans clé `remote` : `full` par défaut), le juge
+# confirme ; le verdict (script réel) rend la décision et sa raison.
+# attendu: ok=true status=verified decision=ecartee
+work:
+  summary: "stub: hybride, 3 jours par semaine au bureau d'Athènes, anglais courant, 28-32 k€"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: hybride, 3 jours par semaine au bureau d'Athènes, anglais courant, 28-32 k€"
+  decision: ecartee
+  reasons:
+    - "Salaire sous 35 000 € par an : 28 000 € à 32 000 € brut par an"
+    - "Poste non 100 % télétravail (hybride) : « Hybrid: 3 days per week in our Athens office, the rest from home. »"
+  notes: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: l'annonce dit bien trois jours par semaine au bureau"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Push Greece","title":"Junior Performance Marketing Specialist","link":"https://example.org/jobs/push-greece-junior-performance-marketing","slug":"push-greece","location":"Neo Psychiko, Attica"}'
+    criteria: '{"langues":["fr","en"],"salaire_min_annuel":35000}'
+exec-code: true

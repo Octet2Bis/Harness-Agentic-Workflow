@@ -1,0 +1,28 @@
+# Issue « verified », télétravail complet : l'annonce dit « fully remote », l'agent le cite, la
+# règle retient l'offre (`remote: full`), le juge confirme ; le verdict (script réel) rend la décision.
+# attendu: ok=true status=verified decision=retenue
+work:
+  summary: "stub: 100 % télétravail depuis l'Europe, anglais courant, 40-48 k€"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: 100 % télétravail depuis l'Europe, anglais courant, 40-48 k€"
+  decision: retenue
+  reasons: ["Langues, salaire et mode de travail conformes à criteres.json"]
+  notes:
+    - "Salaire : 40 000 € à 48 000 € brut par an"
+    - "Télétravail complet : « This role is fully remote: work from anywhere in Europe. »"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: l'annonce dit bien un poste entièrement à distance"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Smartness","title":"Sales Operations & Enablement Specialist","link":"https://pt.linkedin.com/jobs/view/4475957729","slug":"smartness"}'
+    criteria: '{"langues":["fr","en"],"salaire_min_annuel":35000,"remote":"full"}'
+exec-code: true

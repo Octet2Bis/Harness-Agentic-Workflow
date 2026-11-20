@@ -1,0 +1,30 @@
+# Issue « écartée » pour l'âge, par le code seul (mode économe, 2026-10-24) : la ligne du tableau
+# date du 2026-10-12, au-delà de `offre_age_max_jours` (7, le défaut de criteres.json) ; `load`
+# (disque, stubbé) le tranche avant toute lecture de page (`preScreen`, `pre_screened: true`,
+# la raison de la règle du bloc) ; le bloc job-triage est sauté : aucun de ses nœuds n'a de stub,
+# un nœud atteint ferait échouer le dry-run, donc aucun appel de modèle. `classify` (réel) écrit
+# « écartée », `block_status: pre_screened` ; `record` (disque) est stubbé. Avant, l'offre passait
+# par Opus deux fois pour la même raison (`blocks/job-triage/fixtures/too-old-rejected`).
+# attendu(classify): decision=ecartee block_status=pre_screened
+load:
+  ok: true
+  go: true
+  summary: "stub: offer Acme pre-screened by code: offre trop ancienne (publiée le 2026-10-12, > 7 jours); page not read, the block is skipped (no model call)."
+  key: HIM-1
+  offer_json: '{"key":"HIM-1","id":"HIM-1","slug":"acme","company":"Acme","title":"Growth Marketing Manager","link":"https://example.org/jobs/acme-growth","location":"Europe","source":"Himalayas","status":"PENDING_VALIDATION","date_published":"2026-10-12","radar_at":"2026-10-12T08:00:00.000Z"}'
+  criteria_json: '{"langues":["fr","en"],"salaire_min_annuel":35000,"offre_age_max_jours":7}'
+  criteria_hash: abc123
+  posting_full: "false"
+  readable: true
+  unreadable_reason: ""
+  pre_screened: true
+  pre_screen_reason: "offre trop ancienne (publiée le 2026-10-12, > 7 jours)"
+  profile_file: ""
+  attempts: 0
+record: { ok: true, written: true, key: HIM-1, decision: ecartee, path: "/stub/career/triage/HIM-1.json", summary: "stub: écartée (offre trop ancienne)" }
+fixture:
+  expect: completed
+  reached: [load, classify, record]
+  inputs:
+    career_dir: "/stub/career"
+exec-code: true

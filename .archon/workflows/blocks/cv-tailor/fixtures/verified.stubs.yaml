@@ -1,0 +1,26 @@
+# Issue « verified » : les contrôles passent, le Reviewer note A, le verdict (script réel,
+# exec-code) rend ok: true. Prouve le câblage du bloc sans appeler un modèle.
+# attendu: ok=true status=verified
+work:
+  summary: "stub: angle growth ops, tous les mots-clés couverts"
+  language: fr
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: angle growth ops, tous les mots-clés couverts"
+  coverage: { covered: [n8n, GTM, HubSpot], missing: [], ratio: 1 }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+  tries: 1
+judge:
+  approved: true
+  grade: "A"
+  reason: "stub: honest, dense, one page"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Acme","title":"Growth Ops Manager","link":"https://jobs.lever.co/acme/123","slug":"acme","skills_required":"n8n, GTM, HubSpot"}'
+    profile: "/stub/master_profile.md"
+exec-code: true

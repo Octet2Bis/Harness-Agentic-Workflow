@@ -1,0 +1,130 @@
+name: implement
+description: |
+  Bloc « implement » : réalise un plan dans le dépôt, une tâche par tour, jusqu'à ce que
+  la suite de tests du projet passe et que le journal ne liste plus rien à faire. L'agent
+  code ; un script lance la commande de tests du projet (elle seule fait foi) et lit le
+  journal `## Fait` / `## Reste` ; tant que les tests échouent ou qu'il reste une tâche,
+  l'agent repart en contexte vierge du journal et des problèmes. Pas de juge ici : les
+  tests sont déterministes, et le bloc `review` relit le diff juste après. Seul bloc qui
+  modifie le dépôt : à lancer dans un worktree (le défaut d'`archon workflow run`).
+
+  Use when: a plan exists and must become code — "implémente le plan", "réalise les
+  tâches", "fais passer les tests".
+  NOT for: deciding what to build (design, archon-plan) or judging the result (review).
+
+model: medium
+
+inputs:
+  plan:
+    required: true
+    description: The plan to implement, as a path (artifacts/plan.md) or inline text, with its tasks in order.
+  test_cmd:
+    default: npm test
+    description: The project's test command; its exit code decides whether the work holds.
+  out:
+    default: implement.md
+    description: File name of the journal inside the run's artifacts (## Fait / ## Reste).
+
+returns: { node: verdict, outcome: ok }
+
+nodes:
+  # ── 1. Coder, puis laisser les tests et le journal décider, en boucle ───────────────
+  # Une tâche par tour, 8 tours au plus. Au plafond, la boucle rend la main avec des tests
+  # encore rouges ou des tâches restantes (compteur `tries` du contrôle, pas l'épuisement de
+  # max_iterations : une boucle épuisée finit `failed`, sans verdict, et Archon rejoue les
+  # nœuds en échec quand un run reprend après une pause humaine). Le verdict dit alors
+  # `unconverged` : le bloc n'est pas « fait », mais il le dit par une issue typée.
+  - id: produce
+    loop_group:
+      max_iterations: 8
+      fresh_context: true
+      until_bash: 'ok=$check.output.ok; t=$check.output.tries; [ "$ok" = true ] || [ "$t" -ge 8 ]'
+      nodes:
+        - id: work
+          command: work
+          allowed_tools: [Read, Glob, Grep, Edit, Write, Bash]
+          with:
+            plan: "$INPUTS.plan"
+            test_cmd: "$INPUTS.test_cmd"
+            out: "$INPUTS.out"
+            problems: "$LOOP_PREV.check.output.problems"
+          output_format:
+            type: object
+            properties:
+              summary: { type: string, pattern: '\S' }
+              task_done: { type: string }
+              remaining: { type: integer, minimum: 0 }
+              deliverable:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, pattern: '\S' }
+                required: [type, run_id, path]
+            required: [summary, task_done, remaining, deliverable]
+
+        - id: check
+          script: check
+          runtime: bun
+          depends_on: [work]
+          timeout: 1260000   # check.ts laisse 20 min aux tests ; le nœud (défaut Archon 2 min) a 1 min de plus pour rendre le JSON
+          with:
+            test_cmd: "$INPUTS.test_cmd"
+            out: "$INPUTS.out"
+            summary: "$work.output.summary"
+            deliverable: { from: "$work.output.deliverable" }
+            tries: "$LOOP_PREV.check.output.tries"
+          output_format:
+            type: object
+            properties:
+              ok: { type: boolean }
+              problems: { type: array, items: { type: string } }
+              summary: { type: string }
+              tests_passed: { type: boolean }
+              remaining: { type: integer, minimum: 0 }
+              deliverable:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, pattern: '\S' }
+                required: [type, run_id, path]
+              tries: { type: integer, minimum: 1 }
+            required: [ok, problems, summary, tests_passed, remaining, deliverable, tries]
+
+  # ── 2. Verdict : les tests passent et rien ne reste ─────────────────────────────────
+  # Pas de juge : le verdict ne dépend que de la boucle. `verified` si le dernier contrôle
+  # est vert, `unconverged` s'il est encore rouge au 8e tour. none_failed_min_one_success
+  # (R3, comme les blocs jugés) : il ne tourne pas si la boucle a échoué (erreur du modèle
+  # ou du script), et le verdict sauté se lit `null` chez l'appelant (`if_skipped: null`).
+  - id: verdict
+    script: verdict
+    runtime: bun
+    depends_on: [produce]
+    trigger_rule: none_failed_min_one_success
+    with:
+      produced: "$produce.output"
+    output_type: block-verdict
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        status: { type: string, enum: [verified, unconverged] }
+        summary: { type: string }
+        problems: { type: array, items: { type: string } }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocking, minor] }
+              text: { type: string }
+            required: [severity, text]
+        deliverable:
+          type: object
+          properties:
+            type: { type: string, enum: [archon_artifact] }
+            run_id: { type: string }
+            path: { type: string, pattern: '\S' }
+          required: [type, run_id, path]
+      required: [ok, status, summary, problems, findings, deliverable]

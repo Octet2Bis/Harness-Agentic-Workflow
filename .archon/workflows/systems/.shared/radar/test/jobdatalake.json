@@ -1,0 +1,20 @@
+{
+  "_fixture": "fabriquée à la main d'après la documentation (api.jobdatalake.com injoignable depuis le conteneur)",
+  "found": 2, "page": 1, "per_page": 100,
+  "jobs": [
+    {
+      "title": "Growth Marketing Specialist", "company_name": "Exemple SAS", "domain_name": "exemple.example",
+      "url": "https://exemple.example/careers/growth-marketing-specialist", "job_handle": "gms-001",
+      "locations": ["Paris, France", "Lyon, France"], "countries": ["FR"], "remote_type": "fully_remote",
+      "posted_at": 1761200000, "job_function": "marketing", "seniority": ["mid"],
+      "salary_min_usd": 45000, "salary_max_usd": 60000, "required_skills": ["HubSpot", "SEA"], "employment_type": "full_time"
+    },
+    {
+      "title": "Marketing Operations Associate", "company_name": "Beispiel GmbH", "domain_name": "beispiel.example",
+      "url": "https://beispiel.example/jobs/mops", "job_handle": null,
+      "locations": [], "countries": ["DE"], "remote_type": "hybrid",
+      "posted_at": 1761200000000, "job_function": "marketing", "seniority": ["junior"],
+      "salary_min_usd": null, "salary_max_usd": null, "required_skills": [], "employment_type": "full_time"
+    }
+  ]
+}

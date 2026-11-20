@@ -1,0 +1,174 @@
+name: design-variants
+description: |
+  Système « design-variants » (porté du workflow v0 d'Antoine) : un brief → trois variantes
+  de page en parallèle (bloc `landing-page`, trois angles) → choix humain. Chaque variante
+  passe seule ses contrôles et son juge ; l'humain compare celles qui ont survécu et choisit
+  la retenue parmi elles (`select`), ou aucune. Sans survivante, pas de pause : issue
+  `ok: false`. v0 lançait une variante par modèle ; Archon fixe le modèle par nœud, pas par
+  entrée : ici les variantes diffèrent par l'angle. `--model medium=<fournisseur/modèle>`
+  sur `archon workflow run` ne change que les agents qui écrivent (le juge de landing-page
+  reste `large`), et trois runs donnent trois choix séparés, pas la comparaison côte à côte
+  du v0.
+
+  Use when: a page deserves several honest attempts before a human picks — "fais-moi trois
+  versions", "variantes de la landing".
+  NOT for: one page (run landing-page) or an A/B test in production (ab_test_calculator.py
+  dimensionne, la mesure tranche).
+
+inputs:
+  brief:
+    required: true
+    description: Offer, promise, audience, proof elements and the single action wanted.
+  intent:
+    default: ""
+    description: The search intent / ad promise the page must honour word for word.
+  tracking_plan:
+    default: ""
+    description: Optional path or text of the tracking plan.
+  template:
+    default: ""
+    description: Optional path of the reference template.
+
+returns: { node: done, outcome: ok }
+
+# Pas de verrou de dossier : aucun nœud n'écrit dans le checkout. Les pages vont dans les
+# artefacts du run (`$ARTIFACTS_DIR` : variant-a.html, variant-b.html, variant-c.html), l'état
+# dans Archon ; les agents `work` de landing-page ont pour consigne de n'écrire nulle part
+# ailleurs, les juges sont en lecture seule, `collect` et `done` ne font que lire et rendre du
+# JSON. Avec le verrou, ce run serait annulé (« This worktree is in use ») dès qu'un autre run
+# plus ancien est actif ou en pause dans le dossier (un autre système en pause à sa revue
+# humaine…).
+mutates_checkout: false
+
+nodes:
+  - id: a
+    include: landing-page
+    with:
+      brief: "$INPUTS.brief\n\nVariante A — sobre : texte d'abord, une colonne, la preuve sous le pli."
+      intent: "$INPUTS.intent"
+      tracking_plan: "$INPUTS.tracking_plan"
+      template: "$INPUTS.template"
+      out: variant-a.html
+
+  - id: b
+    include: landing-page
+    with:
+      brief: "$INPUTS.brief\n\nVariante B — preuve d'abord : chiffres et noms au-dessus du pli, CTA répété."
+      intent: "$INPUTS.intent"
+      tracking_plan: "$INPUTS.tracking_plan"
+      template: "$INPUTS.template"
+      out: variant-b.html
+
+  - id: c
+    include: landing-page
+    with:
+      brief: "$INPUTS.brief\n\nVariante C — narration : problème, agitation, solution, un seul CTA en fin."
+      intent: "$INPUTS.intent"
+      tracking_plan: "$INPUTS.tracking_plan"
+      template: "$INPUTS.template"
+      out: variant-c.html
+
+  # ── Les survivantes, lues une fois ───────────────────────────────────────────────────
+  # Chaque variante rend un verdict typé, même restée rouge à son plafond de tours (la boucle
+  # s'arrête par le compteur `tries`, le juge est sauté : `ok: false, status: unconverged`).
+  # Seule une erreur d'un nœud du bloc (le juge, ou une étape de la boucle) la laisse sans
+  # verdict : il est sauté. `collect` lit les trois verdicts avec `if_skipped: null` et rend
+  # une ligne par variante (proposée, refusée par son juge, non convergée, ou sans verdict) et
+  # les options du choix : le message d'attention ne lit plus `$a.output…`, qui ferait
+  # échouer `choose` (et `done`) dès qu'un verdict manque.
+  - id: collect
+    script: collect
+    runtime: bun
+    depends_on: [a, b, c]
+    trigger_rule: all_done
+    with:
+      a: { from: "$a.output", if_skipped: null }
+      b: { from: "$b.output", if_skipped: null }
+      c: { from: "$c.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        text: { type: string }
+        survivors: { type: integer, minimum: 0 }
+        options:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              label: { type: string }
+            required: [id, label]
+        variants:
+          type: object
+          properties:
+            a: { type: [boolean, 'null'] }
+            b: { type: [boolean, 'null'] }
+            c: { type: [boolean, 'null'] }
+          required: [a, b, c]
+        statuses:
+          type: object
+          properties:
+            a: { type: [string, 'null'], enum: [verified, rejected, unconverged, null] }
+            b: { type: [string, 'null'], enum: [verified, rejected, unconverged, null] }
+            c: { type: [string, 'null'], enum: [verified, rejected, unconverged, null] }
+          required: [a, b, c]
+        summaries:
+          type: object
+          properties:
+            a: { type: [string, 'null'] }
+            b: { type: [string, 'null'] }
+            c: { type: [string, 'null'] }
+          required: [a, b, c]
+      required: [text, survivors, options, variants, statuses, summaries]
+
+  # ── L'humain compare les survivantes ─────────────────────────────────────────────────
+  # `select` : la réponse est l'id d'une option proposée (une survivante, ou `none`), jamais
+  # une lettre à deviner dans un texte libre. Sans survivante, rien à choisir : sauté.
+  - id: choose
+    depends_on: [collect]
+    when: "$collect.output.survivors > 0"
+    wait:
+      attention: "Three variants for: $INPUTS.brief\n\n$collect.output.text\n\nOpen the files of the variants offered and choose the one you keep, or choose none to drop them all (say why in the text)."
+      form: select
+      options: "$collect.output.options"
+      labels:
+        system: design-variants
+
+  - id: drop
+    depends_on: [choose]
+    when: "$choose.output.decision == 'none'"
+    cancel: "No variant kept: $choose.output.text"
+
+  # ── Issue typée : une survivante choisie, ou aucune survivante (`choose` sauté) ──────
+  # `none` annule le run par `drop` avant `done`, et un select n'accepte qu'une option
+  # proposée : tout autre état n'a pas de chemin, et `done` échoue (« done: unexpected
+  # state ») plutôt que d'inventer une issue si ce YAML change.
+  - id: done
+    script: done
+    runtime: bun
+    depends_on: [collect, choose, drop]
+    trigger_rule: all_done
+    with:
+      collect: { from: "$collect.output" }
+      choose: { from: "$choose.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        chosen: { type: [string, 'null'], enum: [a, b, c, null] }
+        variants:
+          type: object
+          properties:
+            a: { type: [boolean, 'null'] }
+            b: { type: [boolean, 'null'] }
+            c: { type: [boolean, 'null'] }
+          required: [a, b, c]
+        statuses:
+          type: object
+          properties:
+            a: { type: [string, 'null'], enum: [verified, rejected, unconverged, null] }
+            b: { type: [string, 'null'], enum: [verified, rejected, unconverged, null] }
+            c: { type: [string, 'null'], enum: [verified, rejected, unconverged, null] }
+          required: [a, b, c]
+        summary: { type: string }
+      required: [ok, chosen, variants, statuses, summary]

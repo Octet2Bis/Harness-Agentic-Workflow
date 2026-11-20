@@ -1,0 +1,35 @@
+# Issue « report rejected » : research passe (juge favorable, `research__verdict` réel :
+# verified), puis le juge de report refuse (`report__verdict` réel : rejected). La revue
+# humaine et `drop` sont sautés ; `done` (réel) clôt ok: false, stage: report. Le run se
+# termine `completed`.
+# Ce qui prouve que `review` est sauté par son `when: "$report.output.ok == true"` (et pas
+# seulement parce que report aurait échoué) : report a réussi, avec un verdict `ok: false`.
+# Sans ce `when`, l'humain recevrait un rapport refusé : `review` n'a pas de stub, et un nœud
+# `wait:` atteint sans stub met le dry-run en pause (« durable wait ») : il finirait `paused`
+# au lieu de `completed`, sans `done` (vérifié en retirant ce `when`).
+# Sortie réelle de `done` : « Report rejected: stub: produced Judge: stub: the report claims a
+# figure the research never gave » (le résumé du verdict, tel quel).
+# attendu: ok=false stage=report deliverables={"research":"x.md","report":"x.md"}
+# attendu(research__verdict): ok=true status=verified
+# attendu(report__verdict): ok=false status=rejected
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+research__judge: { approved: true, reason: "stub: sourced", findings: [] }
+report__judge:
+  approved: false
+  reason: "stub: the report claims a figure the research never gave"
+  findings:
+    - { severity: blocking, text: "stub: « 40 % » appears in report.md but not in research.md" }
+fixture:
+  expect: completed
+  reached: [research__verdict, report__judge, report__verdict, done]
+  inputs:
+    task: "stub question"
+exec-code: true

@@ -1,0 +1,28 @@
+# Issue « refused » : l'humain refuse au cran de sécurité. Le refus est une issue typée, pas
+# une annulation : `decide` (réel) dit rejected, `submit` est sauté, et le verdict (réel) rend
+# ok: false, status: refused, submitted: false, avec la réponse de l'humain dans le résumé.
+# Le run finit `completed` : l'appelant (career-apply) écrit TAILORED, que le listener ne
+# reprend jamais ; l'humain décide de la suite.
+# Preuve de sûreté : aucun stub pour `submit` ni `judge` (agents) : en atteindre un ferait
+# échouer le dry-run (« Missing reachable stub ») ; `check_receipt` ne tourne qu'après
+# `submit`. La fixture, qui attend `completed`, prouve donc que rien n'est cliqué après un refus.
+# Le résumé rendu (« Refused at the go: nothing was sent. <réponse> ») se lit avec
+# `fixture-outcomes.ts apply-submit --show` ; sa reprise par career-apply est testée dans
+# systems/.shared/career.test.ts.
+# attendu(gate): needs_go=true
+# attendu(decide): proceed=false path=rejected
+# attendu: ok=false status=refused submitted=false problems=[] findings=[]
+prefill: { summary: "stub: form filled", blocked: false, blocker: "" }
+check_prefill: { ok: true, problems: [], summary: "stub: form filled", filled: 7, attached: true, submitted_early: false, tries: 1 }
+go: { decision: reject, text: "stub: salary answer too low, fix candidate.json" }
+fixture:
+  expect: completed
+  reached: [gate, go, decide, verdict]
+  inputs:
+    apply_url: "https://jobs.lever.co/acme/123/apply"
+    candidate: "/stub/candidate.json"
+    cv: "/stub/CV.pdf"
+    offer: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\"}"
+    platform: workable
+    mode: confirm
+exec-code: true

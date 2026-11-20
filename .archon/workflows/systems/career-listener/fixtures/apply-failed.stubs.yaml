@@ -1,0 +1,11 @@
+# Issue « apply-failed » : une offre est prise, le sous-run career-apply (stubbé) échoue à
+# l'envoi et a déjà écrit APPLY_FAILED ; `close` (réel) relaie l'issue négative sans écrire.
+# attendu: ok=false path=failed status=APPLY_FAILED
+claim: { path: work, slug: acme, company: Acme, title: "Growth Ops Manager", run: "listener-run-1", stale: [], summary: "Picked acme." }
+run: { ok: false, stage: submit, status: APPLY_FAILED, status_written: true, app_dir: "/stub/career/applications/acme", copied: [], summary: "The form could not be submitted: required field missing." }
+fixture:
+  expect: completed
+  reached: [claim, run, close, settle]
+  inputs:
+    career_dir: "/stub/career"
+exec-code: true

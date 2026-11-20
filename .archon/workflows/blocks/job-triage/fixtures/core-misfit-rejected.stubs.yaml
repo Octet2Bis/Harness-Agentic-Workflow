@@ -1,0 +1,34 @@
+# Issue « verified », cœur du poste hors profil (Melotech « Founding Growth Manager », 2026-10-24 :
+# le CV refusé deux fois par le juge Opus de cv-tailor) : langues, salaire, mode de travail et
+# expérience passent, mais deux des trois exigences centrales de l'annonce (achat média payant à
+# gros volume sur Meta / TikTok / Snapchat, SQL et Python) sont `missing` dans le profil
+# (`master_profile.md`, entrée `profile`) ; la règle (`decideTriage`) écarte « Cœur du poste hors
+# profil : … » avant toute rédaction de CV ; le juge confirme la lecture (il ne décide pas
+# l'issue) ; le verdict (script réel) rend la décision.
+# attendu: ok=true status=verified decision=ecartee
+work:
+  summary: "stub: Founding Growth Manager, achat média payant à gros volume et SQL/Python au cœur du poste, absents du profil"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: Founding Growth Manager, achat média payant à gros volume et SQL/Python au cœur du poste, absents du profil"
+  decision: ecartee
+  reasons: ["Cœur du poste hors profil : Achat média payant à gros volume (Meta, TikTok, Snapchat) ; SQL et Python pour l'analyse"]
+  notes:
+    - "Télétravail complet : « This is a fully remote role within Europe. »"
+    - "Cœur du poste : 1 exigence étayée, 0 en partie, 2 absentes du profil, sur 3"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: les trois exigences sont bien le cœur de l'annonce, et le profil ne montre ni achat média payant à gros volume ni SQL/Python"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Melotech","title":"Founding Growth Manager","link":"https://example.org/jobs/melotech-founding-growth-manager","slug":"melotech"}'
+    criteria: '{"langues":["fr","en"],"salaire_min_annuel":35000}'
+    profile: profile.md
+exec-code: true

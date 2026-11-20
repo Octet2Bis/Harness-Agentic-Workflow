@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "sourceInstanceId": "harness-timer",
+  "binding": {
+    "bindingId": "career-listener",
+    "bindingRevision": null,
+    "hostId": "pc-hp",
+    "runAsUserId": "REMPLACER-PAR-archon-trigger-whoami",
+    "resource": "harness-agentic-workflow:career",
+    "overlap": "skip",
+    "launch": {
+      "cwd": "C:\\Users\\HP\\Desktop\\Harness-Agentic-Workflow",
+      "workflowName": "career-listener",
+      "inputs": {
+        "career_dir": "C:\\Users\\HP\\Desktop\\Master Plan\\02_Assistant_Personnel\\Workspace\\career",
+        "mode": "verified-only",
+        "verified_platforms": ""
+      },
+      "isolation": { "kind": "in-place" }
+    }
+  },
+  "schedule": { "intervalSeconds": 600, "runAtLoad": false }
+}

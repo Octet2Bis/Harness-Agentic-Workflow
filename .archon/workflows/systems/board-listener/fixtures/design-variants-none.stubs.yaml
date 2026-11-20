@@ -1,0 +1,18 @@
+# Routage + issue FAILED : une carte `--workflow=design-variants` dont aucune variante n'a
+# survécu (le sous-run finit sans pause, `ok: false`). `outcome` (réel) rend FAILED avec
+# l'issue typée du sous-run. `hold` / `close` / `settle` stubbés (état Archon).
+# attendu(outcome): ok=false path=failed workflow=design-variants
+claim: { path: work, id: "20261016150000-desv", run: "stub-run", workflow: design-variants, task: "stub: landing pour l'offre Y", context: "", revision: 2, note: "" }
+hold: { held: true, status: picked_up, by: "stub-run" }
+run_design_variants:
+  ok: false
+  chosen: null
+  variants: { a: false, b: false, c: false }
+  statuses: { a: rejected, b: rejected, c: unconverged }
+  summary: "stub: no variant survived its judge"
+close: { ok: false, path: failed, id: "20261016150000-desv", workflow: design-variants, summary: "stub: closed" }
+settle: { settled: false, id: "20261016150000-desv", summary: "stub: already failed" }
+fixture:
+  expect: completed
+  reached: [claim, hold, run_design_variants, outcome, outcome_result, close, settle]
+exec-code: true

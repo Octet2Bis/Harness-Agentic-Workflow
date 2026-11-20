@@ -1,0 +1,33 @@
+# Issue « resumed-after-click » : le run est repris (le listener relance un enfant en échec)
+# après une erreur survenue une fois `submit` démarré : le clic a peut-être eu lieu. Archon
+# rejoue les nœuds en échec, donc `submit` ; `arm` (`always_run: true`) passe avant lui à
+# chaque reprise, trouve <out_dir>/armed.json (écrit à son premier passage) et ferme la porte.
+# Le dry-run ne sait pas reprendre un run : le stub `arm` porte l'état qu'il lit à la reprise
+# (sa règle, `armSubmit`, est testée dans scripts/click-trace.test.ts ; dans les autres
+# fixtures il tourne pour de vrai et ouvre la porte). `decide` (réel) dit auto, `verdict`
+# (réel) rend ok: false, status: unproven, submitted: true : l'appelant écrit APPLY_UNPROVEN
+# (vérifier la boîte mail), jamais « pas envoyé », et rien n'est recliqué.
+# Preuve de sûreté : mode `auto`, aucun stub pour `submit`, `check_receipt` ni `judge` : en
+# atteindre un ferait échouer le dry-run (« Missing reachable stub ») ; la fixture, qui attend
+# `completed`, prouve donc qu'aucun second clic n'a lieu quand la porte est fermée.
+# attendu(decide): proceed=true path=auto
+# attendu: ok=false status=unproven submitted=true findings=[]
+prefill: { summary: "stub: form filled", blocked: false, blocker: "" }
+check_prefill: { ok: true, problems: [], summary: "stub: form filled", filled: 7, attached: true, submitted_early: false, tries: 1 }
+arm:
+  clear: false
+  reason: "a submit attempt already started in this run (the run was resumed or re-driven after an error): nothing is clicked again"
+  evidence:
+    - "armed.json: the submit step already started in this run at 2026-10-20T10:00:00Z"
+    - "click.json records a click attempt at 2026-10-20T10:00:03Z"
+fixture:
+  expect: completed
+  reached: [gate, decide, own, arm, verdict]
+  inputs:
+    apply_url: "https://jobs.lever.co/acme/123/apply"
+    candidate: "/stub/candidate.json"
+    cv: "/stub/CV.pdf"
+    offer: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\"}"
+    platform: lever
+    mode: auto
+exec-code: true

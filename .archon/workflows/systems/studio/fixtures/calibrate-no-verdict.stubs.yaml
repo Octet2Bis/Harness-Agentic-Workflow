@@ -1,0 +1,21 @@
+# Issue « calibrate no verdict » : un nœud du cadrage échoue (ici le juge : erreur du modèle,
+# simulée par l'absence de stub `calibrate__judge`), alors `calibrate__verdict` est sauté et
+# le cadrage ne rend aucun verdict. Tout ce qui suit est sauté ; `done` (réel) rend quand même
+# son issue typée : ok: false, stage: calibrate. Le run finit `failed`.
+# attendu(done): ok=false stage=calibrate
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+fixture:
+  expect: failed
+  fail-node: calibrate__judge
+  reached: [calibrate__produce, done]
+  inputs:
+    request: "stub request"
+exec-code: true

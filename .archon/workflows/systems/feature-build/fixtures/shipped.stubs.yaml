@@ -1,0 +1,53 @@
+# Issue « shipped » : plan, implémentation verte, lint réel vert (`lint_cmd: "true"`,
+# exec-code), relecture fiable (pass), humain d'accord, brouillon de PR ouvert ; `done`
+# (réel) clôt ok: true.
+# attendu: ok=true stage=done
+# attendu(lint): ok=true exit_code=0
+plan:
+  summary: "stub: three tasks, model then endpoint then UI"
+  tasks: 3
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "plan.md" }
+work:
+  summary: "stub: produced"
+  task_done: "stub task"
+  remaining: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  tests_passed: true
+  remaining: 0
+  code_verdict: pass
+  blocking: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x" }
+  tries: 1
+implement__verdict:
+  ok: true
+  status: verified
+  summary: "stub: all tasks done, suite green"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+review__judge: { approved: true, reason: "stub: nothing missed", findings: [] }
+review__verdict:
+  ok: true
+  status: verified
+  code_verdict: pass
+  summary: "stub: the diff matches the plan"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "review.json" }
+approve: { decision: approve, text: "" }
+ship:
+  summary: "stub: pushed feature/x, draft PR #12"
+  pr_url: "https://github.com/example/repo/pull/12"
+fixture:
+  expect: completed
+  reached: [plan, implement__verdict, lint, review__verdict, approve, ship, done]
+  inputs:
+    request: "stub request"
+    lint_cmd: "true"
+  resolved-text-contains:
+    approve: "stub: the diff matches the plan"
+exec-code: true

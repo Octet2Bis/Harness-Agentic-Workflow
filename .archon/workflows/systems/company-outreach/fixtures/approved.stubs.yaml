@@ -1,0 +1,46 @@
+# Issue « approved » : les trois blocs rendent ok, l'humain approuve, `done` (réel) clôt ok: true ; rien n'est envoyé.
+# attendu: ok=true stage=done
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+dossier__judge: { approved: true, reason: "stub: fine", findings: [] }
+dossier__verdict:
+  ok: true
+  status: verified
+  summary: "stub: dossier sourced"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "dossier.md" }
+angle__judge: { approved: true, reason: "stub: fine", findings: [] }
+angle__verdict:
+  ok: true
+  status: verified
+  summary: "stub: one axis, freelance"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "proposal.md" }
+sequence__judge: { approved: true, reason: "stub: fine", findings: [] }
+sequence__verdict:
+  ok: true
+  status: verified
+  summary: "stub: three e-mails with notice"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "sequence.md" }
+review: { decision: approve, text: "" }
+fixture:
+  expect: completed
+  reached: [dossier__verdict, angle__verdict, sequence__verdict, review, done]
+  inputs:
+    company: '{"name":"Acme","website":"https://acme.example","country":"FR"}'
+    profile: "/tmp/master_profile.md"
+    today: "2026-10-23"
+  resolved-text-contains:
+    review: "Rien n'est envoyé"
+exec-code: true

@@ -1,0 +1,10 @@
+# Issue « idle » : aucune offre VALIDATED. `claim` (lit le disque) est stubbé ; `close`
+# s'exécute pour de vrai et n'écrit rien en idle.
+# attendu: ok=true path=idle
+claim: { path: idle, slug: "", company: "", title: "", run: "", stale: [], summary: "No validated offer waiting." }
+fixture:
+  expect: completed
+  reached: [claim, close, settle]
+  inputs:
+    career_dir: "/stub/career"
+exec-code: true

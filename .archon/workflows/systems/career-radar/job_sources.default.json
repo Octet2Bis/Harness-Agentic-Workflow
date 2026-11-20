@@ -1,0 +1,189 @@
+{
+  "version": "2.2.0",
+  "sources": [
+    {
+      "name": "LinkedIn Jobs (Live 24h)",
+      "type": "api_guest",
+      "speed": "H+0",
+      "url_template": "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={keyword}&location=Europe&f_WT=2&f_TPR=r86400&sortBy=DD&start=0",
+      "enabled": true,
+      "note": "Opt-in explicite requis en plus : CAREER_LINKEDIN=on. Description complète relue pour chaque annonce inédite (12 max par cycle)."
+    },
+    {
+      "name": "Himalayas Remote",
+      "type": "api_json",
+      "speed": "H+1",
+      "endpoint": "https://himalayas.app/jobs/api?limit=100",
+      "enabled": true
+    },
+    {
+      "name": "Working Nomads",
+      "type": "api_json",
+      "speed": "H+2",
+      "endpoint": "https://www.workingnomads.com/api/exposed_jobs/",
+      "enabled": true
+    },
+    {
+      "name": "RemoteOK",
+      "type": "api_json",
+      "speed": "H+2",
+      "endpoint": "https://remoteok.com/api?tag=marketing",
+      "enabled": true
+    },
+    {
+      "name": "Remotive",
+      "type": "api_json",
+      "speed": "H+4",
+      "endpoint": "https://remotive.com/api/remote-jobs?search=marketing&limit=100",
+      "enabled": true,
+      "min_interval_min": 360
+    },
+    {
+      "name": "Arbeitnow Remote",
+      "type": "api_json",
+      "speed": "H+4",
+      "endpoint": "https://www.arbeitnow.com/api/job-board-api",
+      "enabled": true
+    },
+    {
+      "name": "Jobspresso Remote",
+      "type": "rss_feed",
+      "speed": "H+3",
+      "endpoint": "https://jobspresso.co/feed/",
+      "enabled": true
+    },
+    {
+      "name": "WeWorkRemotely Remote",
+      "type": "rss_feed",
+      "speed": "H+3",
+      "endpoint": "https://weworkremotely.com/categories/remote-sales-and-marketing-jobs.rss",
+      "enabled": true
+    },
+    {
+      "name": "Firecrawl Search (Cloud)",
+      "type": "api_cloud",
+      "speed": "H+1",
+      "endpoint": "https://api.firecrawl.dev/v1/search",
+      "enabled": false,
+      "key": "FIRECRAWL_API_KEY"
+    },
+    {
+      "name": "Jobgether",
+      "type": "api_json",
+      "speed": "H+1",
+      "url_template": "https://jobgether.com/astroapi/ai/jobs.json?keyword={keyword}&locations=europe&remoteType=full-remote&sort=date&limit=25&page=1",
+      "enabled": true,
+      "min_interval_min": 60,
+      "note": "6 requêtes max par cycle, prises dans source_queries de la taxonomie (thèmes growth/marketing/revenue/gtm/crm/lifecycle/demand/revops/operations/automation/email), curseur tournant ; pause 2 s entre appels (Crawl-delay du robots.txt)."
+    },
+    {
+      "name": "Growth.Talent",
+      "type": "api_json",
+      "speed": "H+1",
+      "endpoint": "https://www.growthtalent.org/api/v1/jobs?market=france&remote=true&limit=100",
+      "endpoints": [
+        "https://www.growthtalent.org/api/v1/jobs?market=france&remote=true&limit=100",
+        "https://www.growthtalent.org/api/v1/jobs?market=usa&remote=true&seniority=JUNIOR,MID&limit=100"
+      ],
+      "enabled": true,
+      "min_interval_min": 60,
+      "note": "API publique en lecture (openapi : /api/v1/openapi.json), cache 30 min côté serveur. `market` n'accepte que france, usa et latam ; « usa » est mondial (12 offres européennes sur 56 en junior/mid remote le 2026-10-24), le radar filtre les pays."
+    },
+    {
+      "name": "Jobicy",
+      "type": "api_json",
+      "speed": "H+1",
+      "endpoint": "https://jobicy.com/api/v2/remote-jobs?count=50&geo=europe&industry=marketing",
+      "enabled": true,
+      "min_interval_min": 60,
+      "note": "Conditions Jobicy : créditer Jobicy avec un lien direct vers l'offre (URL canonique https://jobicy.com/jobs/{id}-{slug}) et renvoyer la candidature vers cette URL."
+    },
+    {
+      "name": "EU Remote Jobs",
+      "type": "rss_feed",
+      "speed": "H+3",
+      "endpoint": "https://euremotejobs.com/sitemap.rss",
+      "enabled": true,
+      "min_interval_min": 180,
+      "note": "Flux sans description ni entreprise : l'auditeur ne voit que le titre."
+    },
+    {
+      "name": "Welcome to the Jungle télétravail",
+      "type": "html_page",
+      "speed": "H+3",
+      "endpoint": "https://www.welcometothejungle.com/fr/pages/emploi-teletravail",
+      "enabled": true,
+      "min_interval_min": 180,
+      "note": "Page 1 uniquement, jamais de paramètre de requête (robots.txt : Disallow /*?)."
+    },
+    {
+      "name": "Jobdatalake",
+      "type": "api_key",
+      "speed": "H+1",
+      "endpoint": "https://api.jobdatalake.com/v1/jobs?job_function=marketing&remote_type=fully_remote&countries=FR,DE,NL,ES,IT,PT,GB,BE,CH,AT,IE,SE,DK,NO,FI,PL,CZ&per_page=100&sort_by=posted_at:desc&posted_after={since_ms}",
+      "enabled": true,
+      "min_interval_min": 60,
+      "key": "JOBDATALAKE_API_KEY",
+      "note": "{since_ms} = maintenant − 48 h en millisecondes, remplacé à l'exécution. En-tête X-API-Key."
+    },
+    {
+      "name": "Apify ATS (greentools~ats-jobs-api)",
+      "type": "api_key",
+      "speed": "H+2",
+      "endpoint": "https://api.apify.com/v2/acts/greentools~ats-jobs-api/runs?timeout=1500&memory=1024",
+      "enabled": true,
+      "min_interval_min": 60,
+      "key": "APIFY_TOKEN",
+      "input": {},
+      "note": "Acteur PAR ENTREPRISE : balaie un bloc tournant de 120 careers_url de verified_remote_companies.json par run, en deux temps (lancement, collecte au cycle suivant). `input` surcharge l'entrée de base (keywords de la taxonomie, workplace remote, postedWithinDays 2, onlyNewJobs, includeDescription). Coût ≈ 4 $ pour 1 000 offres conservées, dans le crédit mensuel gratuit si onlyNewJobs reste actif."
+    },
+    {
+      "name": "Adzuna",
+      "type": "api_key",
+      "speed": "H+2",
+      "url_template": "https://api.adzuna.com/v1/api/jobs/{country}/search/1?app_id={APP_ID}&app_key={APP_KEY}&what={keyword}%20remote&max_days_old=1&results_per_page=50&content-type=application/json",
+      "enabled": true,
+      "min_interval_min": 120,
+      "key": ["ADZUNA_APP_ID", "ADZUNA_APP_KEY"],
+      "countries": ["fr", "gb", "de", "nl", "es", "it"],
+      "note": "Pas de filtre remote côté API : remote_declared reste false, l'auditeur cherche la mention. 6 pays × 1 requête (queries_max, modifiable) = 6 appels par cycle, ≈ 72 par jour toutes les 2 h ; quota gratuit 250 par jour, partagé entre candidats. La requête vient de source_queries de la taxonomie (intitulés cœur anglais par défaut), une différente à chaque cycle (query_cursor de source_state.json)."
+    },
+    {
+      "name": "JSearch (OpenWeb Ninja)",
+      "type": "api_key",
+      "speed": "H+2",
+      "url_template": "https://api.openwebninja.com/jsearch/search?query={keyword}&country={country}&work_from_home=true&date_posted=3days&num_pages=1",
+      "enabled": false,
+      "min_interval_min": 480,
+      "key": "JSEARCH_API_KEY",
+      "countries": ["fr", "de", "nl", "es", "gb"],
+      "note": "En-tête x-api-key. 5 pays × 2 requêtes = 10 appels max par cycle. Désactivé tant qu'aucune clé n'est posée."
+    },
+    {
+      "name": "Freehire",
+      "type": "api_json",
+      "enabled": true,
+      "min_interval_min": 120,
+      "note": "API publique de freehire.me (agrégat d'ATS), lue sans clé : usage personnel et non commercial permis par ses CGU, aucune republication. Adresse par défaut dans fetchers/extra_fetchers.js (titre entre guillemets, remote, régions eu + uk, publiées depuis 3 jours) ; `url_template` avec {keyword} pour la remplacer. 6 requêtes par cycle, 1 s entre deux, arrêt au premier 429."
+    },
+    {
+      "name": "Workable search",
+      "type": "api_json",
+      "url_template": "https://jobs.workable.com/api/v1/jobs?query={keyword}&location=Europe&workplace=remote&limit=20&day_range=3",
+      "enabled": true,
+      "min_interval_min": 360,
+      "note": "Recherche publique de jobs.workable.com (API non documentée, /api hors robots.txt) : 4 requêtes par cycle, page 1, 1,5 s entre deux, arrêt au premier 429."
+    },
+    {
+      "name": "Tableaux employeurs (Greenhouse, Lever, Ashby)",
+      "type": "ats_boards",
+      "speed": "H+0",
+      "enabled": true,
+      "min_interval_min": 30,
+      "boards_per_cycle": 240,
+      "concurrency": 6,
+      "learned_max": 80,
+      "note": "Lit directement les tableaux publics des entreprises (API sans clé, une requête par tableau). Univers : listes Feashliaa/job-board-aggregator (CC BY-NC 4.0, usage personnel), téléchargées dans radar_universe.json et rafraîchies chaque semaine ; bloc tournant de 240 tableaux par cycle, plus les tableaux appris (radar_boards_learned.json) et épinglés (`boards`, ou next40_boards.json). Garde les postes remote, du métier (titre) et de 7 jours au plus."
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+# Issue « early-submitted » : l'agent `prefill` dit avoir déjà envoyé le formulaire
+# (prefill.json `submitted: true`, relevé par `check_prefill` en `submitted_early: true`). La
+# boucle s'arrête dès ce tour (un second tour rouvrirait la page et pourrait postuler deux
+# fois) ; `gate` est sauté ; `decide` (réel) dit submitted_early (proceed: false) ; le
+# verdict (réel) rend ok: false, status: unproven, submitted: true : l'appelant écrit
+# APPLY_UNPROVEN (vérifier la boîte mail), jamais « pas envoyé ».
+# Preuve de sûreté : mode `auto`, où le cran enverrait sans demander, et aucun stub pour `go`,
+# `submit` ni `judge` : en atteindre un ferait échouer le dry-run ; la fixture, qui attend
+# `completed`, prouve qu'aucun second clic n'a lieu et que personne n'est sollicité.
+# Limite : seul l'aveu de l'agent est lisible par le code ; un clic tu ne se détecte pas ici.
+# attendu(decide): proceed=false path=submitted_early
+# attendu: ok=false status=unproven submitted=true findings=[]
+prefill: { summary: "stub: the Apply button submitted the form while attaching the CV", blocked: false, blocker: "" }
+check_prefill:
+  ok: false
+  problems:
+    - "prefill must not submit the form: submitted is true"
+  summary: "stub: the Apply button submitted the form while attaching the CV"
+  filled: 7
+  attached: true
+  submitted_early: true
+  tries: 1
+fixture:
+  expect: completed
+  reached: [prepare, decide, verdict]
+  inputs:
+    apply_url: "https://jobs.lever.co/acme/123/apply"
+    candidate: "/stub/candidate.json"
+    cv: "/stub/CV.pdf"
+    offer: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\"}"
+    platform: lever
+    mode: auto
+exec-code: true

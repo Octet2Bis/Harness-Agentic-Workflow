@@ -1,0 +1,22 @@
+# Issue « verified » : les contrôles passent au premier tour, le juge approuve, le verdict
+# (script réel, exec-code) rend ok: true. Prouve le câblage du bloc sans appeler un modèle.
+# attendu: ok=true status=verified
+work:
+  summary: "stub: app project: iOS app with a design system first"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "calibrage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: app project: iOS app with a design system first"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "calibrage.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: the request names an iOS app and its screens"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    request: "stub request"
+exec-code: true

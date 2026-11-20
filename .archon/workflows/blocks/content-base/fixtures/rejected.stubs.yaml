@@ -1,0 +1,23 @@
+# Issue « rejected » : les contrôles passent mais le juge refuse. Le run se termine
+# normalement avec une issue autorisée négative (ok: false).
+# attendu: ok=false status=rejected
+work:
+  summary: "stub: 24 entries in fr and en, one voice"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "content.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: 24 entries in fr and en, one voice"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "content.json" }
+  tries: 1
+judge:
+  approved: false
+  reason: "stub: the English is a word-for-word copy of the French"
+  findings:
+    - { severity: blocking, text: "stub: onboarding.step2 (en) keeps French word order; rewrite in idiomatic English" }
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    request: "stub request"
+exec-code: true

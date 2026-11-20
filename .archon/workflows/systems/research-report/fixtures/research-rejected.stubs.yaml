@@ -1,0 +1,31 @@
+# Issue « research rejected » : le juge de research refuse ; report et la revue sont sautés ;
+# `done` (réel) clôt ok: false, stage: research.
+# attendu: ok=false stage=research
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+research__judge:
+  approved: false
+  reason: "stub: two findings have no source"
+  findings:
+    - { severity: blocking, text: "stub: finding 2 cites no source" }
+research__verdict:
+  ok: false
+  status: rejected
+  summary: "stub: research rejected by the judge"
+  problems: []
+  findings:
+    - { severity: blocking, text: "stub: finding 2 cites no source" }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "research.md" }
+fixture:
+  expect: completed
+  reached: [research__verdict, done]
+  inputs:
+    task: "stub question"
+exec-code: true

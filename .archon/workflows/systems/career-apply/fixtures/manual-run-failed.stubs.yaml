@@ -1,0 +1,61 @@
+# Issue « manual-run-failed » : Antoine lance career-apply à la main (premier run réel,
+# `mode=confirm`). `load` a pris l'offre pour ce run (stub : `self_claimed: true`, `claim_run` =
+# ce run ; la prise elle-même est testée dans scripts/load.test.ts). Le lien est un agrégateur
+# et l'agent `resolve` tombe en erreur (pas de stub) : `confirm_route` échoue sur sa liaison,
+# `record` aussi (Archon ne lit jamais un nœud en échec), le run finit `failed`. Sans listener,
+# l'offre resterait APPLYING par ce run, et le listener ne prendrait rien pendant deux heures
+# (une candidature en vol à la fois). `settle` (réel, `all_done`, seulement pour une prise de ce
+# run) tourne quand même : il clôt l'offre si elle est encore APPLYING par ce run (record.json,
+# sinon APPLY_UNPROVEN s'il y a trace d'un clic, sinon APPLY_FAILED). Ici le dossier carrière
+# /stub/career n'existe pas : il n'écrit rien (settled: false) ; sa décision (`settleClaim`)
+# est testée dans .shared/pending.test.ts et scripts/load.test.ts.
+# Preuve de sûreté : aucun stub pour `prefill`, `submit__go`, `submit__submit` : apply-submit
+# n'est pas atteint.
+# attendu(route): aggregator=true needs_resolve=true
+# attendu(settle): settled=false slug="acme"
+load:
+  ok: true
+  summary: "stub: offer Acme — Growth Ops Manager loaded"
+  slug: acme
+  profile: "/stub/career/master_profile.md"
+  proofs: "/stub/career/skill_proof_graph.json"
+  remarks: ""
+  keywords: "n8n, GTM, HubSpot"
+  offer_json: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\",\"link\":\"https://fr.linkedin.com/jobs/view/growth-ops-at-acme-123\",\"slug\":\"acme\"}"
+  link: "https://fr.linkedin.com/jobs/view/growth-ops-at-acme-123"
+  board: "/stub/career/pending_gold_jobs.json"
+  claim_run: "manual-run-1"
+  self_claimed: true
+  answers: ""
+work:
+  summary: "stub: produced"
+  language: fr
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  coverage: { covered: [n8n, GTM, HubSpot], missing: [], ratio: 1 }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+  tries: 1
+tailor__judge: { approved: true, grade: "A", reason: "stub: honest and dense", findings: [] }
+write_letter:
+  summary: "stub: lettre, deux preuves du profil"
+  language: fr
+  evidence:
+    - { letter: "campagnes outbound", profile: "campagnes outbound" }
+    - { letter: "qualification des leads", profile: "qualification des leads" }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/letter.md" }
+check_letter: { ok: true, problems: [], summary: "stub: lettre, deux preuves du profil", language: fr, words: 274, lines: 38, traced: 2, evidence: [], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/letter.md" }, tries: 1 }
+letter__judge: { approved: true, grade: "A", reason: "stub: honnête et précise", findings: [] }
+render: { ok: true, pdf: "/stub/artifacts/application/CV.pdf", engine: msedge, pages: 1, problems: [], summary: "stub: CV.pdf rendered and checked", letter: "", letter_pages: 0 }
+fixture:
+  expect: failed
+  fail-node: [resolve, confirm_route, record]
+  reached: [load, tailor__verdict, letter__verdict, render, route, settle]
+  inputs:
+    slug: acme
+    career_dir: "/stub/career"
+    mode: confirm
+    verified_platforms: ""
+exec-code: true

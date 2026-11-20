@@ -1,0 +1,46 @@
+{
+  "_fixture": "réel — réponse /api/v2/remote-jobs?geo=europe&industry=marketing de Jobicy du 2026-10-23 (apiVersion 2.2.19), 2 offres, excerpt tronqué, jobDescription et companyLogo retirés",
+  "apiVersion": "2.2.19",
+  "documentationUrl": "https://jobicy.com/jobs-rss-feed",
+  "friendlyNotice": "Please credit Jobicy with a direct link to the source and send application buttons to the original job URL.",
+  "jobCount": 50,
+  "lastUpdate": "2026-10-23T07:09:57+00:00",
+  "hasMore": true,
+  "appliedFilters": { "count": 50, "geo": "europe", "industry": "marketing" },
+  "jobs": [
+    {
+      "id": 156542,
+      "url": "https://jobicy.com/jobs/156542-partner-manager-german-speaker",
+      "jobSlug": "156542-partner-manager-german-speaker",
+      "jobTitle": "Partner Manager - German Speaker",
+      "companyName": "Algolia",
+      "jobIndustry": ["Business Development"],
+      "jobType": ["Full-Time"],
+      "jobGeo": "UK",
+      "jobLevel": "Senior",
+      "jobExcerpt": "Algolia is the retrieval intelligence layer that turns intent into trusted, decision-grade outcomes. Powering more than",
+      "pubDate": "2026-10-23T07:09:57+00:00",
+      "salaryMin": 108000,
+      "salaryMax": 150000,
+      "salaryCurrency": "GBP",
+      "salaryPeriod": "yearly"
+    },
+    {
+      "id": 156539,
+      "url": "https://jobicy.com/jobs/156539-partner-manager",
+      "jobSlug": "156539-partner-manager",
+      "jobTitle": "Partner Manager",
+      "companyName": "Algolia",
+      "jobIndustry": ["Business Development"],
+      "jobType": ["Full-Time"],
+      "jobGeo": "Germany",
+      "jobLevel": "Senior",
+      "jobExcerpt": "Algolia is the retrieval intelligence layer that turns intent into trusted, decision-grade outcomes. Powering more than",
+      "pubDate": "2026-10-23T07:09:56+00:00",
+      "salaryMin": 139500,
+      "salaryMax": 174500,
+      "salaryCurrency": "EUR",
+      "salaryPeriod": "yearly"
+    }
+  ]
+}

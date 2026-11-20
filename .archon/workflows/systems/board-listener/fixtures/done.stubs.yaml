@@ -1,0 +1,20 @@
+# Issue « done » (pipeline, le défaut) : une tâche est prise, la garde la trouve à ce run, le
+# pipeline (sous-run, stubbé) rend ok, `outcome` (réel) en fait une issue DONE, que son relais
+# (réel) passe à `settle`. `hold`, `close` et `settle` lisent ou écrivent l'état Archon, absent
+# du dry-run : stubbés ; leur logique est testée dans .shared/board.test.ts, et les scripts
+# eux-mêmes contre un faux `archon` dans scripts/listener.test.ts.
+# attendu(outcome): ok=true path=done workflow=pipeline id=20261016150000-abcd
+# attendu(outcome_result): ok=true path=done id=20261016150000-abcd
+claim: { path: work, id: "20261016150000-abcd", run: "stub-run", workflow: pipeline, task: "stub: faire le point sur X", context: "", revision: 2, note: "" }
+hold: { held: true, status: picked_up, by: "stub-run" }
+run_pipeline:
+  ok: true
+  stage: done
+  summary: "stub: approved at final review"
+  deliverables: { research: research.md, design: design.md, report: report.md }
+close: { ok: true, path: done, id: "20261016150000-abcd", workflow: pipeline, summary: "stub: closed" }
+settle: { settled: false, id: "20261016150000-abcd", summary: "stub: already done" }
+fixture:
+  expect: completed
+  reached: [claim, hold, run_pipeline, outcome, outcome_result, close, settle]
+exec-code: true

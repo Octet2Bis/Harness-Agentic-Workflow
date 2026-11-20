@@ -1,0 +1,36 @@
+# Issue « verified » : les contrôles passent, le Reviewer note A, le verdict (script réel,
+# exec-code) rend ok: true. Prouve le câblage du bloc sans appeler un modèle.
+# attendu: ok=true status=verified deliverable={"type":"archon_artifact","run_id":"fixture-run","path":"application/letter.md"}
+write_letter:
+  summary: "stub: angle pipeline commercial, deux preuves outbound et n8n"
+  language: fr
+  evidence:
+    - { letter: "j'ai conduit des campagnes outbound à ~50% de taux d'ouverture", profile: "campagnes outbound à ~50% de taux d'ouverture" }
+    - { letter: "J'ai aussi automatisé avec n8n la qualification des leads entrants", profile: "Automatisation n8n de la qualification des leads entrants" }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/letter.md" }
+check_letter:
+  ok: true
+  problems: []
+  summary: "stub: angle pipeline commercial, deux preuves outbound et n8n"
+  language: fr
+  words: 274
+  lines: 38
+  traced: 2
+  evidence:
+    - { letter: "j'ai conduit des campagnes outbound à ~50% de taux d'ouverture", profile: "campagnes outbound à ~50% de taux d'ouverture" }
+    - { letter: "J'ai aussi automatisé avec n8n la qualification des leads entrants", profile: "Automatisation n8n de la qualification des leads entrants" }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/letter.md" }
+  tries: 1
+judge:
+  approved: true
+  grade: "A"
+  reason: "stub: honnête, précise, tournée vers le poste"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    offer: '{"company":"Acme","title":"Growth Ops Manager (H/F)","link":"https://jobs.lever.co/acme/123","slug":"acme","skills_required":"n8n, CRM, outbound","description_full":"Acme recrute un Growth Ops Manager pour structurer le pipeline de l''équipe commerciale."}'
+    profile: "/stub/master_profile.md"
+    cv: "/stub/application/CV.md"
+exec-code: true

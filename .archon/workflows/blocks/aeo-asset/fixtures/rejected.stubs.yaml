@@ -1,0 +1,23 @@
+# Issue « rejected » : les contrôles passent mais le juge refuse. Le run se termine
+# normalement avec une issue autorisée négative (ok: false) : statut et issue sont deux faits.
+# attendu: ok=false status=rejected
+work:
+  summary: "stub: the deliverable is complete"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "asset.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: the deliverable is complete"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "asset.md" }
+  tries: 1
+judge:
+  approved: false
+  reason: "stub: the opening claims a benchmark the positioning does not carry"
+  findings:
+    - { severity: blocking, text: "stub: section 2 asserts a 40% figure with no source nor positioning line" }
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    brief: "stub brief"
+exec-code: true

@@ -1,0 +1,36 @@
+name: Gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # The Archon commit these workflows are verified against
+  ARCHON_COMMIT: f841a1b
+
+jobs:
+  gates:
+    name: All gates (meta-test, rules, contract, unit tests, every fixture) · zero model call
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.x
+      - name: Archon at a pinned commit
+        run: |
+          git clone --filter=blob:none https://github.com/coleam00/Archon "$RUNNER_TEMP/archon"
+          git -C "$RUNNER_TEMP/archon" checkout --quiet "$ARCHON_COMMIT"
+          cd "$RUNNER_TEMP/archon" && bun install --frozen-lockfile || bun install
+      - name: Archon config (a default provider; no model is ever called)
+        run: |
+          mkdir -p ~/.archon
+          printf 'defaultAssistant: claude\n' > ~/.archon/config.yaml
+      - name: Gates
+        run: ARCHON_SRC="$RUNNER_TEMP/archon" scripts/gates.sh

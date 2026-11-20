@@ -1,0 +1,32 @@
+# Issue « superseded-after-click » : le run est repris après une erreur survenue une fois
+# `submit` démarré (armed.json existe), et entre-temps le filet a clos la prise (APPLY_UNPROVEN)
+# ou un autre run tient l'offre. La garde `own` dit « pas tenue », mais elle porte aussi les
+# traces de l'envoi déjà commencé (`armSubmit`) : le verdict (réel) ne dit jamais « pas
+# envoyé » ; il rend ok: false, status: unproven, submitted: true, et rien n'est recliqué
+# (`arm` et `submit` sautés). Le stub `own` porte ce qu'elle a lu à la reprise (sa règle est
+# testée dans scripts/own.test.ts).
+# Preuve de sûreté : aucun stub pour `submit`, `check_receipt` ni `judge` ; la fixture, qui
+# attend `completed`, prouve qu'aucun second clic n'a lieu.
+# attendu(decide): proceed=true path=auto
+# attendu: ok=false status=unproven submitted=true findings=[]
+prefill: { summary: "stub: form filled", blocked: false, blocker: "" }
+check_prefill: { ok: true, problems: [], summary: "stub: form filled", filled: 7, attached: true, submitted_early: false, tries: 1 }
+own:
+  held: false
+  reason: "Not sent: just before the click, the offer was APPLY_UNPROVEN, no longer held by this run's claim (L1); another run or a newer validation owns it now."
+  evidence:
+    - "armed.json: the submit step already started in this run at 2026-10-20T10:00:00Z"
+fixture:
+  expect: completed
+  reached: [gate, decide, own, verdict]
+  inputs:
+    apply_url: "https://jobs.lever.co/acme/123/apply"
+    candidate: "/stub/candidate.json"
+    cv: "/stub/CV.pdf"
+    offer: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\"}"
+    platform: lever
+    mode: auto
+    claim_board: "/stub/career/pending_gold_jobs.json"
+    claim_slug: acme
+    claim_run: L1
+exec-code: true

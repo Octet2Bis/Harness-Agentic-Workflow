@@ -1,0 +1,113 @@
+name: career-radar
+description: |
+  Système « career-radar » : le radar d'offres côté PC, sans modèle. Interroge les sources
+  d'offres du candidat (`job_sources.json` de son dossier carrière, sinon le fichier par défaut
+  du système), crible les offres brutes de façon déterministe (doublons, offres déjà au tableau,
+  jury de Master Plan : langue, télétravail, séniorité, score ≥ 75) et ajoute les nouvelles au
+  tableau `pending_gold_jobs.json` en PENDING_VALIDATION, sous le verrou du tableau, sans
+  toucher aux lignes existantes. Le cockpit affiche `last_radar_report.json` et les offres ;
+  `career-triage` les trie ensuite. Le radar de la VM continue en parallèle : ses offres
+  arrivent par la fusion PC ⇄ VM existante.
+
+  Use when: the candidate's board must be fed from the PC — "lance le radar", "cherche de
+  nouvelles offres", on a timer or from the cockpit.
+  NOT for: screening against criteres.json (career-triage), applying (career-apply), or
+  Telegram alerts (the VM radar keeps doing that).
+
+# Aucun nœud n'écrit dans le checkout : les artefacts du run et le dossier carrière, hors du
+# dépôt. Sans verrou de dossier, le cockpit peut lancer le radar pendant qu'un tri ou une
+# candidature tourne ; le tableau, lui, est protégé par son propre verrou.
+mutates_checkout: false
+
+inputs:
+  career_dir:
+    required: true
+    description: Absolute path of the candidate's career folder (career_taxonomy.json, job_sources.json optional, pending_gold_jobs.json).
+  sources:
+    default: ""
+    description: Comma-separated source names to query (case-insensitive inclusion); empty means every source enabled in job_sources.json.
+  env_file:
+    default: ""
+    description: Env file holding the API keys (read by variable name); empty means process.env, then <repo>/.local/secrets.env, then <career_dir>/../../.secrets/.env.
+  fetch_module:
+    default: ""
+    description: Tests only — path of a module exporting fetchUrl and request (a fake network); leave empty.
+
+returns: { node: record, outcome: ok }
+
+nodes:
+  # ── 1. Les offres brutes ─────────────────────────────────────────────────
+  - id: collect
+    script: collect
+    runtime: bun
+    with:
+      career_dir: "$INPUTS.career_dir"
+      sources: "$INPUTS.sources"
+      env_file: "$INPUTS.env_file"
+      fetch_module: "$INPUTS.fetch_module"
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        go: { type: boolean }
+        summary: { type: string }
+        raw_count: { type: integer, minimum: 0 }
+        sources_ok: { type: integer, minimum: 0 }
+        sources_failed: { type: integer, minimum: 0 }
+        raw_path:
+          type: object
+          properties:
+            type: { type: string, enum: [archon_artifact] }
+            run_id: { type: string }
+            path: { type: string, pattern: '\S' }
+          required: [type, run_id, path]
+      required: [ok, go, summary, raw_count, sources_ok, sources_failed, raw_path]
+
+  # ── 2. Le crible (pur, sans modèle) ──────────────────────────────────────
+  - id: screen
+    script: screen
+    runtime: bun
+    depends_on: [collect]
+    when: "$collect.output.go == true"
+    with:
+      career_dir: "$INPUTS.career_dir"
+      raw: { from: "$collect.output.raw_path" }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        go: { type: boolean }
+        summary: { type: string }
+        qualified_count: { type: integer, minimum: 0 }
+        rejected_count: { type: integer, minimum: 0 }
+        qualified_path:
+          type: object
+          properties:
+            type: { type: string, enum: [archon_artifact] }
+            run_id: { type: string }
+            path: { type: string, pattern: '\S' }
+          required: [type, run_id, path]
+      required: [ok, go, summary, qualified_count, rejected_count, qualified_path]
+
+  # ── 3. Le tableau et le rapport ──────────────────────────────────────────
+  # Tourne aussi quand rien n'a qualifié ou quand il n'y avait rien à cribler (all_done) :
+  # écrit alors seulement last_radar_report.json. `ok` ne tombe que sur une vraie panne
+  # (collecte en échec, tableau illisible, verrou qui ne se libère pas).
+  - id: record
+    script: record
+    runtime: bun
+    depends_on: [collect, screen]
+    trigger_rule: all_done
+    with:
+      career_dir: "$INPUTS.career_dir"
+      collect: "$collect.output"
+      screen: { from: "$screen.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        summary: { type: string }
+        added: { type: integer, minimum: 0 }
+        skipped: { type: integer, minimum: 0 }
+        report_path: { type: string }
+      required: [ok, summary, added, skipped, report_path]

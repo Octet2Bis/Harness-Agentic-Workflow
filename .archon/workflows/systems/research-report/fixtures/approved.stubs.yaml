@@ -1,0 +1,36 @@
+# Issue « approved » : les deux blocs rendent ok, l'humain approuve, `done` (réel) clôt ok: true.
+# attendu: ok=true stage=done
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+research__judge: { approved: true, reason: "stub: sourced", findings: [] }
+research__verdict:
+  ok: true
+  status: verified
+  summary: "stub: research answered the question"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "research.md" }
+report__judge: { approved: true, reason: "stub: faithful", findings: [] }
+report__verdict:
+  ok: true
+  status: verified
+  summary: "stub: report written"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "report.md" }
+review: { decision: approve, text: "" }
+fixture:
+  expect: completed
+  reached: [research__verdict, report__verdict, review, done]
+  inputs:
+    task: "stub question"
+  resolved-text-contains:
+    review: "stub: report written"
+exec-code: true

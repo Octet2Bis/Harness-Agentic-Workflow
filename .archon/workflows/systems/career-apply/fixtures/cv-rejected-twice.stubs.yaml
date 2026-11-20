@@ -1,0 +1,51 @@
+# Issue « cv-rejected-twice » : le Reviewer refuse (B+), la ronde de révision tourne
+# (`revise_brief` réel : ok: true ; `tailor2` rejoue cv-tailor, stubs `work` et `check` nus,
+# communs aux deux passages), et le second Reviewer (`tailor2__judge`, contexte vierge) refuse
+# encore. Une seule ronde : `cv` (réel) retient le second refus (revised: true), rien n'est
+# rendu ni envoyé (`letter`, `render`, `route`, `resolve`, `apply-submit` sautés ; aucun stub
+# pour `write_letter`, `resolve`, `prefill`, `submit__go`, `submit__submit`, `submit__judge` : un
+# agent atteint sans stub ferait échouer le dry-run), `confirm_route` (réel, all_done) dit
+# ok: false, et `record` (réel, sur /stub/career : il n'écrit rien) rend VALIDATED au stage
+# tailor, résumé « CV rejected après révision: … » : l'offre revient en file, bornée à trois
+# passages (`recordStatus`), comme un premier refus.
+# attendu(tailor__verdict): ok=false status=rejected
+# attendu(revise_brief): ok=true
+# attendu(tailor2__verdict): ok=false status=rejected
+# attendu(cv): ok=false status=rejected revised=true
+# attendu(confirm_route): ok=false
+# attendu: ok=false stage=tailor status=VALIDATED status_written=false copied=[]
+load:
+  ok: true
+  summary: "stub: offer Acme — Growth Ops Manager loaded"
+  slug: acme
+  profile: "/stub/career/master_profile.md"
+  proofs: "/stub/career/skill_proof_graph.json"
+  remarks: ""
+  keywords: "n8n, GTM, HubSpot"
+  offer_json: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\",\"link\":\"https://jobs.lever.co/acme/123\",\"slug\":\"acme\"}"
+  link: "https://jobs.lever.co/acme/123"
+  board: "/stub/career/pending_gold_jobs.json"
+  claim_run: "listener-run-1"
+  self_claimed: false
+  answers: ""
+work:
+  summary: "stub: produced"
+  language: fr
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  coverage: { covered: [n8n, GTM], missing: [HubSpot], ratio: 0.67 }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+  tries: 1
+tailor__judge: { approved: false, grade: "B+", reason: "stub: tasks, not results", findings: [{ severity: blocking, text: "stub: the first experience has no result nor figure although the profile has one" }] }
+tailor2__judge: { approved: false, grade: "B+", reason: "stub: still tasks, not results", findings: [{ severity: blocking, text: "stub: the first experience still has no figure" }, { severity: minor, text: "stub: pitch too long" }] }
+fixture:
+  expect: completed
+  reached: [load, tailor__judge, tailor__verdict, revise_brief, tailor2__produce, tailor2__judge, tailor2__verdict, cv, confirm_route, record]
+  inputs:
+    slug: acme
+    career_dir: "/stub/career"
+    claim_run: listener-run-1
+exec-code: true

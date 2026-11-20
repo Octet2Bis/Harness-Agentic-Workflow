@@ -1,0 +1,28 @@
+# Issue « verified » : les contrôles passent au premier tour (trois histoires citées, extraits
+# du CV retrouvés), le juge note A, le verdict (script réel, exec-code) rend ok: true. Prouve
+# le câblage du bloc sans appeler un modèle.
+# attendu: ok=true status=verified findings=[] deliverable={"type":"archon_artifact","run_id":"fixture-run","path":"interview-prep.md"}
+work:
+  summary: "stub: étape rh, angle automatisation n8n ; HubSpot faible dans le profil, réponse-pont prête"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "interview-prep.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: étape rh, angle automatisation n8n ; HubSpot faible dans le profil, réponse-pont prête"
+  stories: 3
+  coverage: 1
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "interview-prep.md" }
+  tries: 1
+judge:
+  approved: true
+  grade: "A"
+  reason: "stub: questions de l'étape RH, histoires fidèles au profil, simulation utilisable"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    application: "/stub/career/applications/acme"
+    profile: "/stub/career/master_profile.md"
+    stage: rh
+exec-code: true

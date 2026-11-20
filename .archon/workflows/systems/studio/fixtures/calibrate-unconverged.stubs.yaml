@@ -1,0 +1,24 @@
+# Issue « calibrate unconverged » : au dernier tour permis, les contrôles du cadrage disent
+# encore non (une citation qui n'est pas dans la demande). La boucle rend la main au plafond,
+# le juge est sauté et `calibrate__verdict` (réel) rend unconverged ; brief, design, content,
+# la vérification humaine et `drop` sont sautés ; `done` (réel) clôt ok: false, stage:
+# calibrate. Le stub piège `brief__verdict` (une chaîne que son output_format refuse) ferait
+# échouer le run si `brief` était atteint malgré son `when:`.
+# attendu: ok=false stage=calibrate type=null deliverables={"calibrage":"x.md","brief":null,"design_system":null,"content":null}
+# attendu(calibrate__verdict): ok=false status=unconverged
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: false
+  problems: ["stub: evidence \"une app mobile\" is not in the request, word for word"]
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 3
+brief__verdict: "tripwire: brief was reached although the calibration did not converge"
+fixture:
+  expect: completed
+  reached: [calibrate__produce, calibrate__verdict, done]
+  inputs:
+    request: "stub request"
+exec-code: true

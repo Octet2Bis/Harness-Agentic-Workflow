@@ -1,0 +1,21 @@
+# Issue « dossier no verdict » : le juge du dossier échoue (absence de stub = erreur du modèle),
+# son verdict est sauté ; `done` (réel) rend quand même ok: false stage: dossier, le run finit `failed`.
+# attendu(done): ok=false stage=dossier
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+fixture:
+  expect: failed
+  fail-node: dossier__judge
+  reached: [dossier__produce, done]
+  inputs:
+    company: '{"name":"Acme","website":"https://acme.example","country":"FR"}'
+    profile: "/tmp/master_profile.md"
+    today: "2026-10-23"
+exec-code: true

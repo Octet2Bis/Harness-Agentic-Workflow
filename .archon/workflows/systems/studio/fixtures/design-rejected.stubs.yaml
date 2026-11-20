@@ -1,0 +1,29 @@
+# Issue « design rejected » : les blocs précédents passent (verdicts réels : verified), puis
+# le juge de `design` refuse (`design__verdict` réel : rejected). La suite, la vérification
+# humaine et `drop` sont sautés ; `done` (réel) clôt ok: false, stage: design-system. Le run se
+# termine `completed`. Le stub piège `content__judge` prouve que `content` est sauté par son `when:`.
+# attendu: ok=false stage=design-system deliverables={"calibrage":"x.md","brief":"x.md","design_system":"x.md","content":null}
+# attendu(design__verdict): ok=false status=rejected
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+calibrate__judge: { approved: true, reason: "stub: sound", findings: [] }
+brief__judge: { approved: true, reason: "stub: sound", findings: [] }
+design__judge:
+  approved: false
+  reason: "stub: a stock SaaS palette; the brief asks for transit signage"
+  findings:
+    - { severity: blocking, text: "stub: a stock SaaS palette; the brief asks for transit signage" }
+content__judge: "tripwire: content was reached although design was rejected"
+fixture:
+  expect: completed
+  reached: [calibrate__verdict, brief__verdict, design__judge, design__verdict, done]
+  inputs:
+    request: "stub request"
+exec-code: true

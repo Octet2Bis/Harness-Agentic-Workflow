@@ -1,0 +1,9 @@
+[
+  { "_fixture": "fabriquée à la main d'après le schéma de sortie de greentools~ats-jobs-api (api.apify.com injoignable)",
+    "title": "Lifecycle Marketing Specialist", "company": "Exemple SAS", "applyUrl": "https://jobs.example/apply/123",
+    "location": "Remote - France", "remoteType": "remote", "postedAt": "2026-10-23T08:00:00Z",
+    "description": "<p>We are hiring a <b>lifecycle</b> marketer.</p>", "department": "Marketing" },
+  { "name": "CRM Manager", "companyName": "Beispiel GmbH", "url": "https://jobs.example/crm-456",
+    "locations": ["Berlin", "Germany"], "workplaceType": "hybrid", "publishedAt": "2026-10-22T08:00:00Z",
+    "description": "Hybrid role, 3 days a week in Berlin." }
+]

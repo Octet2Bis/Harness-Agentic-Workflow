@@ -1,0 +1,11 @@
+# Issue « rien à trier » : toutes les offres ont leur tri ; le bloc et `classify` sont sautés,
+# `record` tourne et n'écrit rien (stubbé : il lit le disque).
+# sans-attendu: rien ne s'exécute pour de vrai — load et record lisent le disque, le bloc et classify sont sautés.
+load: { ok: true, go: false, summary: "stub: every offer is triaged", key: "", offer_json: "{}", criteria_json: "{}", criteria_hash: "", posting_full: "false", readable: false, unreadable_reason: "", pre_screened: false, pre_screen_reason: "", profile_file: "", attempts: 0 }
+record: { ok: true, written: false, key: "", decision: "", path: "", summary: "stub: every offer is triaged" }
+fixture:
+  expect: completed
+  reached: [load, record]
+  inputs:
+    career_dir: "/stub/career"
+exec-code: true

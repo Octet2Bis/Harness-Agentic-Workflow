@@ -1,0 +1,23 @@
+# Issue « verified » : verdict bien formé (pass), juge d'accord ; verdict réel (exec-code) rend ok: true.
+# attendu: ok=true status=verified code_verdict=pass
+work:
+  summary: "stub: the diff matches the plan and is covered by tests"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "review.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: the diff matches the plan and is covered by tests"
+  code_verdict: pass
+  blocking: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "review.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: nothing blocking was missed; the two minor findings are real"
+  findings: []
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    plan: "stub plan"
+exec-code: true

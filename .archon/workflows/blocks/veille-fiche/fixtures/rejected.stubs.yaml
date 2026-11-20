@@ -1,0 +1,25 @@
+# Issue « rejected » : les contrôles passent mais le juge refuse. Le run se termine
+# normalement avec une issue autorisée négative (ok: false) : statut et issue sont deux faits.
+# attendu: ok=false status=rejected
+work:
+  summary: "stub: the deliverable is complete"
+  read_content: true
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "fiche.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: the deliverable is complete"
+  category: "IA & Systèmes Multi-Agents"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "fiche.md" }
+  tries: 1
+judge:
+  approved: false
+  reason: "stub: the note paraphrases the caption, not the reel"
+  findings:
+    - { severity: blocking, text: "stub: the first section repeats the title; the transcript says something else" }
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    source: "https://www.instagram.com/reel/stub/"
+exec-code: true

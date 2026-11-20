@@ -1,0 +1,184 @@
+name: board-listener
+description: |
+  Système « tableau de tâches » : le listener du reel. Chaque run prend la plus ancienne
+  tâche NEW du tableau (documents d'état `board/<id>`, voir scripts/board.ts), la marque
+  PICKED UP par une écriture conditionnelle (deux runs ne prennent jamais la même), lance
+  le système demandé par la carte (pipeline, research-report, feature-build ou
+  design-variants) comme sous-run gouverné (son propre run, ses artefacts, sa pause
+  humaine), puis marque la tâche DONE ou FAILED avec l'issue — FAILED aussi quand le
+  sous-run échoue ou est annulé (refus humain). Rien à prendre : le run finit « idle ».
+  Démarré par un déclencheur planifié (voir triggers/) ou à la main.
+
+  Use when: tasks arrive on the board from a phone, a chat or a script, and must be
+  worked without anyone starting a run — "lance le listener", a schedule binding.
+  NOT for: one task by hand (run the system directly).
+
+# Ne prend pas le verrou du dossier : ses nœuds n'écrivent que dans l'état d'Archon (`archon
+# state`), jamais dans le dossier, et `run_feature_build` a son propre worktree. Archon ne
+# l'annule donc pas quand un autre run tient le dossier (README, « Le dossier partagé »).
+mutates_checkout: false
+
+returns: { node: close, outcome: ok }
+
+nodes:
+  # Prend la tâche, sauf si le verrou du dossier est en jeu : un run actif de ce dossier le
+  # prend (Archon l'annulerait à sa reprise tant qu'une carte attend son humain ici), ou le
+  # sous-run de la carte le prendrait alors qu'un autre run y est actif (annulé au départ).
+  # La carte reste NEW et le run finit `waiting`. Hors run, `archon state` ne connaît pas le
+  # tableau : le script est stubbé dans les fixtures, sa décision testée à l'unité
+  # (.shared/board.test.ts) et le script lancé contre un faux archon (scripts/listener.test.ts).
+  - id: claim
+    script: claim
+    runtime: bun
+    output_format:
+      type: object
+      properties:
+        path: { type: string, enum: [idle, waiting, work] }
+        id: { type: string }
+        run: { type: string }
+        workflow: { type: string }
+        task: { type: string }
+        context: { type: string }
+        revision: { type: integer }
+        note: { type: string }
+      required: [path, id, run, workflow, task, context, revision, note]
+
+  # La garde, rejouée à chaque reprise du run (`always_run`) : `claim` ne l'est pas, un
+  # `run_*` en échec l'est. Ce run tient-il encore la carte (ou la reprend-il, s'il l'avait
+  # lui-même close en échec avant d'être repris) ? Sinon aucun `run_*` ne part. Lit l'état :
+  # stubbée dans les fixtures de travail, décision testée à l'unité (holdDecision).
+  - id: hold
+    script: hold
+    runtime: bun
+    always_run: true
+    depends_on: [claim]
+    with:
+      claim: { from: "$claim.output" }
+    output_format:
+      type: object
+      properties:
+        held: { type: boolean }
+        status: { type: string }
+        by: { type: string }
+      required: [held, status, by]
+
+  # ── Un nœud par système de BOARD_WORKFLOWS (.shared/board.ts), un seul tourne ──────────
+  # Chacun est un sous-run : sa pause humaine est répondue sur SON run
+  # (archon workflow approve | reject <id-du-sous-run>, jamais abandon) ; le listener attend,
+  # « blocked on sub-run ». Un refus humain annule l'enfant : le nœud échoue, et `settle` clôt
+  # la tâche en FAILED.
+  - id: run_pipeline
+    workflow: pipeline
+    depends_on: [claim, hold]
+    when: "$hold.output.held == true && $claim.output.workflow == 'pipeline'"
+    with:
+      task: "$claim.output.task"
+      context: "$claim.output.context"
+
+  - id: run_research_report
+    workflow: research-report
+    depends_on: [claim, hold]
+    when: "$hold.output.held == true && $claim.output.workflow == 'research-report'"
+    with:
+      task: "$claim.output.task"
+      context: "$claim.output.context"
+
+  # Pas d'entrée de contexte : `claim` l'a ajouté à la fin de la tâche. Une carte vise
+  # toujours CE dépôt : ses tests sont les portes du dépôt, sa branche `master` (les défauts
+  # `npm test` / `main` du système n'y valent rien). feature-build modifie un dépôt : son
+  # propre worktree, coupé par Archon de `origin/<branche par défaut>` (`board.ts add` refuse
+  # la carte sans remote `origin`).
+  - id: run_feature_build
+    workflow: feature-build
+    depends_on: [claim, hold]
+    when: "$hold.output.held == true && $claim.output.workflow == 'feature-build'"
+    isolation: worktree
+    with:
+      request: "$claim.output.task"
+      test_cmd: "bash scripts/gates.sh"
+      lint_cmd: "bun scripts/gates/validate.ts"
+      base: master
+
+  # Pas d'entrée de contexte : `claim` l'a ajouté à la fin du brief.
+  - id: run_design_variants
+    workflow: design-variants
+    depends_on: [claim, hold]
+    when: "$hold.output.held == true && $claim.output.workflow == 'design-variants'"
+    with:
+      brief: "$claim.output.task"
+
+  # ── L'issue, pure (tourne pour de vrai dans les fixtures) ──────────────────────────────
+  # Lit celui qui a tourné ; les sautés se lisent null. Un `run_*` en ÉCHEC (sous-run échoué
+  # ou annulé) fait échouer ce nœud : Archon ne lit jamais un producteur en échec.
+  - id: outcome
+    script: outcome
+    runtime: bun
+    depends_on: [claim, hold, run_pipeline, run_research_report, run_feature_build, run_design_variants]
+    trigger_rule: all_done
+    with:
+      claim: { from: "$claim.output" }
+      hold: { from: "$hold.output" }
+      pipeline: { from: "$run_pipeline.output", if_skipped: null }
+      research_report: { from: "$run_research_report.output", if_skipped: null }
+      feature_build: { from: "$run_feature_build.output", if_skipped: null }
+      design_variants: { from: "$run_design_variants.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        path: { type: string, enum: [idle, waiting, released, done, failed] }
+        id: { type: string }
+        workflow: { type: string }
+        summary: { type: string }
+        result: { type: [object, 'null'] }
+      required: [ok, path, id, workflow, summary, result]
+
+  # Relais d'`outcome` pour `settle` : recopie sa sortie quand il a réussi ; sauté s'il a
+  # échoué (cause : amont en échec), et `settle` lit alors `null` au lieu d'échouer.
+  - id: outcome_result
+    depends_on: [outcome]
+    script: "console.log(process.env.INPUTS_OUTCOME)"
+    runtime: bun
+    with:
+      outcome: "$outcome.output"
+
+  # Écrit l'issue tant que la carte est prise par CE run (relue, écriture conditionnelle) :
+  # ne recouvre pas une reprise à la main. Sauté si `outcome` a échoué.
+  - id: close
+    script: close
+    runtime: bun
+    depends_on: [claim, outcome]
+    with:
+      claim: { from: "$claim.output" }
+      outcome: { from: "$outcome.output" }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        path: { type: string, enum: [idle, waiting, released, done, failed] }
+        id: { type: string }
+        workflow: { type: string }
+        summary: { type: string }
+      required: [ok, path, id, workflow, summary]
+
+  # ── Le filet : quoi qu'il soit arrivé, une tâche prise ne reste pas PICKED UP ─────────
+  # Ne lie que `claim` et le relais d'`outcome`. Si la tâche est encore picked_up par CE run
+  # (close n'a rien écrit), y écrit l'issue du sous-run s'il en a rendu une, sinon `failed`
+  # avec la cause lue dans le run ; sinon ne touche à rien. Écrit dans l'état : stubbé dans
+  # les fixtures, décision testée à l'unité (settleOps, failureReason).
+  - id: settle
+    script: settle
+    runtime: bun
+    depends_on: [claim, hold, run_pipeline, run_research_report, run_feature_build, run_design_variants, outcome, outcome_result, close]
+    trigger_rule: all_done
+    when: "$claim.output.path == 'work'"
+    with:
+      claim: { from: "$claim.output" }
+      outcome: { from: "$outcome_result.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        settled: { type: boolean }
+        id: { type: string }
+        summary: { type: string }
+      required: [settled, id, summary]

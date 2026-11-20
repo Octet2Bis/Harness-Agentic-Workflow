@@ -1,0 +1,63 @@
+{
+  "_fixture": "data[0] et meta : réels — GET /api/v1/agent/jobs/search?q=\"growth marketing\"&q_fields=title&work_mode=remote&regions=eu&limit=2&description_format=text du 2026-10-24 (description tronquée, requirements réduits) ; data[1] (salaire, entité HTML) et data[2] (close) construits sur le schéma Job d'openapi.yaml",
+  "data": [
+    {
+      "public_slug": "growth-product-marketing-lead-keyvoto-ike-eob7ogvo",
+      "source": "manatal",
+      "manually_added": false,
+      "external_id": "keyvoto-ike:W3X558WW",
+      "url": "https://www.careers-page.com/keyvoto-ike/job/W3X558WW?utm_source=freehire.me",
+      "title": "Growth & Product Marketing Lead",
+      "company": "Keyvoto Ike",
+      "company_slug": "keyvoto-ike",
+      "location": "Athens, Greece",
+      "description": "----------------\n*About the Role*\n----------------\n\nWere looking for a creative, data-driven marketer to own growth and product marketing.",
+      "countries": ["gr"],
+      "regions": ["eu"],
+      "work_mode": "remote",
+      "skills": ["ab-testing", "analytics", "canva", "content-marketing", "ecommerce", "figma", "saas", "seo", "video-editing"],
+      "cities": ["Athens"],
+      "metros": ["Athens (GR)"],
+      "collections": [],
+      "is_tech": "non_tech",
+      "posted_at": "2026-10-23T17:52:51Z",
+      "created_at": "2026-10-23T17:52:51Z",
+      "updated_at": "2026-10-23T17:52:51Z",
+      "last_seen_at": "2026-10-24T05:49:50Z",
+      "closed_at": null,
+      "enrichment": { "employment_type": "full_time", "seniority": "lead", "experience_years_min": 2, "category": "marketing", "posting_language": "en" },
+      "enriched_at": null,
+      "enrichment_version": 0,
+      "view_count": 0, "applied_count": 0, "upvote_count": 0, "downvote_count": 0, "my_vote": 0,
+      "reality": { "class": "fresh", "age_days": 0, "repost_count": 1, "mass_posting_count": 1, "fake_freshness": false }
+    },
+    {
+      "public_slug": "crm-lifecycle-manager-acme-k2p9qxa",
+      "source": "ashby",
+      "external_id": "acme:7f1c",
+      "url": "https://jobs.ashbyhq.com/acme/7f1c",
+      "title": "CRM &amp; Lifecycle Manager",
+      "company": "Acme",
+      "location": "",
+      "description": "<p>Own the CRM roadmap.</p>",
+      "countries": ["fr", "es"],
+      "cities": [],
+      "work_mode": "remote",
+      "skills": ["hubspot"],
+      "posted_at": "2026-10-22T09:00:00Z",
+      "closed_at": null,
+      "enrichment": { "salary_min": 50000, "salary_max": 60000, "salary_currency": "EUR", "salary_period": "year" }
+    },
+    {
+      "public_slug": "growth-marketer-closed-co-zz11",
+      "source": "lever",
+      "url": "https://jobs.lever.co/closed-co/1",
+      "title": "Growth Marketer",
+      "company": "Closed Co",
+      "work_mode": "remote",
+      "posted_at": "2026-10-01T00:00:00Z",
+      "closed_at": "2026-10-20T00:00:00Z"
+    }
+  ],
+  "meta": { "limit": 2, "offset": 0, "total": 86 }
+}

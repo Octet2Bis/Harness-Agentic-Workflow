@@ -1,0 +1,27 @@
+# Contrat d'issue : tout est stubbé, verdict compris ; la simulation lit `outcome: ok`.
+# sans-attendu: fixture de contrat — `verdict` est stubbé ; Archon valide le stub contre output_format et en dérive l'issue (« Authored outcome »).
+work:
+  summary: "stub: done"
+  task_done: "stub task"
+  remaining: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: done"
+  tests_passed: true
+  remaining: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+  tries: 1
+verdict:
+  ok: true
+  status: verified
+  summary: "stub: done. Tests: green; remaining tasks: 0."
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+fixture:
+  expect: completed
+  reached: [verdict]
+  inputs:
+    plan: "stub plan"

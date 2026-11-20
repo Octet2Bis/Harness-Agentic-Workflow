@@ -1,0 +1,35 @@
+# Contrat d'issue : avec `verdict` stubbé, la simulation lit l'issue autorisée et doit la
+# rapporter « succeeded ».
+# sans-attendu: fixture de contrat — `verdict` est stubbé ; Archon valide le stub contre output_format et en dérive l'issue (« Authored outcome »).
+work:
+  summary: "stub: done"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: done"
+  decision: retenue
+  reasons: ["Langues, salaire et mode de travail conformes à criteres.json"]
+  notes: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+  tries: 1
+judge:
+  approved: true
+  reason: "stub: approved"
+  findings: []
+verdict:
+  ok: true
+  status: verified
+  summary: "stub: done. Judge: stub: approved"
+  decision: retenue
+  reasons: ["Langues, salaire et mode de travail conformes à criteres.json"]
+  notes: []
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "triage.json" }
+fixture:
+  expect: completed
+  reached: [verdict]
+  inputs:
+    offer: '{"company":"Smartness","title":"Sales Operations & Enablement Specialist","link":"https://pt.linkedin.com/jobs/view/4475957729","slug":"smartness"}'
+    criteria: '{"langues":["fr","en"],"salaire_min_annuel":35000}'

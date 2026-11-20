@@ -1,0 +1,27 @@
+# Issue « all unconverged » : au dernier tour permis, les contrôles des trois variantes disent
+# encore non (les stubs `work`/`check` servent aux trois ; le dry-run ne joue qu'un tour de
+# boucle, le stub `check` porte donc l'état du dernier : `tries` au plafond, 3). Chaque boucle
+# rend la main par son compteur, sans épuisement ; les trois juges sont sautés (aucun stub
+# `*__judge` : un juge atteint ferait échouer la fixture), les trois verdicts (scripts réels de
+# landing-page) rendent `unconverged`. `collect` (réel) n'a rien à proposer, `choose` est sauté
+# (aucun stub `choose` : pas de pause) et `drop` aussi ; `done` (réel) clôt ok: false et dit
+# pour chacune « did not converge », pas « rejected by its judge ».
+# Aucun nœud en échec : rien qu'Archon rejouerait.
+# attendu: ok=false chosen=null variants={"a":false,"b":false,"c":false} statuses={"a":"unconverged","b":"unconverged","c":"unconverged"}
+# attendu(collect): survivors=0 statuses={"a":"unconverged","b":"unconverged","c":"unconverged"}
+# attendu(b__verdict): ok=false status=unconverged findings=[]
+work:
+  summary: "stub: page built"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.html" }
+check:
+  ok: false
+  problems: ["stub: exactly one data-cta=\"primary\" expected, found 2"]
+  summary: "stub: page built"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.html" }
+  tries: 3
+fixture:
+  expect: completed
+  reached: [a__verdict, b__verdict, c__verdict, collect, done]
+  inputs:
+    brief: "stub brief"
+exec-code: true

@@ -1,0 +1,41 @@
+{
+  "_doc": "Écrit à la main dans la forme publique de la Greenhouse Job Board API (GET /v1/boards/{token}/jobs?content=true). Aucune entreprise réelle.",
+  "jobs": [
+    {
+      "id": 7001001,
+      "title": "Growth Marketing Manager",
+      "absolute_url": "https://boards.greenhouse.io/nordlys/jobs/7001001?gh_src=radar",
+      "location": { "name": "Remote - Spain" },
+      "first_published": "2026-10-21T08:12:00-04:00",
+      "updated_at": "2026-10-21T09:00:00-04:00",
+      "departments": [{ "id": 1, "name": "Marketing" }],
+      "content": "&lt;p&gt;We are hiring a &lt;strong&gt;Growth Marketing Manager&lt;/strong&gt; to own paid acquisition and lifecycle.&lt;/p&gt;",
+      "metadata": []
+    },
+    {
+      "id": 7001002,
+      "title": "Growth Marketing Manager",
+      "absolute_url": "https://boards.greenhouse.io/nordlys/jobs/7001002",
+      "location": { "name": "Remote - Portugal" },
+      "first_published": "2026-10-20T08:12:00-04:00",
+      "updated_at": "2026-10-20T08:12:00-04:00",
+      "departments": [{ "id": 1, "name": "Marketing" }],
+      "content": "<p>Same role, Portugal entity.</p>"
+    },
+    {
+      "id": 7001003,
+      "title": "Senior Backend Engineer (Go)",
+      "absolute_url": "https://boards.greenhouse.io/nordlys/jobs/7001003",
+      "location": { "name": "Lisbon" },
+      "first_published": "2026-10-19T08:12:00-04:00",
+      "departments": [{ "id": 2, "name": "Engineering" }],
+      "content": "<p>Go, Kubernetes.</p>"
+    },
+    {
+      "id": 7001004,
+      "title": "",
+      "absolute_url": "https://boards.greenhouse.io/nordlys/jobs/7001004",
+      "location": { "name": "Remote" }
+    }
+  ]
+}

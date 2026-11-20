@@ -1,0 +1,32 @@
+# Issue « rejected by human » : tout est ok jusqu'à la vérification finale, l'humain refuse, `drop` annule.
+work:
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x.md" }
+  tries: 1
+research__judge: { approved: true, reason: "stub: sourced", findings: [] }
+research__verdict:
+  ok: true
+  status: verified
+  summary: "stub: research answered the question"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "research.md" }
+report__judge: { approved: true, reason: "stub: faithful", findings: [] }
+report__verdict:
+  ok: true
+  status: verified
+  summary: "stub: report written"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "report.md" }
+review: { decision: reject, text: "stub: the recommendation ignores the budget" }
+fixture:
+  expect: cancelled
+  reached: [review, drop]
+  inputs:
+    task: "stub question"

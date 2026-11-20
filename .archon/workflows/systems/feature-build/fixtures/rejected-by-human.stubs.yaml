@@ -1,0 +1,48 @@
+# Issue « rejected by human » : tout est vert jusqu'à l'humain, qui refuse ; `drop` annule,
+# `ship` ne tourne jamais. `ship` n'a pas de stub et précède `drop` dans le YAML (même
+# couche, jouée dans l'ordre par le dry-run, qui s'arrête au `cancel`) : sans son `when`, il
+# serait atteint avant l'annulation et la fixture échouerait (« reached nodes without stubs »).
+# sans-attendu: expect cancelled sans exec-code — rien ne tourne pour de vrai ; Archon asserte l'état (drop annule) et les nœuds atteints.
+plan:
+  summary: "stub: three tasks"
+  tasks: 3
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "plan.md" }
+plan_result: '{"summary":"stub: three tasks","tasks":3,"deliverable":{"type":"archon_artifact","run_id":"fixture-run","path":"plan.md"}}'
+work:
+  summary: "stub: produced"
+  task_done: "stub task"
+  remaining: 0
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  tests_passed: true
+  remaining: 0
+  code_verdict: fail
+  blocking: 1
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "x" }
+  tries: 1
+implement__verdict:
+  ok: true
+  status: verified
+  summary: "stub: all tasks done, suite green"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "implement.md" }
+lint: { ok: true, exit_code: 0, log: "lint.log" }
+review__judge: { approved: true, reason: "stub: the blocking finding is real", findings: [] }
+review__verdict:
+  ok: true
+  status: verified
+  code_verdict: fail
+  summary: "stub: one blocking defect in the empty-list path"
+  problems: []
+  findings: []
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "review.json" }
+approve: { decision: reject, text: "stub: fix the empty-list path first" }
+fixture:
+  expect: cancelled
+  reached: [review__verdict, approve, drop]
+  inputs:
+    request: "stub request"

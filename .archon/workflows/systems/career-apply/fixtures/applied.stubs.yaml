@@ -1,0 +1,60 @@
+# Issue « applied » : lien direct vers un ATS (Lever), plateforme déjà vérifiée : pas de go.
+# `route`, `confirm_route`, les verdicts des blocs et le cran de sécurité (purs) s'exécutent
+# pour de vrai ; `load`, `render`, `record` et les contrôles qui lisent le disque sont stubbés.
+# attendu(confirm_route): ok=true platform=lever
+# attendu(submit__gate): needs_go=false
+# attendu(submit__arm): clear=true
+# attendu(submit__verdict): ok=true status=verified submitted=true
+load:
+  ok: true
+  summary: "stub: offer Acme — Growth Ops Manager loaded"
+  slug: acme
+  profile: "/stub/career/master_profile.md"
+  proofs: "/stub/career/skill_proof_graph.json"
+  remarks: ""
+  keywords: "n8n, GTM, HubSpot"
+  offer_json: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\",\"link\":\"https://jobs.lever.co/acme/123\",\"slug\":\"acme\"}"
+  link: "https://jobs.lever.co/acme/123"
+  board: "/stub/career/pending_gold_jobs.json"
+  claim_run: "listener-run-1"
+  self_claimed: false
+  answers: ""
+work:
+  summary: "stub: produced"
+  language: fr
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: produced"
+  coverage: { covered: [n8n, GTM, HubSpot], missing: [], ratio: 1 }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+  tries: 1
+tailor__judge: { approved: true, grade: "A", reason: "stub: honest and dense", findings: [] }
+write_letter:
+  summary: "stub: lettre, deux preuves du profil"
+  language: fr
+  evidence:
+    - { letter: "campagnes outbound", profile: "campagnes outbound" }
+    - { letter: "qualification des leads", profile: "qualification des leads" }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/letter.md" }
+check_letter: { ok: true, problems: [], summary: "stub: lettre, deux preuves du profil", language: fr, words: 274, lines: 38, traced: 2, evidence: [], deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/letter.md" }, tries: 1 }
+letter__judge: { approved: true, grade: "A", reason: "stub: honnête et précise", findings: [] }
+render: { ok: true, pdf: "/stub/artifacts/application/CV.pdf", engine: msedge, pages: 1, problems: [], summary: "stub: CV.pdf rendered and checked", letter: "", letter_pages: 0 }
+prefill: { summary: "stub: form filled", blocked: false, blocker: "" }
+check_prefill: { ok: true, problems: [], summary: "stub: form filled", filled: 8, attached: true, submitted_early: false, tries: 1 }
+submit__submit: { summary: "stub: confirmation page", clicked: true }
+submit__check_receipt: { ok: true, problems: [], submitted: true, proven: true, confirmation: "thank you for applying", summary: "stub: confirmation page" }
+submit__judge: { approved: true, reason: "stub: proven", findings: [] }
+record: { ok: true, stage: done, status: APPLIED, status_written: true, app_dir: "/stub/career/applications/acme", copied: [CV_Candidat_acme.md, CV_Candidat_acme.pdf, Message_Accroche_acme.md, candidate.json, interlocuteur_cible.json, submission_receipt.json], summary: "stub: applied" }
+submit__own: { held: true, reason: "stub: the offer is still APPLYING by this run's claim (listener-run-1)", evidence: [] }
+fixture:
+  expect: completed
+  reached: [load, tailor__verdict, letter__verdict, render, route, confirm_route, submit__gate, submit__decide, submit__own, submit__arm, submit__submit, submit__check_receipt, submit__judge, submit__verdict, record]
+  inputs:
+    slug: acme
+    career_dir: "/stub/career"
+    mode: verified-only
+    verified_platforms: "lever"
+    claim_run: listener-run-1
+exec-code: true

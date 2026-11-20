@@ -1,0 +1,28 @@
+# Issue « auto-submitted » : plateforme déjà vérifiée (mode verified-only), aucun go demandé ;
+# le formulaire passe, l'envoi est confirmé, le juge approuve. `gate`, `decide` et `verdict`
+# (purs) s'exécutent pour de vrai ; les contrôles qui lisent les artefacts sont stubbés.
+# `target` (réel) : le formulaire Lever est déjà l'URL /apply, ses seuls hôtes ceux de Lever,
+# et sans `letter`, ni lettre ni version texte : le chemin d'avant, inchangé.
+# attendu(target): platform=lever form_url=https://jobs.lever.co/acme/123/apply needs_login=false handover=false hosts=["jobs.lever.co","jobs.eu.lever.co"] letter="" letter_text=""
+# attendu(gate): needs_go=false
+# attendu(decide): proceed=true path=auto
+# attendu(own): held=true
+# attendu(arm): clear=true
+# attendu: ok=true status=verified submitted=true
+prefill: { summary: "stub: 9 fields filled, CV attached", blocked: false, blocker: "" }
+check_prefill: { ok: true, problems: [], summary: "stub: 9 fields filled, CV attached", filled: 9, attached: true, submitted_early: false, tries: 1 }
+submit: { summary: "stub: confirmation page shown", clicked: true }
+check_receipt: { ok: true, problems: [], submitted: true, proven: true, confirmation: "thank you for applying", summary: "stub: confirmation page shown" }
+judge: { approved: true, reason: "stub: right employer, right data, confirmation visible", findings: [] }
+fixture:
+  expect: completed
+  reached: [target, gate, decide, own, arm, submit, check_receipt, judge, verdict]
+  inputs:
+    apply_url: "https://jobs.lever.co/acme/123/apply"
+    candidate: "/stub/candidate.json"
+    cv: "/stub/CV.pdf"
+    offer: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\"}"
+    platform: lever
+    mode: verified-only
+    verified_platforms: "lever,greenhouse"
+exec-code: true

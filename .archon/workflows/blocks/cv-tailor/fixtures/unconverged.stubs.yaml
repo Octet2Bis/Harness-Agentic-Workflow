@@ -1,0 +1,29 @@
+# Issue « unconverged » : au troisième et dernier tour permis, les contrôles disent encore
+# non (couverture des mots-clés sous 70 %, un chiffre absent du profil). La boucle rend la
+# main (compteur `tries` au plafond, pas d'épuisement de max_iterations), le Reviewer est
+# sauté (`when: $produce.output.ok == true` ; aucun stub `judge` ici : un nœud atteint sans
+# stub ferait échouer le dry-run) et le verdict (script réel) rend quand même une issue
+# typée : ok: false, status: unconverged, sans constats, avec les derniers problèmes. Le
+# dry-run ne joue qu'un tour de boucle : le stub `check` porte directement l'état du
+# dernier tour.
+# attendu: ok=false status=unconverged findings=[] deliverable={"type":"archon_artifact","run_id":"fixture-run","path":"application/CV.md"}
+work:
+  summary: "stub: angle growth ops, HubSpot absent du profil"
+  language: fr
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+check:
+  ok: false
+  problems:
+    - "CV covers 1/3 offer keywords (33%, at least 70% expected); missing: GTM, HubSpot"
+    - "CV: figure \"+40%\" does not appear in the master profile (unsupported claim)"
+  summary: "stub: angle growth ops, HubSpot absent du profil"
+  coverage: { covered: [n8n], missing: [GTM, HubSpot], ratio: 0.33 }
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "application/CV.md" }
+  tries: 3
+fixture:
+  expect: completed
+  reached: [produce, verdict]
+  inputs:
+    offer: '{"company":"Acme","title":"Growth Ops Manager","link":"https://jobs.lever.co/acme/123","slug":"acme","skills_required":"n8n, GTM, HubSpot"}'
+    profile: "/stub/master_profile.md"
+exec-code: true

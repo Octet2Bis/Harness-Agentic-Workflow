@@ -1,0 +1,18 @@
+# Issue « run-failed » : le sous-run career-apply échoue ou est annulé (erreur d'un modèle ou
+# d'un script hors bloc, comme `resolve`, qui fait échouer `confirm_route` puis `record` ; ou un
+# cancel) et n'écrit aucun statut. `run` n'est PAS stubbé : le dry-run le fait échouer comme un
+# enfant en échec. Archon ne laisse aucune liaison lire un nœud en échec : `close` (exec-code)
+# échoue sur sa liaison `result`. `settle`, qui ne lie que `claim`, tourne quand même
+# (exec-code) : c'est lui qui passe l'offre APPLY_FAILED quand elle est encore APPLYING par CE
+# run. Ici le dossier carrière /stub/career n'existe pas, il n'écrit rien (settled: false) ;
+# la décision (`settleClaim` : seulement APPLYING par ce run) est testée dans
+# .shared/pending.test.ts. Le run finit `failed`, l'offre ne reste pas APPLYING.
+# attendu(settle): settled=false slug="acme"
+claim: { path: work, slug: acme, company: Acme, title: "Growth Ops Manager", run: "listener-run-1", stale: [], summary: "Picked acme." }
+fixture:
+  expect: failed
+  fail-node: [run, close]
+  reached: [claim, settle]
+  inputs:
+    career_dir: "/stub/career"
+exec-code: true

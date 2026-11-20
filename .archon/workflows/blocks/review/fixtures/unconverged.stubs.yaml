@@ -1,0 +1,27 @@
+# Issue « unconverged » : au dernier tour permis, `review.json` ne passe toujours pas ses
+# contrôles (ici un constat bloquant vise un fichier absent du diff). La boucle rend la main
+# (compteur `tries` au plafond, pas d'épuisement de max_iterations), le juge est sauté
+# (`when: $produce.output.ok == true` ; pas de stub `judge` : s'il était atteint, le dry-run
+# échouerait) et le verdict (script réel) rend quand même une issue typée : ok: false,
+# status: unconverged, les derniers problèmes, et `code_verdict: unknown` même si le
+# `review.json` refusé dit « fail » : une relecture qui ne passe pas ses contrôles ne dit
+# rien de fiable sur le code. Le dry-run ne joue qu'un tour de boucle : le stub `check` porte
+# directement l'état du dernier tour.
+# attendu: ok=false status=unconverged code_verdict=unknown findings=[]
+work:
+  summary: "stub: one blocking defect in the empty-list path"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "review.json" }
+check:
+  ok: false
+  problems: ["finding 1: src/b.ts is not in the diff (src/a.ts)"]
+  summary: "stub: one blocking defect in the empty-list path"
+  code_verdict: fail
+  blocking: 1
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "review.json" }
+  tries: 3
+fixture:
+  expect: completed
+  reached: [produce, verdict]
+  inputs:
+    plan: "stub plan"
+exec-code: true

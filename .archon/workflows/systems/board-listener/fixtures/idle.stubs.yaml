@@ -1,0 +1,11 @@
+# Issue « idle » : rien sur le tableau. `hold` (réel, exec-code) ne lit pas l'état et rend
+# held=false, aucun `run_*` ne tourne, `outcome` et `close` (réels) rendent ok: true sans
+# toucher à l'état, `settle` est sauté.
+# attendu: ok=true path=idle
+# attendu(hold): held=false status="" by=""
+# attendu(outcome): ok=true path=idle workflow="" result=null
+claim: { path: idle, id: "", run: "stub-run", workflow: "", task: "", context: "", revision: 0, note: "" }
+fixture:
+  expect: completed
+  reached: [claim, hold, outcome, outcome_result, close]
+exec-code: true

@@ -1,0 +1,15 @@
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+
+# Profil de navigateur des candidatures (session connectée) : jamais versionné
+.local/
+
+# Sorties du serveur MCP Playwright (captures, journaux)
+.playwright-mcp/
+
+# Vitrine : médias lourds et polices sous licence restent sur le PC
+showcase/**/*.mp4
+showcase/**/*.pdf
+showcase/**/*.otf

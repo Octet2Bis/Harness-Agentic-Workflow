@@ -1,0 +1,161 @@
+name: career-triage
+description: |
+  Système « career-triage » : trie une offre captée par le radar (pending_gold_jobs.json,
+  PENDING_VALIDATION ou VALIDATED) contre les critères du candidat (`criteres.json` de son
+  dossier carrière) et écrit la décision dans `triage/<clé>.json`, que le cockpit affiche.
+  Enchaîne : choix de l'offre (celle demandée, sinon la plus récente qui attend son tri) et
+  lecture de l'annonce (la page, sinon la description complète que la source a donnée au radar ;
+  rien de lisible : « Annonce illisible », bloc sauté ; offre plus vieille que
+  `offre_age_max_jours` : écartée par le code, ni page lue ni modèle appelé) et du profil du
+  candidat (`master_profile.md`) → bloc job-triage (Haiku extrait langues, salaire, mode de
+  travail, expérience et les trois exigences centrales du poste avec leur appui dans le profil,
+  citations à l'appui, le code vérifie et décide, un juge Sonnet en contexte vierge relit) → issue
+  (seul un bloc vérifié, ou le pré-tri du code, écarte ou retient ; sinon « à vérifier », raison
+  à l'appui) → écriture. Aucun appel Opus. Ne modifie jamais le tableau (partagé avec la VM).
+
+  Use when: offers captured by the radar must be screened against the candidate's criteria —
+  "trie les offres", "écarte les offres en italien", "sous 35k".
+  NOT for: applying (career-apply) or scoring the fit (the jury upstream).
+
+# Aucun nœud n'écrit dans le checkout : les sorties vont dans les artefacts et dans le dossier
+# carrière, hors du dépôt. Sans verrou, le cockpit peut trier pendant qu'une candidature tourne.
+mutates_checkout: false
+
+inputs:
+  career_dir:
+    required: true
+    description: Absolute path of the candidate's career folder (criteres.json, pending_gold_jobs.json, master_profile.md when present, triage/).
+  key:
+    default: ""
+    description: Offer to triage (its id, or slug); empty means the most recent offer waiting for its triage.
+  engine:
+    default: rules
+    description: '"rules" (default) triages with the code rules only, no model call (no Claude quota); "local" asks the local Ollama model closed questions checked by the code (no Claude; TRIAGE_LOCAL_URL, TRIAGE_LOCAL_MODEL; falls back to the rules when Ollama is unreachable); "llm" runs the job-triage block (agent, checks, judge). Offers triaged by "rules" are triaged again under "local" or "llm", offers triaged by "local" again under "llm".'
+  skip:
+    default: ""
+    description: Comma-separated offer keys not to pick this time (empty key only); the VM radar passes the offers already seen in its cycle, so a non-final triage (unreadable posting) is retried at the next cycle, not at once.
+
+returns: { node: record, outcome: ok }
+
+nodes:
+  # ── 1. L'offre et l'annonce ──────────────────────────────────────────────
+  - id: load
+    script: load
+    runtime: bun
+    with:
+      career_dir: "$INPUTS.career_dir"
+      key: "$INPUTS.key"
+      engine: "$INPUTS.engine"
+      skip: "$INPUTS.skip"
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        go: { type: boolean }
+        summary: { type: string }
+        key: { type: string }
+        offer_json: { type: string }
+        criteria_json: { type: string }
+        criteria_hash: { type: string }
+        posting_full: { type: string, enum: ["true", "false"] }
+        readable: { type: boolean }
+        unreadable_reason: { type: string }
+        pre_screened: { type: boolean }
+        pre_screen_reason: { type: string }
+        profile_file: { type: string }
+        attempts: { type: integer, minimum: 0 }
+      required: [ok, go, summary, key, offer_json, criteria_json, criteria_hash, posting_full, readable, unreadable_reason, pre_screened, pre_screen_reason, profile_file, attempts]
+
+  # ── 2. Le tri, vérifié (bloc) ────────────────────────────────────────────
+  # Sauté quand il n'y a rien à lire (`readable` faux) : `classify` écrit « Annonce illisible » ;
+  # et quand le code a déjà tranché (`pre_screened` : offre trop ancienne) : aucun appel de modèle.
+  # Moteur `rules` (défaut, 2026-10-30) : les règles du code seules, aucun appel de modèle.
+  - id: rules
+    script: rules
+    runtime: bun
+    depends_on: [load]
+    when: "$load.output.go == true && $load.output.readable == true && $load.output.pre_screened == false && $INPUTS.engine != 'llm' && $INPUTS.engine != 'local'"
+    with:
+      load: "$load.output"
+    output_format:
+      type: object
+      properties:
+        decision: { type: string, enum: [ecartee, a_verifier, retenue] }
+        reasons: { type: array, items: { type: string } }
+        notes: { type: array, items: { type: string } }
+      required: [decision, reasons, notes]
+
+  # Moteur `local` (2026-11-08) : le modèle local (Ollama de la VM), questions fermées sur des
+  # phrases choisies par le code, chaque réponse contrôlée par le code, la règle décide. Sans Claude.
+  - id: local
+    script: local
+    runtime: bun
+    depends_on: [load]
+    when: "$load.output.go == true && $load.output.readable == true && $load.output.pre_screened == false && $INPUTS.engine == 'local'"
+    with:
+      load: "$load.output"
+    output_format:
+      type: object
+      properties:
+        decision: { type: string, enum: [ecartee, a_verifier, retenue] }
+        reasons: { type: array, items: { type: string } }
+        notes: { type: array, items: { type: string } }
+        engine: { type: string, enum: [local, rules] }
+      required: [decision, reasons, notes, engine]
+
+  - id: triage
+    include: job-triage
+    depends_on: [load]
+    when: "$load.output.go == true && $load.output.readable == true && $load.output.pre_screened == false && $INPUTS.engine == 'llm'"
+    with:
+      offer: "$load.output.offer_json"
+      criteria: "$load.output.criteria_json"
+      posting: posting.txt
+      posting_full: "$load.output.posting_full"
+      profile: "$load.output.profile_file"   # profile.md, ou vide sans master_profile.md
+      out: triage.json
+
+  # ── 3. L'issue (pur) ─────────────────────────────────────────────────────
+  # Seul un bloc `verified` (ou le pré-tri du code : `pre_screened`, écartée) écarte ou retient ;
+  # juge défavorable, boucle non convergée, annonce illisible : « à vérifier », avec la raison.
+  - id: classify
+    script: classify
+    runtime: bun
+    depends_on: [load, rules, local, triage]
+    trigger_rule: all_done
+    when: "$load.output.go == true"
+    with:
+      verdict: { from: "$triage.output", if_skipped: null }
+      rules: { from: "$rules.output", if_skipped: null }
+      local: { from: "$local.output", if_skipped: null }
+      load: "$load.output"
+    output_format:
+      type: object
+      properties:
+        decision: { type: string, enum: [ecartee, a_verifier, retenue] }
+        reasons: { type: array, items: { type: string } }
+        notes: { type: array, items: { type: string } }
+        block_status: { type: string, enum: [verified, rejected, unconverged, unreadable, pre_screened, rules, local, none] }
+      required: [decision, reasons, notes, block_status]
+
+  # ── 4. Écrit dans le dossier carrière ────────────────────────────────────
+  # Tourne aussi quand il n'y a rien à trier (idle : n'écrit rien, ok: true).
+  - id: record
+    script: record
+    runtime: bun
+    depends_on: [load, classify]
+    trigger_rule: all_done
+    with:
+      career_dir: "$INPUTS.career_dir"
+      load: "$load.output"
+      classified: { from: "$classify.output", if_skipped: null }
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        written: { type: boolean }
+        key: { type: string }
+        decision: { type: string }
+        path: { type: string }
+        summary: { type: string }
+      required: [ok, written, key, decision, path, summary]

@@ -1,0 +1,10 @@
+{
+  "_fixture": "fabriquée à la main d'après la documentation Adzuna (api.adzuna.com injoignable)",
+  "count": 1,
+  "results": [
+    { "id": "4000000001", "title": "Marketing Operations Specialist (Remote)", "company": { "display_name": "Exemple SAS" },
+      "location": { "display_name": "Paris, Île-de-France", "area": ["France", "Île-de-France", "Paris"] },
+      "redirect_url": "https://www.adzuna.fr/land/ad/4000000001?se=example", "created": "2026-10-23T06:00:00Z",
+      "description": "Fully remote role within France. HubSpot, Salesforce, reporting.", "salary_min": 40000, "salary_max": 48000, "salary_is_predicted": "0" }
+  ]
+}

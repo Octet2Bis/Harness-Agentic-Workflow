@@ -1,0 +1,127 @@
+name: career-listener
+description: |
+  Système « career-listener » : l'écouteur du cas d'usage carrière. À chaque réveil (timer
+  ou appel), clôt les prises APPLYING périmées (APPLY_FAILED, ou APPLY_UNPROVEN si leur
+  submission/ montre un clic possible ; jamais remises en file), puis, si aucune autre
+  candidature n'est en vol, prend l'offre VALIDATED la moins tentée puis la plus ancienne de
+  pending_gold_jobs.json, la passe APPLYING et lance un sous-run career-apply dessus ; la
+  clôture relaie le statut écrit par career-apply (ou l'écrit à sa place s'il n'a pas pu, tant
+  que l'offre est APPLYING par ce run), et un dernier nœud clôt l'offre si le sous-run a échoué
+  ou a été annulé sans rien écrire (le statut sauvé par la clôture, sinon APPLY_UNPROVEN s'il y
+  a trace d'un clic, sinon APPLY_FAILED). Toute écriture du tableau passe par son verrou. Une
+  offre par tour : le timer suivant prend la suivante. Rien à faire : `idle`, sans écriture.
+
+  Use when: a scheduler fires every few minutes to apply to the offers the candidate
+  validated on Telegram.
+  NOT for: running one known offer by hand (run career-apply directly).
+
+# Pas de verrou de dossier (choix du round 3) : aucun nœud n'écrit dans le checkout (l'état
+# vit dans pending_gold_jobs.json, hors du dépôt, et dans les artefacts du run). Avec le verrou,
+# n'importe quel run plus ancien actif dans le même dossier (board-listener en pause à une
+# validation humaine, un research-report…) ferait annuler chaque réveil (« This worktree is in
+# use ») tant qu'il dure. Deux listeners ne se doublent pas sans lui : la liaison
+# (`overlap: skip`, isolation in-place) saute un réveil tant qu'un listener lancé par elle
+# vit, en pause comprise (Archon, resource-start-store.ts `heldCheckouts` : un run tient son
+# checkout jusqu'à sa fin, même en pause ; admission.ts : `skipped`). Le profil du navigateur
+# n'est jamais partagé par deux career-apply : une seule candidature en vol à la fois
+# (`claim` ne prend rien tant qu'une offre est APPLYING ; `load` de career-apply, lancé à la
+# main, refuse de même).
+mutates_checkout: false
+
+inputs:
+  career_dir:
+    required: true
+    description: Absolute path of Master Plan's Workspace/career.
+  mode:
+    default: verified-only
+    description: Submission policy passed to career-apply.
+  verified_platforms:
+    default: ""
+    description: Comma-separated verified platform ids passed to career-apply.
+
+returns: { node: close, outcome: ok }
+
+nodes:
+  - id: claim
+    script: claim
+    runtime: bun
+    with:
+      career_dir: "$INPUTS.career_dir"
+    output_format:
+      type: object
+      properties:
+        path: { type: string, enum: [idle, work] }
+        slug: { type: string }
+        company: { type: string }
+        title: { type: string }
+        run: { type: string }
+        stale: { type: array, items: { type: string } }
+        summary: { type: string }
+      required: [path, slug, company, title, run, stale, summary]
+
+  # Un sous-run en pause au go met le listener en pause avec lui (« blocked on sub-run ») ;
+  # il reprend quand l'humain répond sur le run de career-apply. Pendant ce temps la liaison
+  # saute chaque réveil (le listener en pause tient son checkout) : la règle des prises
+  # périmées ne tourne pas non plus, la file attend l'humain. Si ce sous-run échoue APRÈS
+  # le go (erreur du modèle `submit`, ou du juge…), le listener qui reprend le relance une fois
+  # (Archon, dag-executor.ts : un enfant `failed` est re-piloté), et Archon y rejoue les nœuds
+  # en échec, `submit` compris : seul le verrou `arm` d'apply-submit (`always_run`, armed.json)
+  # l'en empêche ; le sous-run rend alors `unproven` et `record` écrit APPLY_UNPROVEN, jamais
+  # un second clic. `claim_run` dit à `record` quelle prise est la sienne (`mayRecord`).
+  - id: run
+    workflow: career-apply
+    depends_on: [claim]
+    when: "$claim.output.path == 'work'"
+    with:
+      slug: "$claim.output.slug"
+      career_dir: "$INPUTS.career_dir"
+      mode: "$INPUTS.mode"
+      verified_platforms: "$INPUTS.verified_platforms"
+      claim_run: "$claim.output.run"
+
+  # Relaie l'issue d'un sous-run terminé ; la sauve d'abord dans $ARTIFACTS_DIR/close.json ;
+  # si `record` n'a pas pu écrire le statut (`status_written: false`), l'écrit à sa place tant
+  # que l'offre est APPLYING par cette prise (`recordUnwritten`). Si cette écriture échoue
+  # aussi, `settle` relit close.json. Un sous-run en échec ou annulé fait échouer `run`, et
+  # `close` avec lui : Archon ne lit jamais un nœud en échec, même avec `if_skipped`.
+  - id: close
+    script: close
+    runtime: bun
+    depends_on: [claim, run]
+    trigger_rule: all_done
+    with:
+      claim: { from: "$claim.output" }
+      result: { from: "$run.output", if_skipped: null }
+      career_dir: "$INPUTS.career_dir"
+    output_format:
+      type: object
+      properties:
+        ok: { type: boolean }
+        path: { type: string, enum: [idle, done, failed] }
+        slug: { type: string }
+        status: { type: string }
+        summary: { type: string }
+      required: [ok, path, slug, status, summary]
+
+  # ── Le filet : un sous-run en échec ne laisse pas l'offre APPLYING ─────────────────────
+  # Tourne quoi qu'il soit arrivé (all_done) et ne lie que `claim`, jamais `run` ni `close`.
+  # Si l'offre est encore APPLYING par CE run (applying.run = claim.run), personne n'a écrit
+  # son statut (`settleClaim`, .shared/pending.ts) : celui que `close` a sauvé dans
+  # close.json ; sinon APPLY_UNPROVEN si le submission/ du sous-run (applying.artifacts, noté
+  # par son `load`) montre un clic possible (un cancel pendant `submit`) ; sinon APPLY_FAILED.
+  - id: settle
+    script: settle
+    runtime: bun
+    depends_on: [claim, run, close]
+    trigger_rule: all_done
+    with:
+      claim: { from: "$claim.output" }
+      career_dir: "$INPUTS.career_dir"
+    output_format:
+      type: object
+      properties:
+        settled: { type: boolean }
+        slug: { type: string }
+        status: { type: string }
+        summary: { type: string }
+      required: [settled, slug, status, summary]

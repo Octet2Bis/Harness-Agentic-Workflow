@@ -1,0 +1,73 @@
+{
+  "_doc": "Écrit à la main d'après la documentation de la Recruitee Careers Site API (GET {company}.recruitee.com/api/offers/), forme à confirmer sur une vraie réponse. Aucune entreprise réelle.",
+  "offers": [
+    {
+      "id": 2300101,
+      "slug": "revenue-operations-manager-m-f-d",
+      "title": "Revenue Operations Manager (m/f/d)",
+      "status": "published",
+      "published_at": "2026-10-22T07:15:00.000Z",
+      "created_at": "2026-10-20T09:00:00.000Z",
+      "careers_url": "https://astronomer.recruitee.com/o/revenue-operations-manager-m-f-d",
+      "careers_apply_url": "https://astronomer.recruitee.com/o/revenue-operations-manager-m-f-d/c/new",
+      "description": "<p>Own the CRM data model and pipeline reporting for the GTM team.</p>",
+      "requirements": "<ul><li>HubSpot or Salesforce admin</li><li>SQL</li></ul>",
+      "department": "Revenue",
+      "employment_type_code": "fulltime",
+      "remote": true,
+      "hybrid": false,
+      "on_site": false,
+      "locations": [{ "city": "Berlin", "country": "Germany", "country_code": "DE" }],
+      "salary": { "min": 60000, "max": 75000, "currency": "EUR", "period": "yearly" },
+      "tags": ["revops", "remote"]
+    },
+    {
+      "id": 2300102,
+      "slug": "sales-development-representative",
+      "title": "Sales Development Representative",
+      "status": "published",
+      "published_at": "2026-10-21T12:00:00.000Z",
+      "careers_url": "https://astronomer.recruitee.com/o/sales-development-representative",
+      "careers_apply_url": "https://astronomer.recruitee.com/o/sales-development-representative/c/new",
+      "description": "<p>Book meetings for the US sales team from our Denver office.</p>",
+      "requirements": "",
+      "department": "Sales",
+      "employment_type_code": "fulltime",
+      "remote": false,
+      "hybrid": false,
+      "on_site": true,
+      "locations": [{ "city": "Denver", "country": "United States", "country_code": "US" }],
+      "salary": null,
+      "tags": []
+    },
+    {
+      "id": 2300103,
+      "slug": "head-of-growth-partnerships",
+      "title": "Head of Growth &amp; Partnerships",
+      "status": "published",
+      "published_at": "2026-10-20T08:00:00.000Z",
+      "careers_url": "https://astronomer.recruitee.com/o/head-of-growth-partnerships",
+      "description": "<p>Lead growth &amp; partnerships across Europe.</p>",
+      "requirements": "<p>8+ years in B2B SaaS growth.</p>",
+      "department": "Growth",
+      "employment_type_code": "fulltime",
+      "remote": false,
+      "hybrid": true,
+      "on_site": false,
+      "locations": [{ "city": "Amsterdam", "country": "Netherlands", "country_code": "NL" }, { "city": "Paris", "country": "France", "country_code": "FR" }],
+      "salary": { "min": 90000, "max": 90000, "currency": "EUR", "period": "yearly" },
+      "tags": ["growth"]
+    },
+    {
+      "id": 2300104,
+      "slug": "closed-offer",
+      "title": "Closed offer still in the feed",
+      "status": "closed",
+      "published_at": "2026-09-01T08:00:00.000Z",
+      "careers_url": "https://astronomer.recruitee.com/o/closed-offer",
+      "department": "Sales",
+      "remote": false,
+      "locations": []
+    }
+  ]
+}

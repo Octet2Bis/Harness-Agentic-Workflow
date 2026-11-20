@@ -1,0 +1,39 @@
+# Issue « letter-attached » : une lettre de motivation est donnée (`letter`, PDF produit en
+# amont). `target` (réel) dit où s'ouvre le formulaire Greenhouse (sa page embed/job_app, hors
+# de l'iframe), et passe aux agents la lettre et sa version texte (même nom en .md) ; le
+# formulaire a un champ de téléversement pour la lettre, `prefill` (stub) l'y joint, à côté du
+# CV, et le contrôle (stub : ce qu'il a lu ; la règle, `letterProblems`, est testée dans
+# .shared/submission-checks.test.ts) est vert. Mode `confirm` : le go est demandé, approuvé,
+# l'envoi est confirmé, le juge approuve. Sans lettre (`letter` vide, toutes les autres
+# fixtures), `target` rend `letter: ""` et rien ne change (`auto-submitted`).
+# attendu(target): platform=greenhouse form_url=https://job-boards.greenhouse.io/embed/job_app?for=acme&token=4567 needs_login=false handover=false letter=/stub/application/lettre.pdf letter_text=/stub/application/lettre.md
+# attendu(gate): needs_go=true
+# attendu(decide): proceed=true path=approved
+# attendu(own): held=true
+# attendu(arm): clear=true
+# attendu: ok=true status=verified submitted=true
+prefill: { summary: "stub: form filled, CV and cover letter attached", blocked: false, blocker: "" }
+check_prefill:
+  ok: true
+  problems: []
+  summary: "stub: form filled, CV and cover letter attached\nRéponses libres : aucune.\nÀ remplir par Antoine : rien.\nLettre (lettre.pdf) : jointe."
+  filled: 7
+  attached: true
+  submitted_early: false
+  tries: 1
+go: { decision: approve, text: "" }
+submit: { summary: "stub: thank-you page shown", clicked: true }
+check_receipt: { ok: true, problems: [], submitted: true, proven: true, confirmation: "thank you for applying", summary: "stub: thank-you page shown" }
+judge: { approved: true, reason: "stub: right employer, CV and letter each in their field, confirmation visible", findings: [] }
+fixture:
+  expect: completed
+  reached: [target, gate, go, decide, own, arm, submit, check_receipt, judge, verdict]
+  inputs:
+    apply_url: "https://boards.greenhouse.io/acme/jobs/4567"
+    platform: greenhouse
+    candidate: "/stub/application/candidate.json"
+    cv: "/stub/application/CV.pdf"
+    letter: "/stub/application/lettre.pdf"
+    offer: "{\"company\":\"Acme\",\"title\":\"Growth Ops Manager\"}"
+    mode: confirm
+exec-code: true

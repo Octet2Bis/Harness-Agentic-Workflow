@@ -1,0 +1,18 @@
+# Routage : une carte `--workflow=feature-build` (la tâche remplit `request`, son worktree à
+# lui ; tests, lint et base de CE dépôt, vérifiés contre BOARD_WORKFLOWS par board.test.ts). Seul
+# `run_feature_build` tourne (sous-run stubbé, PR brouillon ouverte), `outcome` (réel) rend
+# DONE. `hold` / `close` / `settle` stubbés (état Archon).
+# attendu(outcome): ok=true path=done workflow=feature-build
+claim: { path: work, id: "20261016150000-feat", run: "stub-run", workflow: feature-build, task: "stub: ajouter --dry-run à check.ts", context: "", revision: 2, note: "" }
+hold: { held: true, status: picked_up, by: "stub-run" }
+run_feature_build:
+  ok: true
+  stage: done
+  summary: "stub: draft PR opened"
+  pr_url: "https://github.com/stub/stub/pull/1"
+close: { ok: true, path: done, id: "20261016150000-feat", workflow: feature-build, summary: "stub: closed" }
+settle: { settled: false, id: "20261016150000-feat", summary: "stub: already done" }
+fixture:
+  expect: completed
+  reached: [claim, hold, run_feature_build, outcome, outcome_result, close, settle]
+exec-code: true

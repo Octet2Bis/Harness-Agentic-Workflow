@@ -1,0 +1,30 @@
+# Issue « rejected » : les contrôles passent (sections, histoires citées, chiffres du profil),
+# mais le juge note B : une histoire donne à Antoine un rôle de pilote que le profil ne lui
+# donne pas. Le run se termine normalement avec une issue autorisée négative (ok: false).
+# attendu: ok=false status=rejected
+work:
+  summary: "stub: étape technique, quatre histoires"
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "interview-prep.md" }
+check:
+  ok: true
+  problems: []
+  summary: "stub: étape technique, quatre histoires"
+  stories: 4
+  coverage: 0.75
+  deliverable: { type: archon_artifact, run_id: "fixture-run", path: "interview-prep.md" }
+  tries: 2
+judge:
+  approved: false
+  grade: "B"
+  reason: "stub: l'histoire 2 gonfle le rôle d'Antoine ; les questions probables sont celles d'un entretien RH"
+  findings:
+    - { severity: blocking, text: "stub: histoire 2 — « j'ai piloté la refonte » alors que le profil dit « participation à la refonte »" }
+    - { severity: minor, text: "stub: aucune question sur la pile de l'annonce pour une étape technique" }
+fixture:
+  expect: completed
+  reached: [judge, verdict]
+  inputs:
+    application: "/stub/career/applications/acme"
+    profile: "/stub/career/master_profile.md"
+    stage: technique
+exec-code: true

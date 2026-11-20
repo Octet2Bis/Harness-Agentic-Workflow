@@ -1,0 +1,9 @@
+{
+  "playwright": {
+    "command": "bun",
+    "args": [".archon/mcp/browser-mcp.ts"],
+    "env": {
+      "HARNESS_BROWSER_PROFILE": "${HARNESS_BROWSER_PROFILE}"
+    }
+  }
+}
